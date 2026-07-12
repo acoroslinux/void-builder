@@ -1,30 +1,39 @@
+"""
+cleanup.py - Cleanup module for void_builder.
+
+Removes temporary build directories after ISO generation.
+"""
+
 import os
 import shutil
+
 from void_builder.core.base_module import BaseModule
+from void_builder.utils.lib import info_msg, warn_msg
+
 
 class CleanupModule(BaseModule):
+    """Cleans up temporary build directories."""
+
     def __init__(self, config):
         super().__init__(config)
-        self.output_dir = self.config.get('output_dir', './output')
+        self.output_dir = self.config.get("output_dir", "./output")
         self.iso_dir = f"{self.output_dir}_iso"
-        self.cleanup = self.config.get('cleanup', True)
+        self.cleanup = self.config.get("cleanup", True)
 
     def run(self):
         if not self.cleanup:
-            print("Cleanup disabled in config. Skipping.")
+            info_msg("Cleanup disabled in config. Skipping.")
             return
 
-        print("Cleaning up temporary directories...")
-        
-        try:
-            if os.path.exists(self.output_dir):
-                print(f"Removing {self.output_dir}...")
-                shutil.rmtree(self.output_dir)
-                
-            if os.path.exists(self.iso_dir):
-                print(f"Removing {self.iso_dir}...")
-                shutil.rmtree(self.iso_dir)
-                
-            print("Cleanup complete.")
-        except Exception as e:
-            print(f"Failed to cleanup: {e}")
+        info_msg("Cleaning up temporary directories...")
+
+        for d in [self.output_dir, self.iso_dir]:
+            if os.path.exists(d):
+                try:
+                    shutil.rmtree(d)
+                    info_msg(f"Removed {d}")
+                except Exception as e:
+                    warn_msg(f"Failed to remove {d}: {e}")
+
+        info_msg("Cleanup complete")
+
