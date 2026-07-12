@@ -1,0 +1,27 @@
+# Common configuration for all builds
+architecture: "x86_64"
+base_system: "base-system"
+repository: "https://repo-default.voidlinux.org/current"
+
+# Bootloader configuration
+boot_title: "Void Linux"
+keymap: "us"
+locale: "en_US.UTF-8"
+boot_cmdline: ""
+splash_image: "" # Path to a custom splash image if desired
+
+# Common packages that should be in every build
+packages:
+  - vim
+  - git
+  - curl
+  - bash-completion
+
+# Common services
+services:
+  - dhcpcd
+  - sshd
+
+# Default output settings
+output_dir: "./output"
+cleanup: false
