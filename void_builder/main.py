@@ -39,6 +39,11 @@ def main(config, common_dir):
         cfg_manager = ConfigManager(config, common_dir)
         info_msg("Configuration loaded successfully")
 
+        # Ensure static binaries (xbps, proot) are available before any module runs
+        from void_builder.utils.lib import ensure_static_xbps, ensure_proot
+        ensure_static_xbps()
+        ensure_proot()
+
         # Import modules
         from void_builder.modules.rootfs import RootfsBuilder
         from void_builder.modules.services import ServicesModule

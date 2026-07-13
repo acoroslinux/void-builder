@@ -44,7 +44,7 @@ class UsersModule(ChrootModule):
             else:
                 # Create user
                 groups = user.get("groups", [])
-                groups_str = f"-G {\" ,\".join(groups)}" if groups else ""
+                groups_str = f"-G {", ".join(groups)}" if groups else ""
                 shell = user.get("shell", "/bin/bash")
 
                 cmd = f"useradd -m -s {shell} {groups_str} {username}"

@@ -148,6 +148,76 @@ def cleanup_chroot(rootfs):
             pass
     umount_pseudofs(rootfs)
 
+# ---------------------------------------------------------------------------
+# Static binary helpers (xbps, proot)
+# ---------------------------------------------------------------------------
+
+def ensure_static_xbps(tools_dir: str | None = None) -> str:
+    """Make sure the static `xbps-install.static` binary is present.
+
+    The function checks the **`tools`** directory for the *usr/bin/xbps-install.static*
+    binary. If it is missing, it downloads the latest *xbps-static* tarball for the host
+    architecture from the official *rootls* mirror, extracts it into the tools
+    directory and returns the path to the helper.
+
+    Parameters
+    ----------
+    tools_dir:
+        Optional custom path to the tools directory. If omitted, get_tools_dir()
+        will be used.
+
+    Returns
+    -------
+    str
+        The absolute path to ``xbps-install.static``.
+    """
+    import urllib.request
+    tools_dir = tools_dir or get_tools_dir()
+    ensure_dir(tools_dir)
+    helper_path = os.path.join(tools_dir, "usr", "bin", "xbps-install.static")
+    if os.path.exists(helper_path):
+        return helper_path
+
+    arch = get_host_arch()
+    url = f"https://download.rootls.de/xbps-static/{arch}/xbps-static-latest.{arch}.tar.xz"
+    tmp_tar = os.path.join(tools_dir, f"xbps-static-{arch}.tar.xz")
+    info_msg(f"Downloading static xbps from {url}")
+    try:
+        urllib.request.urlretrieve(url, tmp_tar)
+    except Exception as e:
+        warn_msg(f"Failed to download static xbps tarball: {e}")
+        raise
+    # Extract into tools_dir preserving directory layout
+    rc, _, stderr = CommandRunner.run(["tar", "-xJf", tmp_tar, "-C", tools_dir], check=False, stream=True)
+    if rc != 0:
+        error_msg(f"Failed to extract xbps tarball: {stderr}")
+        raise RuntimeError(stderr)
+    os.remove(tmp_tar)
+    return helper_path
+
+def ensure_proot(tools_dir: str | None = None) -> str:
+    """Ensure the presence of a static `proot` binary.
+
+    On first invocation it will download `proot` from the official GitHub release
+    page and write it into ``<tools_dir>/proot``. Subsequent calls simply return
+    the existing path.
+    """
+    import urllib.request
+    tools_dir = tools_dir or get_tools_dir()
+    ensure_dir(tools_dir)
+    proot_bin = os.path.join(tools_dir, "proot")
+    if os.path.exists(proot_bin):
+        return proot_bin
+    url = "https://github.com/proot-me/proot/releases/latest/download/proot"
+    info_msg(f"Downloading proot static binary from {url}")
+    try:
+        urllib.request.urlretrieve(url, proot_bin)
+    except Exception as e:
+        warn_msg(f"Failed to download proot: {e}")
+        raise
+    os.chmod(proot_bin, 0o755)
+    return proot_bin
+
 
 def get_mklive_dir():
     """Return the path to the void-mklive directory."""
@@ -164,3 +234,63 @@ def ensure_dir(path):
     """Create a directory if it doesn't exist and return its path."""
     os.makedirs(path, exist_ok=True)
     return path
+
+# ---------------------------------------------------------------------------
+# Static binary helpers (xbps, proot)
+# ---------------------------------------------------------------------------
+
+def ensure_static_xbps(tools_dir=None):
+    """Verify that a static xbps helper exists.
+
+    If the ``xbps-install.static`` binary is missing from *tools_dir*, this
+    function will download the latest ``xbps-static`` tarball for the host
+    architecture, extract it into *tools_dir*, and return the path to the
+    helper.  The download is performed from the official rootls mirror used
+    by Void Linux.
+
+    The function is idempotent – repeated calls will not re‑download the
+    tarball if the binary is already present.
+    """
+    import urllib.request
+    tools_dir = tools_dir or get_tools_dir()
+    ensure_dir(tools_dir)
+    helper = os.path.join(tools_dir, "usr", "bin", "xbps-install.static")
+    if os.path.exists(helper):
+        return helper
+    arch = get_host_arch()
+    url = f"https://download.rootls.de/xbps-static/{arch}/xbps-static-latest.{arch}.tar.xz"
+    tmp_tar = os.path.join(tools_dir, f"xbps-static-{arch}.tar.xz")
+    info_msg(f"Downloading static xbps from {url}")
+    try:
+        urllib.request.urlretrieve(url, tmp_tar)
+    except Exception as e:
+        warn_msg(f"Failed to download static xbps tarball: {e}")
+        raise
+    rc, _, stderr = CommandRunner.run(["tar", "-xJf", tmp_tar, "-C", tools_dir], check=False, stream=True)
+    if rc != 0:
+        error_msg(f"Failed to extract xbps tarball: {stderr}")
+        raise RuntimeError(stderr)
+    os.remove(tmp_tar)
+    return helper
+
+def ensure_proot(tools_dir=None):
+    """Guarantee the presence of a static proot binary.
+
+    The binary is downloaded straight from the proot releases page and
+    written to ``<tools_dir>/proot``.
+    """
+    import urllib.request
+    tools_dir = tools_dir or get_tools_dir()
+    ensure_dir(tools_dir)
+    proot_bin = os.path.join(tools_dir, "proot")
+    if os.path.exists(proot_bin):
+        return proot_bin
+    url = "https://github.com/proot-me/proot/releases/latest/download/proot"
+    info_msg(f"Downloading proot static binary from {url}")
+    try:
+        urllib.request.urlretrieve(url, proot_bin)
+    except Exception as e:
+        warn_msg(f"Failed to download proot: {e}")
+        raise
+    os.chmod(proot_bin, 0o755)
+    return proot_bin
