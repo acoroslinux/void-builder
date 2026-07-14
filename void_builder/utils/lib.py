@@ -239,3 +239,47 @@ def ensure_dir(path):
     """Create a directory if it doesn't exist and return its path."""
     os.makedirs(path, exist_ok=True)
     return path
+
+
+def filter_repositories(repos: list, arch: str) -> list:
+    """Filter repositories to only keep those compatible with the target architecture/libc."""
+    is_musl = "musl" in arch
+    is_arm = any(x in arch for x in ("aarch64", "armv7l", "armv6l"))
+    
+    filtered = []
+    for r in repos:
+        r_lower = r.lower()
+        # If target is musl, repository must contain musl, unless it's a custom/local repo
+        if "repo-default.voidlinux.org" in r_lower:
+            if is_arm:
+                if is_musl:
+                    if "aarch64/musl" in r_lower or "musl/aarch64" in r_lower:
+                        filtered.append(r)
+                else:
+                    if "aarch64" in r_lower and "musl" not in r_lower:
+                        filtered.append(r)
+            else:
+                if is_musl:
+                    if "musl" in r_lower and "aarch64" not in r_lower:
+                        filtered.append(r)
+                else:
+                    if "musl" not in r_lower and "aarch64" not in r_lower:
+                        filtered.append(r)
+        else:
+            # Keep custom/local repositories as-is
+            filtered.append(r)
+            
+    # Fallback to official mirror defaults if filtered list is empty
+    if not filtered:
+        if is_arm:
+            if is_musl:
+                filtered.append("https://repo-default.voidlinux.org/current/aarch64/musl")
+            else:
+                filtered.append("https://repo-default.voidlinux.org/current/aarch64")
+        else:
+            if is_musl:
+                filtered.append("https://repo-default.voidlinux.org/current/musl")
+            else:
+                filtered.append("https://repo-default.voidlinux.org/current")
+                
+    return filtered

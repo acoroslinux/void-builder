@@ -95,7 +95,7 @@ class ChrootManager:
         if not cache_path_str:
             cache_path_str = "output/cache/xbps"
             
-        cache_dir = resolve_from_project(cache_path_str)
+        cache_dir = resolve_from_project(cache_path_str) / self.arch
         cache_dir.mkdir(parents=True, exist_ok=True)
 
         # Determine package repositories
@@ -119,9 +119,17 @@ class ChrootManager:
             else:
                 repos.append("https://repo-default.voidlinux.org/current")
 
+        # Filter repos to only use compatible ones for target arch
+        from void_builder.utils.lib import filter_repositories
+        repos = filter_repositories(repos, self.arch)
+
         logger.info(f"[Chroot] Installing {len(packages)} packages: {', '.join(packages)}")
         logger.info(f"[Chroot] Using package cache directory: {cache_dir}")
         logger.info(f"[Chroot] Using package repositories: {', '.join(repos)}")
+
+        # Copy repository public keys to the target chroot
+        if self.mode == "real":
+            self.toolchain._copy_void_keys(self.chroot_path)
 
         if self.mode == "mock":
             logger.info(f"[Chroot] [MOCK] Would install packages: {packages}")
@@ -141,10 +149,10 @@ class ChrootManager:
         cmd_env["XBPS_ARCH"] = self.arch
 
         logger.info(f"[Chroot] Running host-side xbps-install.static: {' '.join(cmd)}")
-        res = subprocess.run(cmd, env=cmd_env, text=True, capture_output=True)
+        res = subprocess.run(cmd, env=cmd_env)
         if res.returncode != 0:
-            logger.error(f"[Chroot] Package installation failed (exit {res.returncode}): {res.stderr}")
-            raise ChrootError(f"Package installation failed: {res.stderr}")
+            logger.error(f"[Chroot] Package installation failed (exit {res.returncode}).")
+            raise ChrootError(f"Package installation failed with exit code {res.returncode}")
 
         logger.info("[Chroot] Package installation completed successfully.")
 

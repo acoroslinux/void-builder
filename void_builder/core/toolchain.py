@@ -85,7 +85,7 @@ class ToolchainManager:
 
     def _run_xbps_install(self, rootdir: Path, arch: str, packages: List[str], repos: List[str]):
         from void_builder.core.path_utils import resolve_from_project
-        cache_dir = resolve_from_project("output/cache/xbps")
+        cache_dir = resolve_from_project("output/cache/xbps") / arch
         cache_dir.mkdir(parents=True, exist_ok=True)
 
         cmd = [
@@ -101,10 +101,10 @@ class ToolchainManager:
         cmd_env["XBPS_ARCH"] = arch
 
         logger.info(f"[TOOLCHAIN] Bootstrapping packages in {rootdir}: {', '.join(packages)}")
-        res = subprocess.run(cmd, env=cmd_env, capture_output=True, text=True)
+        res = subprocess.run(cmd, env=cmd_env)
         if res.returncode != 0:
-            logger.error(f"[TOOLCHAIN] Bootstrap failed (exit {res.returncode}): {res.stderr}")
-            raise RuntimeError(f"Bootstrap failed: {res.stderr}")
+            logger.error(f"[TOOLCHAIN] Bootstrap failed (exit {res.returncode}).")
+            raise RuntimeError(f"Bootstrap failed with exit code {res.returncode}")
 
     def _bootstrap_toolchain_dirs(self):
         # 1. Copy keys
@@ -118,9 +118,11 @@ class ToolchainManager:
             "https://repo-default.voidlinux.org/current/musl",
             "https://repo-default.voidlinux.org/current/aarch64"
         ]
-
+        
+        from void_builder.utils.lib import filter_repositories
+        host_repos = filter_repositories(repos, host_arch)
         host_pkgs = ["base-files", "libgcc", "dash", "coreutils", "sed", "tar", "gawk", "squashfs-tools", "xorriso"]
-        self._run_xbps_install(self.host_dir, host_arch, host_pkgs, repos)
+        self._run_xbps_install(self.host_dir, host_arch, host_pkgs, host_repos)
 
         # 3. Install target bootloader packages into self.target_dir
         target_pkgs = ["base-files"]
@@ -129,7 +131,8 @@ class ToolchainManager:
         elif self.arch.startswith("aarch64"):
             target_pkgs.extend(["grub-arm64-efi"])
             
-        self._run_xbps_install(self.target_dir, self.arch, target_pkgs, repos)
+        target_repos = filter_repositories(repos, self.arch)
+        self._run_xbps_install(self.target_dir, self.arch, target_pkgs, target_repos)
 
     def execute_command(
         self,
