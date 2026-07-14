@@ -230,6 +230,10 @@ class ConfigAssembler:
         arch_config_path = self.config_root / "architectures" / f"{target_arch}.json"
         if arch_config_path.exists():
             arch_data = self._load_json_file(arch_config_path)
+            if "repositories" in arch_data:
+                self.master_config["repositories"] = arch_data["repositories"]
+                arch_data = arch_data.copy()
+                del arch_data["repositories"]
             self._deep_merge(self.master_config, arch_data)
         else:
             logger.warning(

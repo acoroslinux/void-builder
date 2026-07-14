@@ -4,6 +4,15 @@
     "workdir_base": "void-builder/workdir",
     "xbps_cache": "output/cache/xbps"
   },
+  "_comment_repositories": "Repositórios oficiais padrão usados pelo void-mklive para resolver as diferentes arquiteturas. Apenas estes três devem estar ativos por defeito.",
+  "repositories": [
+    "https://repo-default.voidlinux.org/current",
+    "https://repo-default.voidlinux.org/current/musl",
+    "https://repo-default.voidlinux.org/current/aarch64"
+  ],
+  "_comment_custom_repositories": "Para adicionar repositórios próprios, insira-os no array 'custom_repositories'. Exemplo: [\"https://meu-repo.com/voidlinux\"]",
+  "custom_repositories": [],
+  "_comment_priority": "Prioridade dos repositórios: o XBPS avalia os repositórios na ordem declarada (linha de comandos -R/--repository primeiro, depois os de perfis/custom_repositories, e por fim os repositórios oficiais base). A primeira correspondência de um pacote é a que será instalada.",
   "package_sources": {
     "official": [
       "base-system",
