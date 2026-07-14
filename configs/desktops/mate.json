@@ -1,0 +1,15 @@
+{
+  "package_sources": {
+    "official": [
+      "mate",
+      "mate-extra",
+      "lightdm",
+      "lightdm-gtk-greeter"
+    ]
+  },
+  "customizations": {
+    "services": [
+      "lightdm"
+    ]
+  }
+}

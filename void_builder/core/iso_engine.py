@@ -1,0 +1,404 @@
+import logging
+from abc import ABC, abstractmethod
+from pathlib import Path
+import shutil
+import tempfile
+from typing import Any, Dict, List, Optional, Type, Union
+
+from void_builder.core.config_loader import Config
+from void_builder.core.bootloaders.grub2 import Grub2Bootloader
+from void_builder.core.bootloaders.syslinux import SyslinuxBootloader
+from void_builder.core.chroot_manager import ChrootManager
+from void_builder.core.customizer import SystemConfigurator
+from void_builder.core.path_utils import resolve_from_project
+
+logger = logging.getLogger("ISOBuilder")
+_ENGINE_REGISTRY: Dict[str, Type["BaseEngine"]] = {}
+
+class ISOBuilderError(Exception):
+    """Raised when the build orchestration flow cannot proceed."""
+    pass
+
+
+class ISOEngine(ABC):
+    """Abstract base for architecture-specific build engines."""
+
+    @classmethod
+    def register(cls, arch_name: str):
+        def decorator(engine_class: Type["BaseEngine"]):
+            if arch_name in _ENGINE_REGISTRY:
+                raise TypeError(f"Architecture '{arch_name}' is already registered.")
+            _ENGINE_REGISTRY[arch_name] = engine_class
+            return engine_class
+
+        return decorator
+
+
+class BaseEngine(ISOEngine):
+    """Common engine behavior shared across all architecture-specific engines."""
+
+    def __init__(self, arch: str, config: Config, toolchain: Any):
+        self.arch = arch
+        self.config = config
+        self.toolchain = toolchain
+        self.logger = getattr(toolchain, "logger", logger)
+
+    def _cfg_get(self, key: str, default: Any = None) -> Any:
+        try:
+            value = self.config.get(key, default)
+        except TypeError:
+            value = self.config.get(key)
+        return default if value is None else value
+
+    def _workdir_base(self) -> str:
+        configured = (
+            self.config.get("system.workdir_base")
+            or "void-builder/workdir"
+        )
+        return str(resolve_from_project(str(configured)))
+
+    def _normalize_packages(self, packages: Any) -> List[str]:
+        if not packages:
+            return []
+        normalized: List[str] = []
+        for item in packages:
+            if isinstance(item, dict):
+                name = item.get("name")
+                if name:
+                    normalized.append(str(name))
+            else:
+                normalized.append(str(item))
+        return normalized
+
+    def _package_plan(self) -> Dict[str, List[str]]:
+        legacy_packages = self._normalize_packages(self._cfg_get("packages"))
+        platform_packages = self._normalize_packages(self._cfg_get("platform_specific.packages"))
+        legacy = list(dict.fromkeys(legacy_packages + platform_packages))
+        official = self._normalize_packages(self._cfg_get("package_sources.official", []))
+        
+        # Keep order while deduplicating.
+        official_all = list(dict.fromkeys([*legacy, *official]))
+
+        return {
+            "official": official_all,
+            "aur": [],
+            "local_paths": [],
+        }
+
+    def setup_workdir(self, workdir: Optional[Union[str, Path]] = None) -> Path:
+        target = Path(workdir) if workdir else Path(self._workdir_base())
+        if not target.is_absolute():
+            target = resolve_from_project(target)
+        target.mkdir(parents=True, exist_ok=True)
+        return target
+
+    @abstractmethod
+    def setup_chroot(self, workdir: str) -> None:
+        """Prepare the chroot environment."""
+
+    @abstractmethod
+    def install_packages(self) -> None:
+        """Install target packages inside the chroot."""
+
+    @abstractmethod
+    def build_bootloaders(self, mountpoint: str) -> None:
+        """Generate bootloader artifacts for the target architecture."""
+
+    @abstractmethod
+    def post_install_configure(self) -> None:
+        """Run post-install configuration steps."""
+
+    @abstractmethod
+    def finalize_isofile(self, output_path: str) -> None:
+        """Produce the final ISO file."""
+
+
+@ISOEngine.register("x86_64")
+@ISOEngine.register("x86_64-musl")
+@ISOEngine.register("i686")
+@ISOEngine.register("aarch64")
+@ISOEngine.register("aarch64-musl")
+@ISOEngine.register("armv7l")
+@ISOEngine.register("armv7l-musl")
+@ISOEngine.register("armv6l")
+@ISOEngine.register("armv6l-musl")
+class VoidEngine(BaseEngine):
+    """Engine in charge of Void Linux builds."""
+
+    def setup_chroot(self, workdir: str) -> None:
+        self.logger.info(f"[setup_chroot] Preparing chroot at {workdir}")
+        self.chroot_path = Path(workdir) / "airootfs"
+        self.chroot_path.mkdir(parents=True, exist_ok=True)
+
+        self.iso_staging = Path(workdir) / "iso-staging"
+        self.iso_staging.mkdir(parents=True, exist_ok=True)
+
+    def install_packages(self) -> None:
+        plan = self._package_plan()
+        chroot_manager = getattr(self.toolchain, "chroot_manager", None)
+        if chroot_manager and hasattr(chroot_manager, "install_packages"):
+            chroot_manager.install_packages(plan)
+        else:
+            self.logger.error("No chroot manager available to install packages.")
+            raise ISOBuilderError("ChrootManager missing.")
+
+    def post_install_configure(self) -> None:
+        chroot_manager = getattr(self.toolchain, "chroot_manager", None)
+        if not chroot_manager:
+            raise ISOBuilderError("ChrootManager missing.")
+
+        # 1. Mount virtual systems
+        chroot_manager.mount()
+
+        # 2. Run system configuration / customizations
+        self.logger.info("[post_install] Running customizations through configurator...")
+        configurator = SystemConfigurator(chroot_manager)
+        configurator.load_from_config(self.config)
+        configurator.apply()
+
+        # 3. 3-pass package reconfigure
+        self.logger.info("[post_install] Running Void 3-pass reconfigure...")
+        chroot_manager.run_reconfigure()
+
+        # 4. Unmount virtual systems
+        chroot_manager.umount()
+
+    def build_bootloaders(self, mountpoint: str) -> None:
+        self.logger.info("[bootloaders] Preparing bootloader files and copying kernel...")
+        
+        # Ensure target kernel and initramfs files exist in airootfs /boot
+        chroot_boot = self.chroot_path / "boot"
+        staging_boot = self.iso_staging / "boot"
+        staging_boot.mkdir(parents=True, exist_ok=True)
+
+        # Find kernel and initramfs inside target chroot and copy to staging_boot as vmlinuz/initrd
+        is_aarch64 = self.arch.startswith("aarch64")
+        kernel_name = "vmlinux" if is_aarch64 else "vmlinuz"
+
+        kernel_found = False
+        initrd_found = False
+
+        if chroot_boot.is_dir():
+            for f in chroot_boot.iterdir():
+                if f.name.startswith("vmlinuz-") or f.name.startswith("vmlinux-") or f.name in ("vmlinuz", "vmlinux"):
+                    shutil.copy2(f, staging_boot / kernel_name)
+                    kernel_found = True
+                elif f.name.startswith("initrd") or f.name.startswith("initramfs-") or f.name == "initrd":
+                    shutil.copy2(f, staging_boot / "initrd")
+                    initrd_found = True
+
+        if not kernel_found or not initrd_found:
+            self.logger.warning("[bootloaders] Kernel or initramfs not found in chroot /boot. Using mock placeholders.")
+            if getattr(self.toolchain, "mode", "mock") == "mock":
+                (staging_boot / kernel_name).write_text("mock-kernel")
+                (staging_boot / "initrd").write_text("mock-initrd")
+            else:
+                raise ISOBuilderError("Real build failed: kernel or initramfs missing in target chroot.")
+
+        # Process platform DTBs if ARM platforms are specified
+        platforms_config = self.config.get("platforms_config", {})
+        if is_aarch64 and platforms_config:
+            for platform, plat_info in platforms_config.items():
+                dtb_path = plat_info.get("dtb")
+                if dtb_path:
+                    chroot_dtb_dir = chroot_boot / "dtbs"
+                    src_dtb = None
+                    if chroot_dtb_dir.is_dir():
+                        for f in chroot_dtb_dir.rglob(dtb_path):
+                            if f.is_file():
+                                src_dtb = f
+                                break
+                    if src_dtb and src_dtb.exists():
+                        dest_dtb = staging_boot / "dtbs" / dtb_path
+                        dest_dtb.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(src_dtb, dest_dtb)
+                        self.logger.info(f"[bootloaders] Copied DTB for {platform}: {dtb_path}")
+                    else:
+                        self.logger.warning(f"[bootloaders] DTB file '{dtb_path}' not found in chroot /boot/dtbs/")
+
+        # Set up ISOLINUX (BIOS) - only for x86 architectures
+        if self.arch.startswith(("x86_64", "i686")):
+            syslinux = SyslinuxBootloader(self.config)
+            syslinux.prepare_files(self.iso_staging)
+            syslinux.generate_boot_image(self.iso_staging, self.chroot_path)
+
+        # Set up GRUB2 (UEFI) - for all architectures
+        grub = Grub2Bootloader(self.config, root_device_id="VOID_LIVE")
+        grub.prepare_files(self.iso_staging)
+        grub.generate_boot_image(self.iso_staging, self.chroot_path)
+
+    def _create_squashfs(self) -> None:
+        self.logger.info("[squashfs] Creating SquashFS image of target rootfs...")
+        liveos_dir = self.iso_staging / "LiveOS"
+        liveos_dir.mkdir(parents=True, exist_ok=True)
+        squashfs_file = liveos_dir / "squashfs.img"
+
+        if squashfs_file.exists():
+            squashfs_file.unlink()
+
+        is_mock = getattr(self.toolchain, "mode", "mock") == "mock"
+        if is_mock:
+            self.logger.info(f"[squashfs] [MOCK] Would create squashfs: {squashfs_file} from {self.chroot_path}")
+            squashfs_file.write_text("mock-squashfs-content")
+            return
+
+        import os
+        import subprocess
+        import tempfile
+
+        # Calculate directory size
+        res = subprocess.run(["du", "-sm", str(self.chroot_path)], capture_output=True, text=True)
+        try:
+            size_mb = int(res.stdout.split()[0])
+        except Exception:
+            size_mb = 1000
+
+        img_size_mb = size_mb * 2 + 100
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            tmp_liveos = tmp_path / "LiveOS"
+            tmp_liveos.mkdir(parents=True, exist_ok=True)
+
+            ext3_img = tmp_liveos / "ext3fs.img"
+            
+            # 1. Truncate image file
+            subprocess.run(["truncate", "-s", f"{img_size_mb}M", str(ext3_img)], check=True)
+            
+            # 2. Run mkfs.ext3
+            subprocess.run(["mkfs.ext3", "-F", "-m1", str(ext3_img)], check=True)
+            
+            # 3. Mount and copy
+            mount_point = tmp_path / "mnt"
+            mount_point.mkdir(parents=True, exist_ok=True)
+
+            chroot_cmd = []
+            if os.geteuid() != 0:
+                chroot_cmd = ["sudo"]
+
+            subprocess.run(chroot_cmd + ["mount", "-o", "loop", str(ext3_img), str(mount_point)], check=True)
+            try:
+                subprocess.run(chroot_cmd + ["cp", "-a", f"{self.chroot_path}/.", str(mount_point)], check=True)
+            finally:
+                subprocess.run(chroot_cmd + ["umount", "-f", str(mount_point)], check=True)
+
+            # 4. Generate squashfs from tmp_dir
+            cmd = [
+                "mksquashfs", str(tmp_dir), str(squashfs_file),
+                "-comp", "xz", "-b", "1M", "-noappend"
+            ]
+            self.logger.info(f"[squashfs] Command: {' '.join(cmd)}")
+            res = subprocess.run(cmd, capture_output=True, text=True)
+            if res.returncode != 0:
+                self.logger.error(f"[squashfs] SquashFS creation failed: {res.stderr}")
+                raise ISOBuilderError(f"SquashFS creation failed: {res.stderr}")
+
+        self.logger.info(f"[squashfs] SquashFS created: {squashfs_file}")
+
+    def finalize_isofile(self, output_path: str) -> None:
+        # 1. Create squashfs
+        self._create_squashfs()
+
+        # 2. Xorriso ISO creation
+        output_abs = str(resolve_from_project(output_path))
+        Path(output_abs).parent.mkdir(parents=True, exist_ok=True)
+
+        is_mock = getattr(self.toolchain, "mode", "mock") == "mock"
+        iso_label = self._cfg_get("system.iso_label", "VOID_LIVE")
+
+        command = [
+            "xorriso",
+            "-as", "mkisofs",
+            "-iso-level", "3",
+            "-rock", "-joliet", "-joliet-long",
+            "-max-iso9660-filenames",
+            "-omit-period", "-omit-version-number",
+            "-relaxed-filenames", "-allow-lowercase",
+            "-volid", iso_label,
+        ]
+
+        # Add BIOS boot options if ISOLINUX is present
+        isolinux_dir = self.iso_staging / "boot" / "isolinux"
+        if (isolinux_dir / "isolinux.bin").exists():
+            command.extend([
+                "-eltorito-boot", "boot/isolinux/isolinux.bin",
+                "-eltorito-catalog", "boot/isolinux/boot.cat",
+                "-no-emul-boot",
+                "-boot-load-size", "4",
+                "-boot-info-table",
+            ])
+
+        # Add UEFI boot options if efiboot.img is present
+        efiboot_img = self.iso_staging / "EFI" / "efiboot.img"
+        if efiboot_img.exists():
+            command.extend([
+                "-eltorito-alt-boot",
+                "-e", "EFI/efiboot.img",
+                "-no-emul-boot",
+                "-isohybrid-gpt-basdat",
+                "-isohybrid-apm-hfsplus",
+            ])
+
+        command.extend(["-output", output_abs, str(self.iso_staging)])
+
+        if is_mock:
+            self.logger.info(f"[finalize] [MOCK] Would create ISO: {output_abs} from {self.iso_staging}")
+            self.logger.info(f"[finalize] [MOCK] Command: {' '.join(command)}")
+            return
+
+        self.logger.info(f"[finalize] Creating bootable hybrid ISO with xorriso: {output_abs}")
+        self.logger.info(f"[finalize] Command: {' '.join(command)}")
+
+        import subprocess
+        res = subprocess.run(command, capture_output=True, text=True)
+        if res.returncode != 0:
+            if Path(output_abs).exists() and Path(output_abs).stat().st_size > 1000000:
+                self.logger.warning(
+                    f"xorriso reported an exit error/crash ({res.stderr}), "
+                    f"but the ISO file was successfully generated at {output_abs}."
+                )
+            else:
+                self.logger.error(f"xorriso failed: {res.stderr}")
+                raise ISOBuilderError(f"xorriso failed: {res.stderr}")
+
+        self.logger.info(f"[finalize] Bootable ISO created: {output_abs}")
+
+
+class ISOBuilder:
+    """Canonical high-level build orchestrator used by the project."""
+
+    def __init__(self, arch: str, config: Config, toolchain: Any):
+        self.arch = arch
+        self.config = config
+        self.toolchain = toolchain
+        
+        # Instantiate the correct engine based on target architecture
+        engine_cls = _ENGINE_REGISTRY.get(arch)
+        if not engine_cls:
+            raise ISOBuilderError(f"No build engine registered for architecture '{arch}'.")
+        self.engine = engine_cls(arch, config, toolchain)
+
+    def build(self, output_path: str, workdir: Optional[str] = None) -> str:
+        """Execute the full build pipeline."""
+        logger.info(f"=== Starting build pipeline for architecture {self.arch} ===")
+
+        # 1. Setup workdir
+        workdir_path = self.engine.setup_workdir(workdir)
+
+        # 2. Setup chroot environment
+        self.engine.setup_chroot(str(workdir_path))
+
+        # 3. Install packages
+        self.engine.install_packages()
+
+        # 4. Run post-install configuration & customizations
+        self.engine.post_install_configure()
+
+        # 5. Build bootloaders
+        self.engine.build_bootloaders(str(workdir_path))
+
+        # 6. Finalize ISO file
+        self.engine.finalize_isofile(output_path)
+
+        logger.info("=== Build completed successfully! ===")
+        return str(resolve_from_project(output_path))

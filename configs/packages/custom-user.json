@@ -1,0 +1,10 @@
+{
+  "package_sources": {
+    "official": [
+      "firefox",
+      "network-manager-applet",
+      "xclip",
+      "xsel"
+    ]
+  }
+}

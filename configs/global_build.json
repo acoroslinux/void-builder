@@ -1,0 +1,15 @@
+{
+  "system": {
+    "iso_label": "VOID_LIVE",
+    "workdir_base": "void-builder/workdir"
+  },
+  "package_sources": {
+    "official": [
+      "base-system",
+      "vim",
+      "git",
+      "curl",
+      "bash-completion"
+    ]
+  }
+}

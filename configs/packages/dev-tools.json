@@ -1,0 +1,9 @@
+{
+  "package_sources": {
+    "official": [
+      "base-devel",
+      "git",
+      "cmake"
+    ]
+  }
+}

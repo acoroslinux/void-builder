@@ -1,0 +1,8 @@
+{
+  "package_sources": {
+    "official": [
+      "ffmpeg",
+      "alsa-utils"
+    ]
+  }
+}

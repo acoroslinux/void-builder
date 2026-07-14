@@ -1,0 +1,9 @@
+{
+  "package_sources": {
+    "official": [
+      "xorg-minimal",
+      "xorg-fonts",
+      "xf86-video-vesa"
+    ]
+  }
+}

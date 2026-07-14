@@ -1,0 +1,9 @@
+{
+  "package_sources": {
+    "official": [
+      "dosfstools",
+      "mtools",
+      "ntfs-3g"
+    ]
+  }
+}

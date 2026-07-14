@@ -65,3 +65,9 @@ Thumbs.db
 *.tmp
 *.bak
 .cache/
+
+# ===========================
+# Working and Output Folders
+# ===========================
+void-builder/
+output/
