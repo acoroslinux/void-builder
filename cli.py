@@ -101,6 +101,12 @@ def main():
         help="Number of retry attempts for package operations.",
     )
 
+    parser.add_argument(
+        "--update-toolchain",
+        action="store_true",
+        help="Force redownloading and updating the static xbps and proot toolchain binaries.",
+    )
+
     # Customization Overrides
     parser.add_argument(
         "-k",
@@ -263,6 +269,7 @@ def main():
         platforms=args.platform,
         repositories=args.repository,
         include_dirs=args.include,
+        update_toolchain=args.update_toolchain,
     )
 
     print(f"--- Void-Builder Execution ---")

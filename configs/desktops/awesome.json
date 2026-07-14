@@ -1,26 +1,27 @@
 {
   "package_sources": {
     "official": [
-      "gnome",
-      "gnome-extra",
-      "gdm",
-      "network-manager-applet"
+      "awesome",
+      "lightdm",
+      "lightdm-gtk-greeter",
+      "network-manager-applet",
+      "xterm"
     ]
   },
   "customizations": {
     "services": [
       "dbus",
-      "gdm"
+      "lightdm"
     ]
   },
   "desktop_environment": {
-    "name": "GNOME Desktop",
-    "description": "Modern and intuitive desktop environment.",
+    "name": "Awesome Window Manager",
+    "description": "Highly configurable, next generation framework window manager for X.",
     "customizations_path": "custom_files/",
     "use_common_config": true,
     "copy_files": [
       {
-        "source": "desktop-config/gnome",
+        "source": "desktop-config/awesome",
         "destination": "/etc/skel/.config"
       }
     ]

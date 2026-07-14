@@ -1,15 +1,12 @@
 {
   "package_sources": {
     "official": [
-      "xfce4",
-      "xfce4-power-manager",
+      "herbstluftwm",
+      "dmenu",
       "lightdm",
       "lightdm-gtk-greeter",
       "network-manager-applet",
-      "file-roller",
-      "mousepad",
-      "galculator",
-      "ristretto"
+      "xterm"
     ]
   },
   "customizations": {
@@ -19,13 +16,13 @@
     ]
   },
   "desktop_environment": {
-    "name": "XFCE Desktop",
-    "description": "Lightweight, fast, and user-friendly desktop environment.",
+    "name": "Herbstluftwm Window Manager",
+    "description": "Manual tiling window manager for X11 using keybindings and scripts.",
     "customizations_path": "custom_files/",
     "use_common_config": true,
     "copy_files": [
       {
-        "source": "desktop-config/xfce",
+        "source": "desktop-config/herbstluftwm",
         "destination": "/etc/skel/.config"
       }
     ]

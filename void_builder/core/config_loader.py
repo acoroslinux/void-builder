@@ -120,18 +120,23 @@ class ConfigAssembler:
         platform["base_kernel"] = kernel_name
         platform["initramfs"] = "initrd"
 
-        # Also replace the default kernel package in the packages list
-        kernel_candidates = {"linux", "linux-lts", "linux-mainline"}
+        def is_kernel_package(name: str) -> bool:
+            if not name:
+                return False
+            # Match "linux", "linux-lts", "linux-mainline", or versioned like "linux6.6"
+            return name in {"linux", "linux-lts", "linux-mainline"} or (
+                name.startswith("linux") and any(c.isdigit() for c in name)
+            )
 
         def replace_kernel_in_list(pkg_list):
             replaced = False
             for idx, item in enumerate(pkg_list):
                 if isinstance(item, dict):
                     name = item.get("name")
-                    if name in kernel_candidates:
+                    if name and is_kernel_package(name):
                         pkg_list[idx] = {"name": kernel_name}
                         replaced = True
-                elif isinstance(item, str) and item in kernel_candidates:
+                elif isinstance(item, str) and is_kernel_package(item):
                     pkg_list[idx] = kernel_name
                     replaced = True
             if not replaced:
@@ -411,7 +416,14 @@ class ConfigAssembler:
                 # 3. Match desktop packages
                 if target_desktop:
                     desktop_rules = rules.get("desktop_packages", {})
+                    # Load common desktop packages
+                    for pkg in desktop_rules.get("common", []):
+                        if pkg not in official_pkgs:
+                            official_pkgs.append(pkg)
+                    # Load specific desktop packages
                     for desk_key, pkgs_list in desktop_rules.items():
+                        if desk_key == "common":
+                            continue
                         if target_desktop == desk_key:
                             for pkg in pkgs_list:
                                 if pkg not in official_pkgs:

@@ -4,11 +4,13 @@
       "mate",
       "mate-extra",
       "lightdm",
-      "lightdm-gtk-greeter"
+      "lightdm-gtk-greeter",
+      "network-manager-applet"
     ]
   },
   "customizations": {
     "services": [
+      "dbus",
       "lightdm"
     ]
   },

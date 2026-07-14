@@ -39,34 +39,15 @@
     ]
   },
   "desktop_packages": {
-    "xfce": [
-      "xfce4",
-      "xfce4-power-manager",
-      "lightdm",
-      "lightdm-gtk-greeter"
-    ],
-    "kde": [
-      "kde-plasma",
-      "sddm"
-    ],
-    "gnome": [
-      "gnome",
-      "gdm"
-    ],
-    "mate": [
-      "mate",
-      "mate-extra",
-      "lightdm",
-      "lightdm-gtk-greeter"
-    ],
-    "i3": [
-      "i3-gaps",
-      "i3status",
-      "dmenu",
-      "i3lock",
-      "xterm",
-      "lightdm",
-      "lightdm-gtk-greeter"
+    "common": [
+      "xorg-minimal",
+      "xorg-fonts",
+      "xf86-input-libinput",
+      "desktop-file-utils",
+      "shared-mime-info",
+      "xdg-utils",
+      "xdg-user-dirs",
+      "polkit"
     ]
   }
 }

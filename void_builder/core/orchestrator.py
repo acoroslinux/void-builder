@@ -43,6 +43,7 @@ class BuildOrchestrator:
         platforms: Optional[List[str]] = None,
         repositories: Optional[List[str]] = None,
         include_dirs: Optional[List[str]] = None,
+        update_toolchain: bool = False,
     ):
         VALID_ARCHS = (
             "x86_64", "x86_64-musl",
@@ -74,6 +75,7 @@ class BuildOrchestrator:
         self.platforms = platforms or []
         self.repositories = repositories or []
         self.include_dirs = include_dirs or []
+        self.update_toolchain = update_toolchain
 
         # Ensure default workspace custom files directory exists
         custom_files_dir = resolve_from_project("custom_files")
@@ -202,12 +204,12 @@ class BuildOrchestrator:
                 if stale_dir.exists():
                     shutil.rmtree(stale_dir, ignore_errors=True)
 
-        # 3. Setup toolchain
         self.toolchain = ToolchainManager(
             workdir_base=workdir,
             mode=self.mode,
             force_isolated=self.force_isolated_toolchain,
             arch=self.arch,
+            update_toolchain=self.update_toolchain,
         )
         try:
             self.toolchain.setup()

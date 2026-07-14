@@ -1,15 +1,14 @@
 {
   "package_sources": {
     "official": [
-      "xfce4",
-      "xfce4-power-manager",
+      "bspwm",
+      "sxhkd",
+      "feh",
+      "dmenu",
       "lightdm",
       "lightdm-gtk-greeter",
       "network-manager-applet",
-      "file-roller",
-      "mousepad",
-      "galculator",
-      "ristretto"
+      "xterm"
     ]
   },
   "customizations": {
@@ -19,13 +18,13 @@
     ]
   },
   "desktop_environment": {
-    "name": "XFCE Desktop",
-    "description": "Lightweight, fast, and user-friendly desktop environment.",
+    "name": "bspwm Window Manager",
+    "description": "Tiling window manager that represents windows as the leaves of a full binary tree.",
     "customizations_path": "custom_files/",
     "use_common_config": true,
     "copy_files": [
       {
-        "source": "desktop-config/xfce",
+        "source": "desktop-config/bspwm",
         "destination": "/etc/skel/.config"
       }
     ]

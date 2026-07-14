@@ -1,7 +1,9 @@
 {
   "package_sources": {
     "official": [
-      "cups"
+      "cups",
+      "cups-filters",
+      "system-config-printer"
     ]
   }
 }

@@ -1,0 +1,33 @@
+{
+  "package_sources": {
+    "official": [
+      "sway",
+      "waybar",
+      "wofi",
+      "foot",
+      "swayidle",
+      "swaylock",
+      "grim",
+      "slurp",
+      "mako",
+      "polkit"
+    ]
+  },
+  "customizations": {
+    "services": [
+      "dbus"
+    ]
+  },
+  "desktop_environment": {
+    "name": "Sway Window Manager",
+    "description": "Tiling Wayland compositor and drop-in replacement for i3.",
+    "customizations_path": "custom_files/",
+    "use_common_config": true,
+    "copy_files": [
+      {
+        "source": "desktop-config/sway",
+        "destination": "/etc/skel/.config"
+      }
+    ]
+  }
+}

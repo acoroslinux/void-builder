@@ -1,26 +1,27 @@
 {
   "package_sources": {
     "official": [
-      "gnome",
-      "gnome-extra",
-      "gdm",
-      "network-manager-applet"
+      "qtile",
+      "lightdm",
+      "lightdm-gtk-greeter",
+      "network-manager-applet",
+      "xterm"
     ]
   },
   "customizations": {
     "services": [
       "dbus",
-      "gdm"
+      "lightdm"
     ]
   },
   "desktop_environment": {
-    "name": "GNOME Desktop",
-    "description": "Modern and intuitive desktop environment.",
+    "name": "Qtile Window Manager",
+    "description": "Full-featured, hackable tiling window manager written and configured in Python.",
     "customizations_path": "custom_files/",
     "use_common_config": true,
     "copy_files": [
       {
-        "source": "desktop-config/gnome",
+        "source": "desktop-config/qtile",
         "destination": "/etc/skel/.config"
       }
     ]

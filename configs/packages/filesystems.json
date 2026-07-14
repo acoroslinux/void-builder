@@ -3,7 +3,10 @@
     "official": [
       "dosfstools",
       "mtools",
-      "ntfs-3g"
+      "ntfs-3g",
+      "exfat-utils",
+      "xfsprogs",
+      "f2fs-tools"
     ]
   }
 }

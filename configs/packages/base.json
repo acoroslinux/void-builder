@@ -1,5 +1,22 @@
 {
   "package_sources": {
-    "official": []
+    "official": [
+      "dialog",
+      "cryptsetup",
+      "lvm2",
+      "wireless_tools",
+      "wpa_supplicant",
+      "dhcpcd",
+      "htop",
+      "nano",
+      "sudo",
+      "polkit",
+      "nfs-utils",
+      "ethtool",
+      "pciutils",
+      "usbutils",
+      "smartmontools",
+      "tmux"
+    ]
   }
 }

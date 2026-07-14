@@ -1,26 +1,26 @@
 {
   "package_sources": {
     "official": [
-      "gnome",
-      "gnome-extra",
-      "gdm",
-      "network-manager-applet"
+      "lxqt",
+      "sddm",
+      "network-manager-applet",
+      "pcmanfm-qt"
     ]
   },
   "customizations": {
     "services": [
       "dbus",
-      "gdm"
+      "sddm"
     ]
   },
   "desktop_environment": {
-    "name": "GNOME Desktop",
-    "description": "Modern and intuitive desktop environment.",
+    "name": "LXQt Desktop",
+    "description": "Lightweight and modular Qt desktop environment.",
     "customizations_path": "custom_files/",
     "use_common_config": true,
     "copy_files": [
       {
-        "source": "desktop-config/gnome",
+        "source": "desktop-config/lxqt",
         "destination": "/etc/skel/.config"
       }
     ]

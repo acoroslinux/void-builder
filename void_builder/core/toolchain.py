@@ -20,11 +20,13 @@ class ToolchainManager:
         diagnostics_log_path: Optional[Path] = None,
         pacman_cache_dir: Optional[Path] = None,
         arch: Optional[str] = None,
+        update_toolchain: bool = False,
     ):
         self.mode = mode
         self.force_isolated = force_isolated
         self.toolchain_dir = workdir_base / "build_host"
         self.arch = arch or "x86_64"
+        self.update_toolchain = update_toolchain
         self._is_ready = False
         
         # Tools directory path
@@ -43,8 +45,8 @@ class ToolchainManager:
         if self.mode == "real":
             # Call the utility functions to download and extract them if missing
             from void_builder.utils.lib import ensure_static_xbps, ensure_proot
-            ensure_static_xbps(str(self.tools_dir))
-            ensure_proot(str(self.tools_dir))
+            ensure_static_xbps(str(self.tools_dir), force_update=self.update_toolchain)
+            ensure_proot(str(self.tools_dir), force_update=self.update_toolchain)
             
             self.host_dir.mkdir(parents=True, exist_ok=True)
             self.target_dir.mkdir(parents=True, exist_ok=True)
