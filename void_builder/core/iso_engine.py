@@ -257,6 +257,35 @@ class VoidEngine(BaseEngine):
                     else:
                         self.logger.warning(f"[bootloaders] DTB file '{dtb_path}' not found in chroot /boot/dtbs/")
 
+        # Copy GRUB themes and fonts for theme support
+        grub_themes_src = chroot_boot / "grub" / "themes"
+        if grub_themes_src.exists():
+            shutil.copytree(grub_themes_src, staging_boot / "grub" / "themes", dirs_exist_ok=True)
+            self.logger.info("[bootloaders] Copied GRUB themes to ISO boot tree")
+
+        # Ensure the unicode font is present on the ISO for graphical terminal menu rendering
+        iso_fonts_dir = staging_boot / "grub" / "fonts"
+        iso_fonts_dir.mkdir(parents=True, exist_ok=True)
+        copied_font = False
+
+        # 1. Try copying from chroot /boot/grub/fonts
+        if (chroot_boot / "grub" / "fonts" / "unicode.pf2").exists():
+            shutil.copy2(chroot_boot / "grub" / "fonts" / "unicode.pf2", iso_fonts_dir / "unicode.pf2")
+            copied_font = True
+        # 2. Try copying from chroot /usr/share/grub/unicode.pf2
+        elif (self.chroot_path / "usr" / "share" / "grub" / "unicode.pf2").exists():
+            shutil.copy2(self.chroot_path / "usr" / "share" / "grub" / "unicode.pf2", iso_fonts_dir / "unicode.pf2")
+            copied_font = True
+        # 3. Try copying from host /usr/share/grub/unicode.pf2
+        elif Path("/usr/share/grub/unicode.pf2").exists():
+            shutil.copy2("/usr/share/grub/unicode.pf2", iso_fonts_dir / "unicode.pf2")
+            copied_font = True
+
+        if copied_font:
+            self.logger.info("[bootloaders] Copied GRUB unicode font to ISO boot tree")
+        else:
+            self.logger.warning("[bootloaders] GRUB unicode font could not be located on chroot or host")
+
         # Set up ISOLINUX (BIOS) - only for x86 architectures
         if self.arch.startswith(("x86_64", "i686")):
             syslinux = SyslinuxBootloader(self.config, kernel_version=kernel_version)

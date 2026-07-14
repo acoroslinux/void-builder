@@ -22,7 +22,17 @@ if loadfont "(${voidlive})/boot/grub/fonts/unicode.pf2" ; then
 	terminal_output gfxterm
 
 	insmod png
-	background_image "(${voidlive})/boot/isolinux/@@SPLASHIMAGE@@"
+	insmod gfxmenu
+
+	if [ -f "(${voidlive})/boot/grub/themes/modern/theme.txt" ]; then
+		set theme="(${voidlive})/boot/grub/themes/modern/theme.txt"
+		export theme
+	elif [ -f "/boot/grub/themes/modern/theme.txt" ]; then
+		set theme="/boot/grub/themes/modern/theme.txt"
+		export theme
+	else
+		background_image "(${voidlive})/boot/isolinux/@@SPLASHIMAGE@@"
+	fi
 fi
 
 # Set default menu entry
