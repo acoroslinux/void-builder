@@ -187,6 +187,7 @@ class BuildOrchestrator:
             toolchain=self.toolchain,
             mode=self.mode,
             arch=self.arch,
+            config=self.config,
         )
         
         # Inject chroot_manager into toolchain

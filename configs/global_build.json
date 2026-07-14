@@ -1,7 +1,8 @@
 {
   "system": {
     "iso_label": "VOID_LIVE",
-    "workdir_base": "void-builder/workdir"
+    "workdir_base": "void-builder/workdir",
+    "xbps_cache": "output/cache/xbps"
   },
   "package_sources": {
     "official": [

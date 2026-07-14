@@ -19,12 +19,14 @@ class ChrootManager:
         mode: str = "mock",
         arch: Optional[str] = None,
         chroot_mode: str = "chroot",
+        config: Optional[Any] = None,
     ):
         self.chroot_path = Path(chroot_path)
         self.toolchain = toolchain
         self.mode = mode
         self.arch = arch or "x86_64"
         self._mounted = False
+        self.config = config
 
     def mount(self) -> None:
         """Mount virtual filesystems into the chroot if running in real root mode."""
@@ -91,9 +93,23 @@ class ChrootManager:
         # Target repository
         repo_url = "https://repo-default.voidlinux.org/current"
 
+        # Determine package cache path
+        from void_builder.core.path_utils import resolve_from_project
+        cache_path_str = None
+        if hasattr(self, "config") and self.config:
+            cache_path_str = self.config.get("system.xbps_cache")
+        
+        if not cache_path_str:
+            cache_path_str = "output/cache/xbps"
+            
+        cache_dir = resolve_from_project(cache_path_str)
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        logger.info(f"[Chroot] Using package cache directory: {cache_dir}")
+
         xbps_install = str(self.toolchain.xbps_install_static)
         cmd = [
             xbps_install, "-S", "-r", str(self.chroot_path),
+            "-c", str(cache_dir),
             "-R", repo_url, "-y"
         ] + list(packages)
 
