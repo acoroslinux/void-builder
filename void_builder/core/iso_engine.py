@@ -410,6 +410,10 @@ class VoidEngine(BaseEngine):
                 "-boot-load-size", "4",
                 "-boot-info-table",
             ])
+            if (isolinux_dir / "isohdpfx.bin").exists():
+                command.extend([
+                    "-isohybrid-mbr", str(isolinux_dir / "isohdpfx.bin")
+                ])
 
         # Add UEFI boot options if efiboot.img is present
         efiboot_img = self.iso_staging / "EFI" / "efiboot.img"

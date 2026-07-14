@@ -121,7 +121,7 @@ class SyslinuxBootloader:
             binaries = [
                 "isolinux.bin", "ldlinux.c32", "libcom32.c32",
                 "vesamenu.c32", "libutil.c32", "chain.c32",
-                "reboot.c32", "poweroff.c32"
+                "reboot.c32", "poweroff.c32", "isohdpfx.bin"
             ]
 
             for path in syslinux_paths:

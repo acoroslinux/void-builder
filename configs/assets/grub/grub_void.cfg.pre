@@ -31,7 +31,11 @@ if loadfont "(${voidlive})/boot/grub/fonts/unicode.pf2" ; then
 		set theme="/boot/grub/themes/modern/theme.txt"
 		export theme
 	else
-		background_image "(${voidlive})/boot/isolinux/@@SPLASHIMAGE@@"
+		if [ -f "(${voidlive})/boot/grub/@@SPLASHIMAGE@@" ]; then
+			background_image "(${voidlive})/boot/grub/@@SPLASHIMAGE@@"
+		else
+			background_image "(${voidlive})/boot/isolinux/@@SPLASHIMAGE@@"
+		fi
 	fi
 fi
 
