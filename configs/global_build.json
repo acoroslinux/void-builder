@@ -1,9 +1,18 @@
 {
   "system": {
-    "iso_label": "VOID_LIVE",
+    "iso_label": "VOID_MODERN",
     "workdir_base": "void-builder/workdir",
     "xbps_cache": "output/cache/xbps"
   },
+  "iso": {
+    "compression_type": "xz"
+  },
+  "initramfs": {
+    "compression": "xz"
+  },
+  "boot_title": "Void Modern Live",
+  "boot_cmdline": "quiet splash live.user=live live.autologin",
+  "splash_image": "configs/assets/data/splash.png",
   "_comment_repositories": "Repositórios oficiais padrão usados pelo void-mklive para resolver as diferentes arquiteturas. Apenas estes três devem estar ativos por defeito.",
   "repositories": [
     "https://repo-default.voidlinux.org/current",
@@ -14,19 +23,21 @@
   "custom_repositories": [],
   "_comment_priority": "Prioridade dos repositórios: o XBPS avalia os repositórios na ordem declarada (linha de comandos -R/--repository primeiro, depois os de perfis/custom_repositories, e por fim os repositórios oficiais base). A primeira correspondência de um pacote é a que será instalada.",
   "customizations": {
-    "hostname": "void-live",
+    "hostname": "void-modern",
     "timezone": "UTC",
     "locale": "en_US.UTF-8",
     "keymap": "us",
     "users": [
       {
-        "name": "void",
+        "name": "live",
         "groups": [
           "wheel",
           "audio",
-          "video"
+          "video",
+          "storage",
+          "network"
         ],
-        "password": "void"
+        "password": "live"
       }
     ],
     "services": [

@@ -6,7 +6,10 @@ if ! type getarg >/dev/null 2>&1 && ! type getargbool >/dev/null 2>&1; then
     . /lib/dracut-lib.sh
 fi
 
-echo void-live > ${NEWROOT}/etc/hostname
+# Save hostname only if it's empty or not configured yet
+if [ ! -s ${NEWROOT}/etc/hostname ]; then
+    echo void-live > ${NEWROOT}/etc/hostname
+fi
 
 USERNAME=$(getarg live.user)
 USERSHELL=$(getarg live.shell)
@@ -23,13 +26,18 @@ if ! grep -q ${USERSHELL} ${NEWROOT}/etc/shells ; then
     echo ${USERSHELL} >> ${NEWROOT}/etc/shells
 fi
 
-# Create new user and remove password. We'll use autologin by default.
-chroot ${NEWROOT} useradd -m -c $USERNAME -G audio,video,wheel -s $USERSHELL $USERNAME
-chroot ${NEWROOT} passwd -d $USERNAME >/dev/null 2>&1
+# Create new user and setup password ONLY if the user does not exist yet
+if ! chroot ${NEWROOT} id -u $USERNAME >/dev/null 2>&1; then
+    # Create new user and remove password. We'll use autologin by default.
+    chroot ${NEWROOT} useradd -m -c $USERNAME -G audio,video,wheel -s $USERSHELL $USERNAME
+    chroot ${NEWROOT} passwd -d $USERNAME >/dev/null 2>&1
+    chroot ${NEWROOT} sh -c "echo \"$USERNAME:voidlinux\" | chpasswd -c SHA512"
+fi
 
-# Setup default root/user password (voidlinux).
-chroot ${NEWROOT} sh -c 'echo "root:voidlinux" | chpasswd -c SHA512'
-chroot ${NEWROOT} sh -c "echo "$USERNAME:voidlinux" | chpasswd -c SHA512"
+# Setup default root password if root doesn't have a shadow password set
+if ! grep -q '^root:[^!*]' ${NEWROOT}/etc/shadow; then
+    chroot ${NEWROOT} sh -c 'echo "root:voidlinux" | chpasswd -c SHA512'
+fi
 
 # Enable sudo permission by default.
 if [ -f ${NEWROOT}/etc/sudoers ]; then

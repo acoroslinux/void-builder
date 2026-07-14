@@ -76,9 +76,10 @@ class Grub2Bootloader:
         arch = self._cfg_get("platform_specific.architecture", "x86_64")
         is_aarch64 = arch.lower().startswith("aarch64")
         kernel_file = "vmlinux" if is_aarch64 else "vmlinuz"
+        iso_label = self._cfg_get("system.iso_label", "VOID_LIVE")
 
         base_append = (
-            f"root=live:CDLABEL=VOID_LIVE ro init=/sbin/init "
+            f"root=live:CDLABEL={iso_label} ro init=/sbin/init "
             f"rd.luks=0 rd.md=0 rd.dm=0 loglevel=4 gpt add_efi_memmap "
             f"vconsole.unicode=1 vconsole.keymap={keymap} "
             f"locale.LANG={locale} {boot_cmdline}"

@@ -239,7 +239,7 @@ class DracutAction(SystemAction):
             dracut_modules_dir = chroot.chroot_path / "usr" / "lib" / "dracut" / "modules.d"
             dracut_modules_dir.mkdir(parents=True, exist_ok=True)
 
-            for module_name, dest_name in [("vmklive", "01vmklive"), ("autoinstaller", "01autoinstaller")]:
+            for module_name, dest_name in [("vmklive", "01vmklive")]:
                 src = mklive_dir / "dracut" / module_name
                 dest = dracut_modules_dir / dest_name
                 if src.is_dir():
@@ -275,7 +275,7 @@ class DracutAction(SystemAction):
             }
             comp = comp_flags.get(self.compression, "--xz")
 
-            force_add = ["vmklive", "autoinstaller"] + self.extra_modules
+            force_add = ["vmklive"] + self.extra_modules
             omit = ["systemd", "iscsi", "lunmask", "lvm", "cifs", "hwdb"]
 
             cmd = ["dracut", "-N", comp]
@@ -297,7 +297,7 @@ class DracutAction(SystemAction):
                 chroot.run_command(fallback_cmd)
                 logger.info("  [Dracut] Initramfs generated (fallback mode)")
         else:
-            logger.info("    [Mock] dracut -N --xz --force-add vmklive --force-add autoinstaller --omit systemd ... /boot/initrd")
+            logger.info("    [Mock] dracut -N --xz --force-add vmklive --omit systemd ... /boot/initrd")
 
 
 class LocaleAction(SystemAction):

@@ -81,6 +81,7 @@ class SyslinuxBootloader:
         locale = self._cfg_get("locale", "en_US.UTF-8")
         boot_cmdline = self._cfg_get("boot_cmdline", "")
         arch = self._cfg_get("platform_specific.architecture", "x86_64")
+        iso_label = self._cfg_get("system.iso_label", "VOID_LIVE")
 
         # Read template
         cfg = template_path.read_text(encoding="utf-8")
@@ -91,6 +92,7 @@ class SyslinuxBootloader:
         cfg = cfg.replace("@@KEYMAP@@", keymap)
         cfg = cfg.replace("@@LOCALE@@", locale)
         cfg = cfg.replace("@@BOOT_CMDLINE@@", boot_cmdline)
+        cfg = cfg.replace("@@CDLABEL@@", iso_label)
 
         (isolinux_dir / "isolinux.cfg").write_text(cfg, encoding="utf-8")
         logger.info("[SYSLINUX] Generated isolinux.cfg")
