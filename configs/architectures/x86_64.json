@@ -2,26 +2,5 @@
   "platform_specific": {
     "architecture": "x86_64",
     "packages": []
-  },
-  "customizations": {
-    "hostname": "void-live",
-    "timezone": "UTC",
-    "locale": "en_US.UTF-8",
-    "keymap": "us",
-    "users": [
-      {
-        "name": "void",
-        "groups": [
-          "wheel",
-          "audio",
-          "video"
-        ],
-        "password": "void"
-      }
-    ],
-    "services": [
-      "dhcpcd",
-      "sshd"
-    ]
   }
 }

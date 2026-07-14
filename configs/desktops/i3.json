@@ -15,5 +15,17 @@
       "dbus",
       "lightdm"
     ]
+  },
+  "desktop_environment": {
+    "name": "i3 Tiling Window Manager",
+    "description": "Gestor de janelas lado-a-lado leve e eficiente.",
+    "customizations_path": "custom_files/",
+    "use_common_config": true,
+    "copy_files": [
+      {
+        "source": "desktop-config/i3",
+        "destination": "/etc/skel/.config"
+      }
+    ]
   }
 }

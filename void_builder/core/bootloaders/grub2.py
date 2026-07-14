@@ -15,36 +15,53 @@ class Grub2BootloaderError(Exception):
 
 
 class Grub2Bootloader:
-    def __init__(self, config: Any, root_device_id: str, iso_uuid: str = "") -> None:
+    def __init__(self, config: Any, root_device_id: str, iso_uuid: str = "", kernel_version: str = "linux") -> None:
         self.config = config
         self.root_device_id = root_device_id
         self.iso_uuid = iso_uuid
+        self.kernel_version = kernel_version
 
     def _cfg_get(self, key: str, default: Any = None) -> Any:
         if not self.config:
             return default
 
         try:
-            if hasattr(self.config, "get"):
-                val = self.config.get(key)
-                if val is not None:
-                    return val
-
-            if "." in key:
-                parts = key.split(".")
-                current = self.config
+            # Helper function to get nested value
+            def get_nested(cfg, path):
+                parts = path.split(".")
+                current = cfg
                 for part in parts:
                     if isinstance(current, dict) and part in current:
                         current = current[part]
                     elif hasattr(current, "get"):
                         current = current.get(part)
                     else:
-                        return default
-                return current if current is not None else default
+                        return None
+                return current
 
-            if hasattr(self.config, "get"):
-                value = self.config.get(key, default)
-                return default if value is None else value
+            # Try key directly (might be dot-path or top-level)
+            val = get_nested(self.config, key)
+            if val is not None:
+                return val
+
+            # Try iso.<key>
+            if not key.startswith("iso."):
+                val = get_nested(self.config, f"iso.{key}")
+                if val is not None:
+                    return val
+
+            # Try customizations.<key>
+            if not key.startswith("customizations."):
+                val = get_nested(self.config, f"customizations.{key}")
+                if val is not None:
+                    return val
+
+            # Try system.<key>
+            if not key.startswith("system."):
+                val = get_nested(self.config, f"system.{key}")
+                if val is not None:
+                    return val
+
             return default
         except Exception:
             return default
@@ -53,42 +70,39 @@ class Grub2Bootloader:
         keymap = self._cfg_get("keymap", "us")
         locale = self._cfg_get("locale", "en_US.UTF-8")
         boot_cmdline = self._cfg_get("boot_cmdline", "")
-
-        base_append = (
-            f"root=live:CDLABEL=VOID_LIVE init=/sbin/init ro "
-            f"rd.luks=0 rd.md=0 rd.dm=0 loglevel=4 "
-            f"vconsole.unicode=1 vconsole.keymap={keymap} "
-            f"locale.LANG={locale} {boot_cmdline}"
-        )
+        boot_title = self._cfg_get("boot_title", "Void Linux")
+        kver = getattr(self, "kernel_version", "linux")
 
         arch = self._cfg_get("platform_specific.architecture", "x86_64")
         is_aarch64 = arch.lower().startswith("aarch64")
         kernel_file = "vmlinux" if is_aarch64 else "vmlinuz"
 
+        base_append = (
+            f"root=live:CDLABEL=VOID_LIVE ro init=/sbin/init "
+            f"rd.luks=0 rd.md=0 rd.dm=0 loglevel=4 gpt add_efi_memmap "
+            f"vconsole.unicode=1 vconsole.keymap={keymap} "
+            f"locale.LANG={locale} {boot_cmdline}"
+        ).strip()
+
+        # Helper to generate a single menuentry
+        def write_entry(title_suffix: str, entry_id: str, extra_cmdline: str = "") -> str:
+            full_title = f"{boot_title} {kver} {title_suffix}({arch})"
+            cmd = f"{base_append} {extra_cmdline}".strip()
+            ent = f'menuentry "{full_title}" --id "{entry_id}" {{\n'
+            ent += '    set gfxpayload="keep"\n'
+            ent += f'    linux (${{voidlive}})/boot/{kernel_file} {cmd}\n'
+            ent += f'    initrd (${{voidlive}})/boot/initrd\n'
+            ent += '}\n\n'
+            return ent
+
         entries = ""
-        entries += "\n"
-        entries += "menuentry \"Void Linux\" --id linux {\n"
-        entries += f"    linux /boot/{kernel_file} {base_append}\n"
-        entries += "    initrd /boot/initrd\n"
-        entries += "}\n"
-
-        entries += "\n"
-        entries += "menuentry \"Void Linux (RAM)\" --id linuxram {\n"
-        entries += f"    linux /boot/{kernel_file} {base_append} rd.live.ram\n"
-        entries += "    initrd /boot/initrd\n"
-        entries += "}\n"
-
-        entries += "\n"
-        entries += "menuentry \"Void Linux (no graphics)\" --id linuxnogfx {\n"
-        entries += f"    linux /boot/{kernel_file} {base_append} nomodeset\n"
-        entries += "    initrd /boot/initrd\n"
-        entries += "}\n"
-
-        entries += "\n"
-        entries += "menuentry \"Void Linux with speech\" --id linuxa11y {\n"
-        entries += f"    linux /boot/{kernel_file} {base_append} live.accessibility live.autologin\n"
-        entries += "    initrd /boot/initrd\n"
-        entries += "}\n"
+        # Main entries
+        entries += write_entry("", "linux")
+        entries += write_entry("(RAM)", "linuxram", "rd.live.ram")
+        entries += write_entry("(graphics disabled)", "linuxnogfx", "nomodeset")
+        entries += write_entry("with speech", "linuxa11y", "live.accessibility live.autologin")
+        entries += write_entry("with speech (RAM)", "linuxa11yram", "live.accessibility live.autologin rd.live.ram")
+        entries += write_entry("with speech (graphics disabled)", "linuxa11ynogfx", "live.accessibility live.autologin nomodeset")
 
         # Platform-specific submenus
         platforms_config = self._cfg_get("platforms_config", {})
@@ -98,35 +112,59 @@ class Grub2Bootloader:
                 p_cmdline = plat_info.get("cmdline", "")
                 p_dtb = plat_info.get("dtb", "")
                 
-                dtb_line = f"        devicetree /boot/dtbs/{p_dtb}\n" if p_dtb else ""
+                dtb_line = f"        devicetree (${{voidlive}})/boot/dtbs/{p_dtb}\n" if p_dtb else ""
                 
-                entries += f'\nsubmenu "{p_name} >" --id platform-{platform} {{\n'
+                entries += f'\nsubmenu "{boot_title} for {p_name} >" --id platform-{platform} {{\n'
                 
-                entries += f'    menuentry "{p_name}" --id linux-{platform} {{\n'
-                entries += f'        linux /boot/{kernel_file} {base_append} {p_cmdline}\n'
-                entries += f'        initrd /boot/initrd\n'
-                entries += dtb_line
-                entries += f'    }}\n'
+                def write_plat_entry(title_suffix: str, entry_id: str, extra_cmdline: str = "") -> str:
+                    full_title = f"{boot_title} {kver} {title_suffix}({arch})"
+                    cmd = f"{base_append} {p_cmdline} {extra_cmdline}".strip()
+                    ent = f'    menuentry "{full_title}" --id "{entry_id}" {{\n'
+                    ent += '        set gfxpayload="keep"\n'
+                    ent += f'        linux (${{voidlive}})/boot/{kernel_file} {cmd}\n'
+                    ent += f'        initrd (${{voidlive}})/boot/initrd\n'
+                    ent += dtb_line
+                    ent += '    }\n'
+                    return ent
                 
-                entries += f'    menuentry "{p_name} (RAM)" --id linuxram-{platform} {{\n'
-                entries += f'        linux /boot/{kernel_file} {base_append} {p_cmdline} rd.live.ram\n'
-                entries += f'        initrd /boot/initrd\n'
-                entries += dtb_line
-                entries += f'    }}\n'
-                
-                entries += f'    menuentry "{p_name} (no graphics)" --id linuxnogfx-{platform} {{\n'
-                entries += f'        linux /boot/{kernel_file} {base_append} {p_cmdline} nomodeset\n'
-                entries += f'        initrd /boot/initrd\n'
-                entries += dtb_line
-                entries += f'    }}\n'
-                
-                entries += f'    menuentry "{p_name} with speech" --id linuxa11y-{platform} {{\n'
-                entries += f'        linux /boot/{kernel_file} {base_append} {p_cmdline} live.accessibility live.autologin\n'
-                entries += f'        initrd /boot/initrd\n'
-                entries += dtb_line
-                entries += f'    }}\n'
-                
-                entries += f'}}\n'
+                entries += write_plat_entry(f"for {p_name} ", f"linux-{platform}")
+                entries += write_plat_entry(f"for {p_name} (RAM) ", f"linuxram-{platform}", "rd.live.ram")
+                entries += write_plat_entry(f"for {p_name} (graphics disabled) ", f"linuxnogfx-{platform}", "nomodeset")
+                entries += write_plat_entry(f"for {p_name} with speech ", f"linuxa11y-{platform}", "live.accessibility live.autologin")
+                entries += '}\n'
+
+        # Memtest entry (only for x86 architectures)
+        if not is_aarch64:
+            entries += '\n'
+            entries += 'if [ "${grub_platform}" == "efi" ]; then\n'
+            entries += '    menuentry "Run Memtest86+ (RAM test)" --id memtest {\n'
+            entries += '        set gfxpayload="keep"\n'
+            entries += '        linux (${voidlive})/boot/memtest.efi\n'
+            entries += '    }\n'
+            entries += 'else\n'
+            entries += '    menuentry "Run Memtest86+ (RAM test)" --id memtest {\n'
+            entries += '        set gfxpayload="keep"\n'
+            entries += '        linux (${voidlive})/boot/memtest.bin\n'
+            entries += '    }\n'
+            entries += 'fi\n'
+
+        # UEFI firmware and power entries
+        entries += '\n'
+        entries += 'if [ "${grub_platform}" == "efi" ]; then\n'
+        entries += "    menuentry 'UEFI Firmware Settings' --hotkey f --id uefifw {\n"
+        entries += "        fwsetup\n"
+        entries += "    }\n"
+        entries += 'fi\n\n'
+
+        entries += 'menuentry "System restart" --hotkey b --id restart {\n'
+        entries += '    echo "System rebooting..."\n'
+        entries += '    reboot\n'
+        entries += '}\n\n'
+
+        entries += 'menuentry "System shutdown" --hotkey p --id poweroff {\n'
+        entries += '    echo "System shutting down..."\n'
+        entries += '    halt\n'
+        entries += '}\n'
 
         return entries
 
@@ -136,7 +174,7 @@ class Grub2Bootloader:
         
         grub_dir = workdir / "boot" / "grub"
         grub_dir.mkdir(parents=True, exist_ok=True)
-        mklive_dir = resolve_from_project("void-mklive")
+        mklive_dir = resolve_from_project("configs/assets")
 
         pre_file = mklive_dir / "grub" / "grub_void.cfg.pre"
         post_file = mklive_dir / "grub" / "grub_void.cfg.post"

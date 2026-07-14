@@ -13,6 +13,27 @@
   "_comment_custom_repositories": "Para adicionar repositórios próprios, insira-os no array 'custom_repositories'. Exemplo: [\"https://meu-repo.com/voidlinux\"]",
   "custom_repositories": [],
   "_comment_priority": "Prioridade dos repositórios: o XBPS avalia os repositórios na ordem declarada (linha de comandos -R/--repository primeiro, depois os de perfis/custom_repositories, e por fim os repositórios oficiais base). A primeira correspondência de um pacote é a que será instalada.",
+  "customizations": {
+    "hostname": "void-live",
+    "timezone": "UTC",
+    "locale": "en_US.UTF-8",
+    "keymap": "us",
+    "users": [
+      {
+        "name": "void",
+        "groups": [
+          "wheel",
+          "audio",
+          "video"
+        ],
+        "password": "void"
+      }
+    ],
+    "services": [
+      "dhcpcd",
+      "sshd"
+    ]
+  },
   "package_sources": {
     "official": [
       "base-system",

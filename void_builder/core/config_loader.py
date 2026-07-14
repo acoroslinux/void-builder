@@ -246,6 +246,21 @@ class ConfigAssembler:
             if desktop_path.exists():
                 desktop_data = self._load_json_file(desktop_path)
                 self._deep_merge(self.master_config, desktop_data)
+                
+                # Automatically append pipewire packages if a desktop variant is loaded
+                if target_desktop != "base":
+                    if "package_sources" not in self.master_config:
+                        self.master_config["package_sources"] = {}
+                    if "official" not in self.master_config["package_sources"]:
+                        self.master_config["package_sources"]["official"] = []
+                    
+                    pw_pkgs = ["pipewire", "alsa-pipewire"]
+                    if target_arch.startswith("asahi"):
+                        pw_pkgs.append("asahi-audio")
+                        
+                    for pkg in pw_pkgs:
+                        if pkg not in self.master_config["package_sources"]["official"]:
+                            self.master_config["package_sources"]["official"].append(pkg)
             else:
                 logger.warning(
                     f"Desktop '{target_desktop}' not found at {desktop_path}"
@@ -312,32 +327,100 @@ class ConfigAssembler:
             if platforms:
                 self.master_config.setdefault("platforms_config", {})
                 for platform in platforms:
-                    sh_path = resolve_from_project(f"void-mklive/platforms/{platform}.sh")
-                    if sh_path.exists():
-                        content = sh_path.read_text(encoding="utf-8")
-                        import re
-                        name_match = re.search(r'PLATFORM_NAME=["\']?(.*?)["\']?$', content, re.M)
-                        pkgs_match = re.search(r'PLATFORM_PKGS=\((.*?)\)', content, re.M)
-                        cmdline_match = re.search(r'PLATFORM_CMDLINE=["\']?(.*?)["\']?$', content, re.M)
-                        dtb_match = re.search(r'PLATFORM_DTB=["\']?(.*?)["\']?$', content, re.M)
+                    json_path = self.config_root / "platforms" / f"{platform}.json"
+                    p_name = platform
+                    p_pkgs = []
+                    p_cmdline = ""
+                    p_dtb = ""
 
-                        p_name = name_match.group(1) if name_match else platform
-                        p_pkgs = pkgs_match.group(1).split() if pkgs_match else []
-                        p_cmdline = cmdline_match.group(1) if cmdline_match else ""
-                        p_dtb = dtb_match.group(1) if dtb_match else ""
+                    if json_path.exists():
+                        try:
+                            p_data = self._load_json_file(json_path)
+                            p_name = p_data.get("name", platform)
+                            p_pkgs = p_data.get("packages", [])
+                            p_cmdline = p_data.get("cmdline", "")
+                            p_dtb = p_data.get("dtb", "")
+                            logger.info(f"Loaded platform config from JSON: {json_path}")
+                        except Exception as e:
+                            logger.warning(f"Failed to parse platform JSON at {json_path}: {e}")
+                    else:
+                        sh_path = resolve_from_project(f"configs/assets/platforms/{platform}.sh")
+                        if sh_path.exists():
+                            content = sh_path.read_text(encoding="utf-8")
+                            import re
+                            name_match = re.search(r'PLATFORM_NAME=["\']?(.*?)["\']?$', content, re.M)
+                            pkgs_match = re.search(r'PLATFORM_PKGS=\((.*?)\)', content, re.M)
+                            cmdline_match = re.search(r'PLATFORM_CMDLINE=["\']?(.*?)["\']?$', content, re.M)
+                            dtb_match = re.search(r'PLATFORM_DTB=["\']?(.*?)["\']?$', content, re.M)
 
-                        # Merge package dependencies
-                        for pkg in p_pkgs:
-                            if pkg not in pkgs:
-                                pkgs.append(pkg)
+                            p_name = name_match.group(1) if name_match else platform
+                            p_pkgs = pkgs_match.group(1).split() if pkgs_match else []
+                            p_cmdline = cmdline_match.group(1) if cmdline_match else ""
+                            p_dtb = dtb_match.group(1) if dtb_match else ""
+                            logger.info(f"Loaded platform config from shell script: {sh_path}")
+                        else:
+                            logger.warning(f"Platform config not found for: {platform}")
+                            continue
 
-                        # Store settings
-                        self.master_config["platforms_config"][platform] = {
-                            "dtb": p_dtb,
-                            "cmdline": p_cmdline,
-                            "name": p_name,
-                        }
-                        logger.info(f"Loaded platform config for: {p_name}")
+                    # Merge package dependencies
+                    for pkg in p_pkgs:
+                        if pkg not in pkgs:
+                            pkgs.append(pkg)
+
+                    # Store settings
+                    self.master_config["platforms_config"][platform] = {
+                        "dtb": p_dtb,
+                        "cmdline": p_cmdline,
+                        "name": p_name,
+                    }
+                    logger.info(f"Loaded platform config for: {p_name}")
+
+        # 4d. Apply dynamic package rules (architecture, platform, desktop)
+        rules_path = self.config_root / "package_rules.json"
+        if rules_path.exists():
+            try:
+                rules = self._load_json_file(rules_path)
+                
+                # Make sure master_config has the official package list initialized
+                package_sources = self.master_config.setdefault("package_sources", {})
+                official_pkgs = package_sources.setdefault("official", [])
+                
+                # 1. Match architecture packages
+                arch_rules = rules.get("architecture_packages", {})
+                for arch_key, pkgs_list in arch_rules.items():
+                    if target_arch == arch_key or target_arch.startswith(arch_key):
+                        for pkg in pkgs_list:
+                            if pkg not in official_pkgs:
+                                official_pkgs.append(pkg)
+                
+                # 2. Match platform packages
+                platform_rules = rules.get("platform_packages", {})
+                # Check for "asahi" platform specifically
+                is_asahi = target_arch.startswith("asahi") or any("asahi" in p for p in (platforms or []))
+                if is_asahi:
+                    for pkg in platform_rules.get("asahi", []):
+                        if pkg not in official_pkgs:
+                            official_pkgs.append(pkg)
+                
+                for platform in (platforms or []):
+                    for plat_key, pkgs_list in platform_rules.items():
+                        if platform == plat_key or platform.startswith(plat_key):
+                            for pkg in pkgs_list:
+                                if pkg not in official_pkgs:
+                                    official_pkgs.append(pkg)
+                                    
+                # 3. Match desktop packages
+                if target_desktop:
+                    desktop_rules = rules.get("desktop_packages", {})
+                    for desk_key, pkgs_list in desktop_rules.items():
+                        if target_desktop == desk_key:
+                            for pkg in pkgs_list:
+                                if pkg not in official_pkgs:
+                                    official_pkgs.append(pkg)
+                                    
+                logger.info("Applied dynamic package rules from package_rules.json successfully.")
+            except Exception as e:
+                logger.error(f"Failed to load or apply package rules: {e}")
 
         logger.info("Configuration assembly completed successfully.")
         return Config(self.master_config)

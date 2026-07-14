@@ -1,0 +1,72 @@
+{
+  "architecture_packages": {
+    "x86_64": [
+      "grub-x86_64-efi",
+      "syslinux"
+    ],
+    "x86_64-musl": [
+      "grub-x86_64-efi",
+      "syslinux"
+    ],
+    "i686": [
+      "grub-i386-efi",
+      "syslinux"
+    ],
+    "aarch64": [
+      "grub-arm64-efi"
+    ],
+    "aarch64-musl": [
+      "grub-arm64-efi"
+    ],
+    "armv7l": [
+      "grub-arm64-efi"
+    ],
+    "armv7l-musl": [
+      "grub-arm64-efi"
+    ]
+  },
+  "platform_packages": {
+    "asahi": [
+      "asahi-base",
+      "asahi-scripts",
+      "mesa-asahi-dri"
+    ],
+    "pinebookpro": [
+      "pinebookpro-base"
+    ],
+    "x13s": [
+      "x13s-base"
+    ]
+  },
+  "desktop_packages": {
+    "xfce": [
+      "xfce4",
+      "xfce4-power-manager",
+      "lightdm",
+      "lightdm-gtk-greeter"
+    ],
+    "kde": [
+      "kde-plasma",
+      "sddm"
+    ],
+    "gnome": [
+      "gnome",
+      "gdm"
+    ],
+    "mate": [
+      "mate",
+      "mate-extra",
+      "lightdm",
+      "lightdm-gtk-greeter"
+    ],
+    "i3": [
+      "i3-gaps",
+      "i3status",
+      "dmenu",
+      "i3lock",
+      "xterm",
+      "lightdm",
+      "lightdm-gtk-greeter"
+    ]
+  }
+}

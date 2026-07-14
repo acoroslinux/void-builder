@@ -12,5 +12,17 @@
       "dbus",
       "lightdm"
     ]
+  },
+  "desktop_environment": {
+    "name": "XFCE Desktop",
+    "description": "Ambiente de desktop leve, rápido e amigável.",
+    "customizations_path": "custom_files/",
+    "use_common_config": true,
+    "copy_files": [
+      {
+        "source": "desktop-config/xfce",
+        "destination": "/etc/skel/.config"
+      }
+    ]
   }
 }

@@ -235,7 +235,7 @@ class DracutAction(SystemAction):
         logger.info("  [Dracut] Running dracut for initramfs...")
         if chroot.mode == "real":
             import shutil
-            mklive_dir = project_root() / "void-mklive"
+            mklive_dir = project_root() / "configs" / "assets"
             dracut_modules_dir = chroot.chroot_path / "usr" / "lib" / "dracut" / "modules.d"
             dracut_modules_dir.mkdir(parents=True, exist_ok=True)
 
@@ -356,6 +356,216 @@ class LocaleAction(SystemAction):
             logger.info("    [Mock] Apply locale/timezone/hostname/keymap")
 
 
+
+
+class PipewireAction(SystemAction):
+    """Configures pipewire links and system autostarts."""
+
+    def __init__(self, architecture: str):
+        self.architecture = architecture
+
+    def execute(self, chroot: ChrootManager, source_base: Path):
+        logger.info("  [Pipewire] Setting up pipewire configuration and autostarts...")
+        
+        is_asahi = self.architecture.startswith("asahi")
+        
+        if chroot.mode == "real":
+            chroot.run_command("mkdir -p /etc/xdg/autostart")
+            chroot.run_command("ln -sf /usr/share/applications/pipewire.desktop /etc/xdg/autostart/")
+            
+            chroot.run_command("mkdir -p /etc/pipewire/pipewire.conf.d")
+            chroot.run_command("ln -sf /usr/share/examples/wireplumber/10-wireplumber.conf /etc/pipewire/pipewire.conf.d/")
+            chroot.run_command("ln -sf /usr/share/examples/pipewire/20-pipewire-pulse.conf /etc/pipewire/pipewire.conf.d/")
+            
+            chroot.run_command("mkdir -p /etc/alsa/conf.d")
+            chroot.run_command("ln -sf /usr/share/alsa/alsa.conf.d/50-pipewire.conf /etc/alsa/conf.d/")
+            chroot.run_command("ln -sf /usr/share/alsa/alsa.conf.d/99-pipewire-default.conf /etc/alsa/conf.d/")
+            
+            if is_asahi:
+                logger.info("  [Pipewire] Enabling speakersafetyd service for Asahi platform")
+                chroot.run_command("mkdir -p /etc/runit/runsvdir/default")
+                chroot.run_command("ln -sf /etc/sv/speakersafetyd /etc/runit/runsvdir/default/")
+        else:
+            logger.info("    [Mock] Configure pipewire autostart and configuration symlinks")
+            if is_asahi:
+                logger.info("    [Mock] Enable speakersafetyd service for Asahi platform")
+
+
+class LoginManagerAction(SystemAction):
+    """Configures dynamic login session and autologin for various display managers (LightDM, SDDM, GDM, LXDM)."""
+
+    def __init__(self, display_manager: str, session_name: str, username: str = "void"):
+        self.display_manager = display_manager
+        self.session_name = session_name
+        self.username = username
+
+    def execute(self, chroot: ChrootManager, source_base: Path):
+        logger.info(f"  [LoginManager] Configuring {self.display_manager} session to '{self.session_name}' for user '{self.username}'")
+        
+        if chroot.mode == "real":
+            import os
+            import subprocess
+            import tempfile
+            
+            def write_chroot_file(path_str: str, content: str, mode: int = 0o644):
+                dest_file = chroot.chroot_path / path_str.lstrip("/")
+                dest_file.parent.mkdir(parents=True, exist_ok=True)
+                
+                with tempfile.NamedTemporaryFile(mode="w", delete=False, encoding="utf-8") as temp_f:
+                    temp_f.write(content)
+                    temp_path = temp_f.name
+                
+                try:
+                    cmd_copy = ["cp", temp_path, str(dest_file)]
+                    cmd_chmod = ["chmod", oct(mode)[2:], str(dest_file)]
+                    cmd_chown = ["chown", "0:0", str(dest_file)]
+                    if os.geteuid() != 0:
+                        subprocess.run(["sudo"] + cmd_copy, check=True)
+                        subprocess.run(["sudo"] + cmd_chmod, check=True)
+                        subprocess.run(["sudo"] + cmd_chown, check=True)
+                    else:
+                        shutil.copy2(temp_path, dest_file)
+                        dest_file.chmod(mode)
+                        os.chown(str(dest_file), 0, 0)
+                finally:
+                    try:
+                        os.unlink(temp_path)
+                    except OSError:
+                        pass
+
+            # 1. LIGHTDM Configuration
+            if self.display_manager == "lightdm":
+                write_chroot_file("etc/lightdm/.session", self.session_name + "\n")
+                
+                greeter_content = (
+                    "[greeter]\n"
+                    "indicators = ~host;~spacer;~clock;~spacer;~layout;~session;~a11y;~power\n"
+                )
+                write_chroot_file("etc/lightdm/lightdm-gtk-greeter.conf", greeter_content)
+                
+            # 2. SDDM Configuration
+            elif self.display_manager == "sddm":
+                sddm_session = self.session_name
+                if sddm_session == "kde" or sddm_session == "plasma":
+                    sddm_session = "plasma.desktop"
+                elif sddm_session == "lxqt":
+                    sddm_session = "lxqt.desktop"
+                elif not sddm_session.endswith(".desktop"):
+                    sddm_session = f"{sddm_session}.desktop"
+                    
+                sddm_content = (
+                    "[Autologin]\n"
+                    f"User={self.username}\n"
+                    f"Session={sddm_session}\n"
+                )
+                write_chroot_file("etc/sddm.conf", sddm_content)
+                
+            # 3. GDM Configuration
+            elif self.display_manager in ("gdm", "gdm3"):
+                gdm_content = (
+                    "[daemon]\n"
+                    "AutomaticLoginEnable=true\n"
+                    f"AutomaticLogin={self.username}\n"
+                )
+                write_chroot_file("etc/gdm/custom.conf", gdm_content)
+                
+                account_content = (
+                    "[User]\n"
+                    f"Session={self.session_name}\n"
+                    "SystemAccount=false\n"
+                )
+                write_chroot_file(f"var/lib/AccountsService/users/{self.username}", account_content)
+                
+            # 4. LXDM Configuration
+            elif self.display_manager == "lxdm":
+                session_bin = f"/usr/bin/{self.session_name}"
+                if self.session_name == "xfce":
+                    session_bin = "/usr/bin/startxfce4"
+                elif self.session_name == "lxde":
+                    session_bin = "/usr/bin/startlxde"
+                elif self.session_name == "lxqt":
+                    session_bin = "/usr/bin/startlxqt"
+                elif self.session_name == "enlightenment":
+                    session_bin = "/usr/bin/enlightenment_start"
+                    
+                lxdm_content = (
+                    "[base]\n"
+                    f"autologin={self.username}\n"
+                    f"session={session_bin}\n"
+                )
+                write_chroot_file("etc/lxdm/lxdm.conf", lxdm_content)
+
+        else:
+            logger.info(f"    [Mock] {self.display_manager} autologin configured: user={self.username}, session={self.session_name}")
+
+class StructuredCopyAction(SystemAction):
+    """Configures structured copy of files from custom_files to rootfs."""
+
+    def __init__(self, customizations_path: str, copy_files_list: List[Dict[str, str]], architecture: str):
+        self.customizations_path = Path(customizations_path)
+        self.copy_files_list = copy_files_list
+        self.architecture = architecture
+
+    def execute(self, chroot: ChrootManager, source_base: Path):
+        logger.info(f"  [StructuredCopy] Copying {len(self.copy_files_list)} structured files to rootfs...")
+        
+        is_arm = self.architecture.startswith(("aarch64", "arm"))
+        
+        # Resolve python version in chroot if {python_version} is present in destinations
+        py_ver = "3.12"
+        if chroot.mode == "real":
+            python_dirs = list(chroot.chroot_path.glob("usr/lib/python3.*"))
+            if python_dirs:
+                py_ver = python_dirs[0].name.replace("python", "")
+        
+        for entry in self.copy_files_list:
+            src_rel = entry.get("source")
+            dest_rel = entry.get("destination")
+            if not src_rel or not dest_rel:
+                continue
+
+            # Apply conditional architecture filters as described in the comments
+            # grub/themes, pep_installer, and pep_installer_integration are ignored on ARM
+            if is_arm:
+                if "grub/themes" in src_rel or "pep_installer" in src_rel or "pep_installer_integration" in src_rel:
+                    logger.info(f"  [StructuredCopy] Skipping {src_rel} (not copied on ARM architecture)")
+                    continue
+
+            # Format destinations that contain python_version
+            dest_rel = dest_rel.format(python_version=py_ver)
+            
+            src_path = source_base / self.customizations_path / src_rel
+            dest_path = chroot.chroot_path / dest_rel.lstrip("/")
+            
+            logger.info(f"  [StructuredCopy] Copying: {src_rel} -> {dest_rel}")
+            
+            if chroot.mode == "real":
+                if not src_path.exists():
+                    logger.warning(f"  [StructuredCopy] Source path does not exist: {src_path}")
+                    continue
+                
+                import os
+                import subprocess
+                
+                # Ensure destination parent directory exists
+                dest_dir = dest_path if src_path.is_dir() and not dest_rel.endswith(src_path.name) else dest_path.parent
+                dest_dir_in_chroot = Path("/") / dest_dir.relative_to(chroot.chroot_path)
+                
+                chroot.run_command(f"mkdir -p {dest_dir_in_chroot}")
+                
+                # Copy file/directory preserving all attributes
+                cmd_copy = ["cp", "-a", str(src_path), str(dest_path)]
+                try:
+                    if os.geteuid() != 0:
+                        subprocess.run(["sudo"] + cmd_copy, check=True)
+                    else:
+                        subprocess.run(cmd_copy, check=True)
+                except Exception as e:
+                    logger.error(f"  [StructuredCopy] Failed to copy {src_path} to {dest_path}: {e}")
+            else:
+                logger.info(f"    [Mock] Copy {src_path} to {dest_path}")
+
+
 class SystemConfigurator:
     def __init__(self, chroot: Optional[ChrootManager] = None):
         self.chroot = chroot
@@ -381,6 +591,11 @@ class SystemConfigurator:
         overlay_dir = cust_config.get("overlay_dir") or sys_config.get("overlay_dir")
         if overlay_dir:
             self.actions.append(OverlayAction(overlay_dir))
+
+        include_dirs = cust_config.get("include_dirs", [])
+        for inc_dir in include_dirs:
+            if inc_dir:
+                self.actions.append(OverlayAction(str(inc_dir)))
 
         # 2. Standalone files
         files = cust_config.get("files", []) or sys_config.get("files", [])
@@ -427,6 +642,102 @@ class SystemConfigurator:
                 initramfs = initramfs._data
             if isinstance(initramfs, dict):
                 self.actions.append(DracutAction(initramfs))
+        arch = _safe_get(config, "platform_specific.architecture", "x86_64")
+
+        # 9. Pipewire configuration
+        has_display_manager = False
+        if services:
+            for srv in services:
+                if str(srv) in ("lightdm", "sddm", "gdm", "lxdm"):
+                    has_display_manager = True
+                    break
+        
+        has_desktop_pkg = False
+        pkg_sources = _safe_get(config, "package_sources", {})
+        if pkg_sources:
+            off_pkgs = _safe_get(pkg_sources, "official", [])
+            for p in off_pkgs:
+                if any(desk in str(p) for desk in ("xfce4", "mate", "cinnamon", "gnome", "kde5", "kde", "lxde", "lxqt", "enlightenment")):
+                    has_desktop_pkg = True
+                    break
+
+        if has_display_manager or has_desktop_pkg:
+            self.actions.append(PipewireAction(arch))
+
+            # 10. LoginManager session config
+            display_manager = None
+            if services:
+                for srv in services:
+                    if str(srv) in ("lightdm", "sddm", "gdm", "lxdm"):
+                        display_manager = str(srv)
+                        break
+
+            if display_manager:
+                username = "void"
+                users = cust_config.get("users", [])
+                if users:
+                    first_user = users[0]
+                    if hasattr(first_user, "_data"):
+                        first_user = first_user._data
+                    if isinstance(first_user, dict):
+                        username = first_user.get("name", "void")
+
+                session_name = None
+                off_pkgs = _safe_get(pkg_sources, "official", [])
+                for desk in ("xfce4", "xfce", "mate", "cinnamon", "enlightenment", "lxde", "lxqt", "kde5", "kde", "gnome"):
+                    if any(desk in str(p) for p in off_pkgs):
+                        session_name = desk
+                        break
+                if not session_name:
+                    if display_manager == "sddm":
+                        session_name = "plasma"
+                    elif display_manager == "gdm":
+                        session_name = "gnome"
+                    else:
+                        session_name = "xfce"
+                
+                # Normalize session names
+                if session_name == "xfce4":
+                    session_name = "xfce"
+                elif session_name == "kde5":
+                    session_name = "plasma"
+
+                self.actions.append(LoginManagerAction(display_manager, session_name, username))
+
+        # 11. Structured Copy (Desktop-environment file copying)
+        desktop_env = _safe_get(config, "desktop_environment")
+        if desktop_env:
+            if hasattr(desktop_env, "_data"):
+                desktop_env = desktop_env._data
+            if isinstance(desktop_env, dict):
+                custom_path = desktop_env.get("customizations_path", "custom_files/")
+                use_common = desktop_env.get("use_common_config", False)
+                copy_files = desktop_env.get("copy_files", []) or []
+
+                final_copy_list = []
+                if use_common:
+                    base_custom_path = resolve_from_project("configs/base_customizations.json")
+                    if base_custom_path.exists():
+                        try:
+                            import json
+                            with open(base_custom_path, "r", encoding="utf-8") as f:
+                                base_data = json.load(f)
+                            base_list = base_data.get("base_copy_files", [])
+                            final_copy_list.extend(base_list)
+                            logger.info(f"Loaded {len(base_list)} common copy entries from base_customizations.json")
+                        except Exception as e:
+                            logger.error(f"Failed to load/parse configs/base_customizations.json: {e}")
+
+                # Add desktop specific copy_files
+                for item in copy_files:
+                    if hasattr(item, "_data"):
+                        item = item._data
+                    if isinstance(item, dict):
+                        final_copy_list.append(item)
+
+                if final_copy_list:
+                    arch = _safe_get(config, "platform_specific.architecture", "x86_64")
+                    self.actions.append(StructuredCopyAction(custom_path, final_copy_list, arch))
 
     def apply(self, source_base_dir: Optional[Path] = None):
         if not self.chroot:

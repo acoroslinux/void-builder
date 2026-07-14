@@ -220,9 +220,9 @@ def ensure_proot(tools_dir: str | None = None) -> str:
 
 
 def get_mklive_dir():
-    """Return the path to the void-mklive directory."""
+    """Return the path to the assets directory."""
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    return os.path.join(project_root, 'void-mklive')
+    return os.path.join(project_root, 'configs', 'assets')
 
 
 def get_tools_dir():

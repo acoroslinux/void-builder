@@ -173,6 +173,14 @@ def main():
     )
 
     parser.add_argument(
+        "-I",
+        "--include",
+        action="append",
+        default=[],
+        help="Include directory structure under given path in the rootfs. Can be specified multiple times.",
+    )
+
+    parser.add_argument(
         "--list-options",
         action="store_true",
         help="List available desktops, kernels, bootloaders, and package profiles.",
@@ -254,6 +262,7 @@ def main():
         live_groups=parsed_live_groups,
         platforms=args.platform,
         repositories=args.repository,
+        include_dirs=args.include,
     )
 
     print(f"--- Void-Builder Execution ---")
@@ -284,6 +293,8 @@ def main():
         print(f"Platforms:  {', '.join(args.platform)}")
     if args.repository:
         print(f"Repos:      {', '.join(args.repository)} (Custom)")
+    if args.include:
+        print(f"Includes:   {', '.join(args.include)}")
     print(f"------------------------------\n")
 
     try:

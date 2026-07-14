@@ -13,28 +13,52 @@ class SyslinuxBootloaderError(Exception):
 
 
 class SyslinuxBootloader:
-    def __init__(self, config: Any):
+    def __init__(self, config: Any, kernel_version: str = "linux"):
         self.config = config
+        self.kernel_version = kernel_version
 
     def _cfg_get(self, key: str, default: Any = None) -> Any:
         if not self.config:
             return default
 
         try:
-            if "." in key:
-                parts = key.split(".")
-                current = self.config
+            # Helper function to get nested value
+            def get_nested(cfg, path):
+                parts = path.split(".")
+                current = cfg
                 for part in parts:
                     if isinstance(current, dict) and part in current:
                         current = current[part]
                     elif hasattr(current, "get"):
                         current = current.get(part)
                     else:
-                        return default
-                return current if current is not None else default
+                        return None
+                return current
 
-            value = self.config.get(key, default)
-            return default if value is None else value
+            # Try key directly (might be dot-path or top-level)
+            val = get_nested(self.config, key)
+            if val is not None:
+                return val
+
+            # Try iso.<key>
+            if not key.startswith("iso."):
+                val = get_nested(self.config, f"iso.{key}")
+                if val is not None:
+                    return val
+
+            # Try customizations.<key>
+            if not key.startswith("customizations."):
+                val = get_nested(self.config, f"customizations.{key}")
+                if val is not None:
+                    return val
+
+            # Try system.<key>
+            if not key.startswith("system."):
+                val = get_nested(self.config, f"system.{key}")
+                if val is not None:
+                    return val
+
+            return default
         except Exception:
             return default
 
@@ -45,7 +69,7 @@ class SyslinuxBootloader:
         isolinux_dir = workdir / "boot" / "isolinux"
         isolinux_dir.mkdir(parents=True, exist_ok=True)
 
-        mklive_dir = resolve_from_project("void-mklive")
+        mklive_dir = resolve_from_project("configs/assets")
         template_path = mklive_dir / "isolinux" / "isolinux.cfg.in"
         if not template_path.exists():
             logger.error(f"[SYSLINUX] isolinux.cfg.in template not found at {template_path}")
@@ -62,7 +86,7 @@ class SyslinuxBootloader:
         cfg = template_path.read_text(encoding="utf-8")
         cfg = cfg.replace("@@SPLASHIMAGE@@", "splash.png")
         cfg = cfg.replace("@@BOOT_TITLE@@", boot_title)
-        cfg = cfg.replace("@@KERNVER@@", "linux") # Void rootfs uses "linux" kernel
+        cfg = cfg.replace("@@KERNVER@@", self.kernel_version)
         cfg = cfg.replace("@@ARCH@@", arch)
         cfg = cfg.replace("@@KEYMAP@@", keymap)
         cfg = cfg.replace("@@LOCALE@@", locale)

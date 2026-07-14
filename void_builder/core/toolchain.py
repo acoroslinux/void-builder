@@ -37,16 +37,97 @@ class ToolchainManager:
         logger.info(f"[TOOLCHAIN] Initializing toolchain in {self.tools_dir}...")
         self.tools_dir.mkdir(parents=True, exist_ok=True)
         
+        self.host_dir = self.toolchain_dir / "void-host"
+        self.target_dir = self.toolchain_dir / "void-target"
+        
         if self.mode == "real":
             # Call the utility functions to download and extract them if missing
             from void_builder.utils.lib import ensure_static_xbps, ensure_proot
             ensure_static_xbps(str(self.tools_dir))
             ensure_proot(str(self.tools_dir))
+            
+            self.host_dir.mkdir(parents=True, exist_ok=True)
+            self.target_dir.mkdir(parents=True, exist_ok=True)
+            self._bootstrap_toolchain_dirs()
+            
             self._is_ready = True
-            logger.info("[TOOLCHAIN] Static toolchain binaries verified and ready.")
+            logger.info("[TOOLCHAIN] Static toolchain binaries and isolated chroots ready.")
         else:
             logger.info("[TOOLCHAIN] [MOCK] Toolchain setup simulated.")
             self._is_ready = True
+
+    def _copy_void_keys(self, target_dir: Path):
+        key_dir = target_dir / "var" / "db" / "xbps" / "keys"
+        key_dir.mkdir(parents=True, exist_ok=True)
+        mklive_keys = resolve_from_project("configs/assets/keys")
+        if mklive_keys.exists():
+            for f in mklive_keys.glob("*.plist"):
+                shutil.copy2(f, key_dir)
+
+    def _get_host_arch(self) -> str:
+        try:
+            res = subprocess.run(["xbps-uhelper", "arch"], capture_output=True, text=True)
+            if res.returncode == 0 and res.stdout.strip():
+                return res.stdout.strip()
+        except Exception:
+            pass
+        import platform
+        m = platform.machine()
+        if m == "x86_64":
+            return "x86_64"
+        elif m in ("i386", "i686"):
+            return "i686"
+        elif m in ("aarch64", "arm64"):
+            return "aarch64"
+        return "x86_64"
+
+    def _run_xbps_install(self, rootdir: Path, arch: str, packages: List[str], repos: List[str]):
+        from void_builder.core.path_utils import resolve_from_project
+        cache_dir = resolve_from_project("output/cache/xbps")
+        cache_dir.mkdir(parents=True, exist_ok=True)
+
+        cmd = [
+            str(self.xbps_install_static), "-S", "-r", str(rootdir),
+            "-c", str(cache_dir),
+            "-y"
+        ]
+        for repo in repos:
+            cmd.extend(["-R", repo])
+        cmd.extend(packages)
+
+        cmd_env = os.environ.copy()
+        cmd_env["XBPS_ARCH"] = arch
+
+        logger.info(f"[TOOLCHAIN] Bootstrapping packages in {rootdir}: {', '.join(packages)}")
+        res = subprocess.run(cmd, env=cmd_env, capture_output=True, text=True)
+        if res.returncode != 0:
+            logger.error(f"[TOOLCHAIN] Bootstrap failed (exit {res.returncode}): {res.stderr}")
+            raise RuntimeError(f"Bootstrap failed: {res.stderr}")
+
+    def _bootstrap_toolchain_dirs(self):
+        # 1. Copy keys
+        self._copy_void_keys(self.host_dir)
+        self._copy_void_keys(self.target_dir)
+
+        # 2. Install host prereqs into self.host_dir
+        host_arch = self._get_host_arch()
+        repos = [
+            "https://repo-default.voidlinux.org/current",
+            "https://repo-default.voidlinux.org/current/musl",
+            "https://repo-default.voidlinux.org/current/aarch64"
+        ]
+
+        host_pkgs = ["base-files", "libgcc", "dash", "coreutils", "sed", "tar", "gawk", "squashfs-tools", "xorriso"]
+        self._run_xbps_install(self.host_dir, host_arch, host_pkgs, repos)
+
+        # 3. Install target bootloader packages into self.target_dir
+        target_pkgs = ["base-files"]
+        if self.arch.startswith(("x86_64", "i686")):
+            target_pkgs.extend(["syslinux", "grub-i386-efi", "grub-x86_64-efi", "memtest86+"])
+        elif self.arch.startswith("aarch64"):
+            target_pkgs.extend(["grub-arm64-efi"])
+            
+        self._run_xbps_install(self.target_dir, self.arch, target_pkgs, repos)
 
     def execute_command(
         self,

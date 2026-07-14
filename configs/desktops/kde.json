@@ -10,5 +10,17 @@
       "dbus",
       "sddm"
     ]
+  },
+  "desktop_environment": {
+    "name": "KDE Plasma Desktop",
+    "description": "Ambiente de desktop moderno, bonito e altamente customizável.",
+    "customizations_path": "custom_files/",
+    "use_common_config": true,
+    "copy_files": [
+      {
+        "source": "desktop-config/kde",
+        "destination": "/etc/skel/.config"
+      }
+    ]
   }
 }

@@ -45,10 +45,32 @@ class BaseEngine(ISOEngine):
 
     def _cfg_get(self, key: str, default: Any = None) -> Any:
         try:
-            value = self.config.get(key, default)
-        except TypeError:
-            value = self.config.get(key)
-        return default if value is None else value
+            # 1. Try key directly
+            val = self.config.get(key)
+            if val is not None:
+                return val
+
+            # 2. Try iso.<key>
+            if not key.startswith("iso."):
+                val = self.config.get(f"iso.{key}")
+                if val is not None:
+                    return val
+
+            # 3. Try customizations.<key>
+            if not key.startswith("customizations."):
+                val = self.config.get(f"customizations.{key}")
+                if val is not None:
+                    return val
+
+            # 4. Try system.<key>
+            if not key.startswith("system."):
+                val = self.config.get(f"system.{key}")
+                if val is not None:
+                    return val
+
+            return default
+        except Exception:
+            return default
 
     def _workdir_base(self) -> str:
         configured = (
@@ -177,10 +199,16 @@ class VoidEngine(BaseEngine):
 
         kernel_found = False
         initrd_found = False
+        kernel_version = "linux"
 
         if chroot_boot.is_dir():
             for f in chroot_boot.iterdir():
-                if f.name.startswith("vmlinuz-") or f.name.startswith("vmlinux-") or f.name in ("vmlinuz", "vmlinux"):
+                if f.name.startswith("vmlinuz-") or f.name.startswith("vmlinux-"):
+                    shutil.copy2(f, staging_boot / kernel_name)
+                    kernel_found = True
+                    if "-" in f.name:
+                        kernel_version = f.name.split("-", 1)[1]
+                elif f.name in ("vmlinuz", "vmlinux"):
                     shutil.copy2(f, staging_boot / kernel_name)
                     kernel_found = True
                 elif f.name.startswith("initrd") or f.name.startswith("initramfs-") or f.name == "initrd":
@@ -194,6 +222,19 @@ class VoidEngine(BaseEngine):
                 (staging_boot / "initrd").write_text("mock-initrd")
             else:
                 raise ISOBuilderError("Real build failed: kernel or initramfs missing in target chroot.")
+
+        # Determine target bootloader chroot environment
+        bootloader_chroot = self.chroot_path
+        if getattr(self.toolchain, "mode", "mock") == "real" and hasattr(self.toolchain, "target_dir"):
+            bootloader_chroot = self.toolchain.target_dir
+
+        # Copy memtest binaries if present in bootloader chroot
+        chroot_memtest_dir = bootloader_chroot / "boot" / "memtest86+"
+        if chroot_memtest_dir.is_dir():
+            for f in chroot_memtest_dir.iterdir():
+                if f.name in ("memtest.bin", "memtest.efi"):
+                    shutil.copy2(f, staging_boot / f.name)
+                    self.logger.info(f"[bootloaders] Copied memtest file: {f.name}")
 
         # Process platform DTBs if ARM platforms are specified
         platforms_config = self.config.get("platforms_config", {})
@@ -218,14 +259,14 @@ class VoidEngine(BaseEngine):
 
         # Set up ISOLINUX (BIOS) - only for x86 architectures
         if self.arch.startswith(("x86_64", "i686")):
-            syslinux = SyslinuxBootloader(self.config)
+            syslinux = SyslinuxBootloader(self.config, kernel_version=kernel_version)
             syslinux.prepare_files(self.iso_staging)
-            syslinux.generate_boot_image(self.iso_staging, self.chroot_path)
+            syslinux.generate_boot_image(self.iso_staging, bootloader_chroot)
 
         # Set up GRUB2 (UEFI) - for all architectures
-        grub = Grub2Bootloader(self.config, root_device_id="VOID_LIVE")
+        grub = Grub2Bootloader(self.config, root_device_id="VOID_LIVE", kernel_version=kernel_version)
         grub.prepare_files(self.iso_staging)
-        grub.generate_boot_image(self.iso_staging, self.chroot_path)
+        grub.generate_boot_image(self.iso_staging, bootloader_chroot)
 
     def _create_squashfs(self) -> None:
         self.logger.info("[squashfs] Creating SquashFS image of target rootfs...")
@@ -283,9 +324,16 @@ class VoidEngine(BaseEngine):
                 subprocess.run(chroot_cmd + ["umount", "-f", str(mount_point)], check=True)
 
             # 4. Generate squashfs from tmp_dir
+            mksquashfs_bin = "mksquashfs"
+            if getattr(self.toolchain, "mode", "mock") == "real" and hasattr(self.toolchain, "host_dir"):
+                candidate = self.toolchain.host_dir / "usr" / "bin" / "mksquashfs"
+                if candidate.exists():
+                    mksquashfs_bin = str(candidate)
+
+            comp_type = self._cfg_get("iso.compression_type", "xz")
             cmd = [
-                "mksquashfs", str(tmp_dir), str(squashfs_file),
-                "-comp", "xz", "-b", "1M", "-noappend"
+                mksquashfs_bin, str(tmp_dir), str(squashfs_file),
+                "-comp", comp_type, "-b", "1M", "-noappend"
             ]
             self.logger.info(f"[squashfs] Command: {' '.join(cmd)}")
             res = subprocess.run(cmd, capture_output=True, text=True)
@@ -306,8 +354,14 @@ class VoidEngine(BaseEngine):
         is_mock = getattr(self.toolchain, "mode", "mock") == "mock"
         iso_label = self._cfg_get("system.iso_label", "VOID_LIVE")
 
+        xorriso_bin = "xorriso"
+        if not is_mock and hasattr(self.toolchain, "host_dir"):
+            candidate = self.toolchain.host_dir / "usr" / "bin" / "xorriso"
+            if candidate.exists():
+                xorriso_bin = str(candidate)
+
         command = [
-            "xorriso",
+            xorriso_bin,
             "-as", "mkisofs",
             "-iso-level", "3",
             "-rock", "-joliet", "-joliet-long",

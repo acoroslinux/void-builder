@@ -71,3 +71,5 @@ Thumbs.db
 # ===========================
 void-builder/
 output/
+custom_files/*
+!custom_files/.gitkeep

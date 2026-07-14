@@ -11,5 +11,17 @@
     "services": [
       "lightdm"
     ]
+  },
+  "desktop_environment": {
+    "name": "MATE Desktop",
+    "description": "Ambiente de desktop clássico, leve e robusto.",
+    "customizations_path": "custom_files/",
+    "use_common_config": true,
+    "copy_files": [
+      {
+        "source": "desktop-config/mate",
+        "destination": "/etc/skel/.config"
+      }
+    ]
   }
 }

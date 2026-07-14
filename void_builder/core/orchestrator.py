@@ -42,6 +42,7 @@ class BuildOrchestrator:
         live_groups: Optional[List[str]] = None,
         platforms: Optional[List[str]] = None,
         repositories: Optional[List[str]] = None,
+        include_dirs: Optional[List[str]] = None,
     ):
         VALID_ARCHS = (
             "x86_64", "x86_64-musl",
@@ -72,6 +73,23 @@ class BuildOrchestrator:
         self.live_groups = live_groups or []
         self.platforms = platforms or []
         self.repositories = repositories or []
+        self.include_dirs = include_dirs or []
+
+        # Ensure default workspace custom files directory exists
+        custom_files_dir = resolve_from_project("custom_files")
+        if not custom_files_dir.exists():
+            try:
+                custom_files_dir.mkdir(parents=True, exist_ok=True)
+                (custom_files_dir / ".gitkeep").touch()
+            except Exception as e:
+                print(f"[ORCHESTRATOR] Warning: Could not create custom_files directory: {e}")
+
+        # Automatically add custom_files directory if it contains items besides .gitkeep
+        if custom_files_dir.exists():
+            has_items = any(item.name != ".gitkeep" for item in custom_files_dir.iterdir())
+            if has_items:
+                if str(custom_files_dir) not in self.include_dirs:
+                    self.include_dirs.append(str(custom_files_dir))
 
         self.config_loader = ConfigLoader()
         self.builder: Optional[ISOBuilder] = None
@@ -160,6 +178,13 @@ class BuildOrchestrator:
             for r in self.repositories:
                 if r not in custom_repos:
                     custom_repos.append(r)
+
+        # Inject command line include directories
+        if self.include_dirs:
+            inc_dirs = self.config._data.setdefault("customizations", {}).setdefault("include_dirs", [])
+            for d in self.include_dirs:
+                if d not in inc_dirs:
+                    inc_dirs.append(d)
 
         # 2. Workdir resolution
         configured_base = self.config.get("system.workdir_base", "void-builder/workdir")

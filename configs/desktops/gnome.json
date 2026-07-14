@@ -10,5 +10,17 @@
       "dbus",
       "gdm"
     ]
+  },
+  "desktop_environment": {
+    "name": "GNOME Desktop",
+    "description": "Ambiente de desktop moderno e intuitivo.",
+    "customizations_path": "custom_files/",
+    "use_common_config": true,
+    "copy_files": [
+      {
+        "source": "desktop-config/gnome",
+        "destination": "/etc/skel/.config"
+      }
+    ]
   }
 }
