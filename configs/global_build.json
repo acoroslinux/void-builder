@@ -51,7 +51,11 @@
       "vim",
       "git",
       "curl",
-      "bash-completion"
+      "bash-completion",
+      "mtools",
+      "gptfdisk",
+      "efibootmgr",
+      "dosfstools"
     ]
   }
 }
