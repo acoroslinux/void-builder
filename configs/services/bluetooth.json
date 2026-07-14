@@ -1,0 +1,14 @@
+{
+  "package_sources": {
+    "official": [
+      "bluez",
+      "dbus"
+    ]
+  },
+  "customizations": {
+    "services": [
+      "dbus",
+      "bluetoothd"
+    ]
+  }
+}

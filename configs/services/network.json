@@ -1,0 +1,14 @@
+{
+  "package_sources": {
+    "official": [
+      "NetworkManager",
+      "dbus"
+    ]
+  },
+  "customizations": {
+    "services": [
+      "dbus",
+      "NetworkManager"
+    ]
+  }
+}

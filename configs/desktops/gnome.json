@@ -1,0 +1,14 @@
+{
+  "package_sources": {
+    "official": [
+      "gnome",
+      "gdm"
+    ]
+  },
+  "customizations": {
+    "services": [
+      "dbus",
+      "gdm"
+    ]
+  }
+}

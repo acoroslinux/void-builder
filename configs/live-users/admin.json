@@ -1,0 +1,16 @@
+{
+  "customizations": {
+    "users": [
+      {
+        "name": "admin",
+        "groups": [
+          "wheel",
+          "audio",
+          "video",
+          "network"
+        ],
+        "password": "admin"
+      }
+    ]
+  }
+}

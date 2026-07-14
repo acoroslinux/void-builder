@@ -1,0 +1,14 @@
+{
+  "customizations": {
+    "users": [
+      {
+        "name": "guest",
+        "groups": [
+          "audio",
+          "video"
+        ],
+        "password": "guest"
+      }
+    ]
+  }
+}

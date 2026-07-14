@@ -1,0 +1,16 @@
+{
+  "package_sources": {
+    "official": [
+      "xfce4",
+      "xfce4-power-manager",
+      "lightdm",
+      "lightdm-gtk-greeter"
+    ]
+  },
+  "customizations": {
+    "services": [
+      "dbus",
+      "lightdm"
+    ]
+  }
+}

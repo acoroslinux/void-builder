@@ -1,0 +1,19 @@
+{
+  "package_sources": {
+    "official": [
+      "i3-gaps",
+      "i3status",
+      "dmenu",
+      "i3lock",
+      "xterm",
+      "lightdm",
+      "lightdm-gtk-greeter"
+    ]
+  },
+  "customizations": {
+    "services": [
+      "dbus",
+      "lightdm"
+    ]
+  }
+}

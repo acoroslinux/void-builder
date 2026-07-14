@@ -1,0 +1,14 @@
+{
+  "package_sources": {
+    "official": [
+      "kde-plasma",
+      "sddm"
+    ]
+  },
+  "customizations": {
+    "services": [
+      "dbus",
+      "sddm"
+    ]
+  }
+}

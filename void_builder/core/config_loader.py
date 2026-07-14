@@ -104,13 +104,14 @@ class ConfigAssembler:
             logger.error(f"Error reading {path}: {e}")
             return {}
 
-    def _load_optional_profile(self, category: str, profile_name: str) -> Dict[str, Any]:
+    def _load_optional_profile(self, category: str, profile_name: str, warn_if_missing: bool = True) -> Dict[str, Any]:
         """Load a profile JSON from configs/<category>/<profile_name>.json if it exists."""
         profile_path = self.config_root / category / f"{profile_name}.json"
         if not profile_path.exists():
-            logger.warning(
-                f"Profile '{profile_name}' not found in '{category}' at {profile_path}"
-            )
+            if warn_if_missing:
+                logger.warning(
+                    f"Profile '{profile_name}' not found in '{category}' at {profile_path}"
+                )
             return {}
         return self._load_json_file(profile_path)
 
@@ -293,7 +294,7 @@ class ConfigAssembler:
                     self._apply_live_user_override(str(resolved_name), resolved_groups)
 
         # 4b. Initramfs profile (for live ISO kernel hooks)
-        initramfs_profile = self._load_optional_profile("initramfs", "live")
+        initramfs_profile = self._load_optional_profile("initramfs", "live", warn_if_missing=False)
         if initramfs_profile:
             self._deep_merge(self.master_config, initramfs_profile)
 
