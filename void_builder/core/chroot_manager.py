@@ -85,14 +85,6 @@ class ChrootManager:
             logger.info("[Chroot] No packages to install.")
             return
 
-        logger.info(f"[Chroot] Installing {len(packages)} packages: {', '.join(packages)}")
-        if self.mode == "mock":
-            logger.info(f"[Chroot] [MOCK] Would install packages: {packages}")
-            return
-
-        # Target repository
-        repo_url = "https://repo-default.voidlinux.org/current"
-
         # Determine package cache path
         from void_builder.core.path_utils import resolve_from_project
         cache_path_str = None
@@ -104,14 +96,45 @@ class ChrootManager:
             
         cache_dir = resolve_from_project(cache_path_str)
         cache_dir.mkdir(parents=True, exist_ok=True)
+
+        # Determine package repositories
+        repos = []
+        config_repos = []
+        if hasattr(self, "config") and self.config:
+            r = self.config.get("repositories")
+            if isinstance(r, list):
+                config_repos.extend(r)
+            cr = self.config.get("custom_repositories")
+            if isinstance(cr, list):
+                config_repos.extend(cr)
+
+        if config_repos:
+            for r in config_repos:
+                if r not in repos:
+                    repos.append(r)
+        else:
+            if self.arch.endswith("-musl"):
+                repos.append("https://repo-default.voidlinux.org/current/musl")
+            else:
+                repos.append("https://repo-default.voidlinux.org/current")
+
+        logger.info(f"[Chroot] Installing {len(packages)} packages: {', '.join(packages)}")
         logger.info(f"[Chroot] Using package cache directory: {cache_dir}")
+        logger.info(f"[Chroot] Using package repositories: {', '.join(repos)}")
+
+        if self.mode == "mock":
+            logger.info(f"[Chroot] [MOCK] Would install packages: {packages}")
+            return
 
         xbps_install = str(self.toolchain.xbps_install_static)
         cmd = [
             xbps_install, "-S", "-r", str(self.chroot_path),
             "-c", str(cache_dir),
-            "-R", repo_url, "-y"
-        ] + list(packages)
+        ]
+        for repo in repos:
+            cmd.extend(["-R", repo])
+        cmd.extend(["-y"])
+        cmd.extend(packages)
 
         cmd_env = os.environ.copy()
         cmd_env["XBPS_ARCH"] = self.arch

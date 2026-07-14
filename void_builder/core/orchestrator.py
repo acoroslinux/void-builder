@@ -41,6 +41,7 @@ class BuildOrchestrator:
         live_user: Optional[str] = None,
         live_groups: Optional[List[str]] = None,
         platforms: Optional[List[str]] = None,
+        repositories: Optional[List[str]] = None,
     ):
         VALID_ARCHS = (
             "x86_64", "x86_64-musl",
@@ -70,6 +71,7 @@ class BuildOrchestrator:
         self.live_user = live_user
         self.live_groups = live_groups or []
         self.platforms = platforms or []
+        self.repositories = repositories or []
 
         self.config_loader = ConfigLoader()
         self.builder: Optional[ISOBuilder] = None
@@ -151,6 +153,13 @@ class BuildOrchestrator:
 
         if not self.config:
             raise BuildOrchestratorError("The generated configuration is null or invalid.")
+
+        # Inject command line custom repositories
+        if self.repositories:
+            custom_repos = self.config._data.setdefault("custom_repositories", [])
+            for r in self.repositories:
+                if r not in custom_repos:
+                    custom_repos.append(r)
 
         # 2. Workdir resolution
         configured_base = self.config.get("system.workdir_base", "void-builder/workdir")

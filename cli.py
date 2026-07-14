@@ -165,6 +165,14 @@ def main():
     )
 
     parser.add_argument(
+        "-R",
+        "--repository",
+        action="append",
+        default=[],
+        help="Add a custom XBPS repository. Can be specified multiple times.",
+    )
+
+    parser.add_argument(
         "--list-options",
         action="store_true",
         help="List available desktops, kernels, bootloaders, and package profiles.",
@@ -245,6 +253,7 @@ def main():
         live_user=args.live_user,
         live_groups=parsed_live_groups,
         platforms=args.platform,
+        repositories=args.repository,
     )
 
     print(f"--- Void-Builder Execution ---")
@@ -273,6 +282,8 @@ def main():
         print(f"Live Group: {', '.join(parsed_live_groups)}")
     if args.platform:
         print(f"Platforms:  {', '.join(args.platform)}")
+    if args.repository:
+        print(f"Repos:      {', '.join(args.repository)} (Custom)")
     print(f"------------------------------\n")
 
     try:
