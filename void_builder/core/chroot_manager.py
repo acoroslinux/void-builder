@@ -1,11 +1,12 @@
-import logging
 import os
 import shutil
 import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-logger = logging.getLogger("ChrootManager")
+from void_builder.utils.logger import setup_logger
+
+logger = setup_logger("ChrootManager")
 
 class ChrootError(Exception):
     """Exception raised for ChrootManager operations."""

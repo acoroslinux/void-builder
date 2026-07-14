@@ -1,4 +1,3 @@
-import logging
 import os
 import shutil
 import subprocess
@@ -6,8 +5,9 @@ from pathlib import Path
 from typing import Optional, List, Dict, Tuple
 
 from void_builder.core.path_utils import resolve_from_project
+from void_builder.utils.logger import setup_logger
 
-logger = logging.getLogger("Toolchain")
+logger = setup_logger("Toolchain")
 
 class ToolchainManager:
     def __init__(

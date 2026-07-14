@@ -13,15 +13,15 @@
   "boot_title": "Void Modern Live",
   "boot_cmdline": "quiet splash live.user=live live.autologin",
   "splash_image": "configs/assets/data/splash.png",
-  "_comment_repositories": "Repositórios oficiais padrão usados pelo void-mklive para resolver as diferentes arquiteturas. Apenas estes três devem estar ativos por defeito.",
+  "_comment_repositories": "Default official repositories used by void-mklive to resolve different architectures. Only these three should be active by default.",
   "repositories": [
     "https://repo-default.voidlinux.org/current",
     "https://repo-default.voidlinux.org/current/musl",
     "https://repo-default.voidlinux.org/current/aarch64"
   ],
-  "_comment_custom_repositories": "Para adicionar repositórios próprios, insira-os no array 'custom_repositories'. Exemplo: [\"https://meu-repo.com/voidlinux\"]",
+  "_comment_custom_repositories": "To add your own repositories, insert them in the 'custom_repositories' array. Example: [\"https://my-repo.com/voidlinux\"]",
   "custom_repositories": [],
-  "_comment_priority": "Prioridade dos repositórios: o XBPS avalia os repositórios na ordem declarada (linha de comandos -R/--repository primeiro, depois os de perfis/custom_repositories, e por fim os repositórios oficiais base). A primeira correspondência de um pacote é a que será instalada.",
+  "_comment_priority": "Repository priority: XBPS evaluates repositories in the declared order (command line -R/--repository first, then profiles/custom_repositories, and finally base official repositories). The first package match is the one that will be installed.",
   "customizations": {
     "hostname": "void-modern",
     "timezone": "UTC",

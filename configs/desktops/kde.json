@@ -13,7 +13,7 @@
   },
   "desktop_environment": {
     "name": "KDE Plasma Desktop",
-    "description": "Ambiente de desktop moderno, bonito e altamente customizável.",
+    "description": "Modern, beautiful, and highly customizable desktop environment.",
     "customizations_path": "custom_files/",
     "use_common_config": true,
     "copy_files": [

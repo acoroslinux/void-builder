@@ -1,4 +1,3 @@
-import logging
 import os
 import shutil
 import subprocess
@@ -6,8 +5,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from void_builder.core.path_utils import resolve_from_project
+from void_builder.utils.logger import setup_logger
 
-logger = logging.getLogger("Grub2Bootloader")
+logger = setup_logger("Grub2Bootloader")
 
 
 class Grub2BootloaderError(Exception):

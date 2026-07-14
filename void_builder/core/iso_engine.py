@@ -1,4 +1,3 @@
-import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
 import shutil
@@ -11,8 +10,9 @@ from void_builder.core.bootloaders.syslinux import SyslinuxBootloader
 from void_builder.core.chroot_manager import ChrootManager
 from void_builder.core.customizer import SystemConfigurator
 from void_builder.core.path_utils import resolve_from_project
+from void_builder.utils.logger import setup_logger
 
-logger = logging.getLogger("ISOBuilder")
+logger = setup_logger("ISOBuilder")
 _ENGINE_REGISTRY: Dict[str, Type["BaseEngine"]] = {}
 
 class ISOBuilderError(Exception):

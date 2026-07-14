@@ -1,11 +1,11 @@
-import logging
 import shutil
 from pathlib import Path
 from typing import Any
 
 from void_builder.core.path_utils import resolve_from_project
+from void_builder.utils.logger import setup_logger
 
-logger = logging.getLogger("SyslinuxBootloader")
+logger = setup_logger("SyslinuxBootloader")
 
 
 class SyslinuxBootloaderError(Exception):

@@ -1,15 +1,14 @@
 import json
-import logging
 import os
 import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 from void_builder.core.path_utils import resolve_from_project
+from void_builder.utils.logger import setup_logger
 
 # Setup Logger
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("ConfigLoader")
+logger = setup_logger("ConfigLoader")
 
 
 class ConfigValidationError(Exception):

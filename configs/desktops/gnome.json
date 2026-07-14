@@ -13,7 +13,7 @@
   },
   "desktop_environment": {
     "name": "GNOME Desktop",
-    "description": "Ambiente de desktop moderno e intuitivo.",
+    "description": "Modern and intuitive desktop environment.",
     "customizations_path": "custom_files/",
     "use_common_config": true,
     "copy_files": [

@@ -1,12 +1,12 @@
-import logging
 import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 from void_builder.core.chroot_manager import ChrootError, ChrootManager
 from void_builder.core.path_utils import project_root, resolve_from_base, resolve_from_project
+from void_builder.utils.logger import setup_logger
 
-logger = logging.getLogger("SystemConfigurator")
+logger = setup_logger("SystemConfigurator")
 
 
 class ConfigError(Exception):
