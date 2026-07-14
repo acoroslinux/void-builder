@@ -275,7 +275,7 @@ class DracutAction(SystemAction):
             }
             comp = comp_flags.get(self.compression, "--xz")
 
-            force_add = ["vmklive"] + self.extra_modules
+            force_add = ["vmklive", "dmsquash-live"] + self.extra_modules
             omit = ["systemd"]
 
             cmd = ["dracut", "-N", comp]

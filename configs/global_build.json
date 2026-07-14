@@ -55,7 +55,13 @@
       "mtools",
       "gptfdisk",
       "efibootmgr",
-      "dosfstools"
+      "dosfstools",
+      "binutils",
+      "xz",
+      "device-mapper",
+      "dhclient",
+      "dracut-network",
+      "openresolv"
     ]
   }
 }
