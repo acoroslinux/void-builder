@@ -102,22 +102,25 @@ def setup_logger(
     # ------------------------------------------------------------------
     log_dir = Path(__file__).resolve().parents[2]
 
-    file_handler = RotatingFileHandler(
-        log_dir / log_filename,
-        maxBytes=1024 * 1024,  # 1 MiB per file
-        backupCount=5,
-        encoding="utf-8",
-    )
-    file_handler.setLevel(log_level)
-    file_handler.setFormatter(
-        logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-    )
+    try:
+        file_handler = RotatingFileHandler(
+            log_dir / log_filename,
+            maxBytes=1024 * 1024,  # 1 MiB per file
+            backupCount=5,
+            encoding="utf-8",
+        )
+        file_handler.setLevel(log_level)
+        file_handler.setFormatter(
+            logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        )
+        logger.addHandler(file_handler)
+    except PermissionError:
+        pass
 
     # ------------------------------------------------------------------
     # Attach handlers
     # ------------------------------------------------------------------
     logger.addHandler(console_handler)
-    logger.addHandler(file_handler)
 
     return logger
 

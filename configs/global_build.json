@@ -11,7 +11,7 @@
     "compression": "xz"
   },
   "boot_title": "Void Modern Live",
-  "boot_cmdline": "quiet splash live.user=live live.autologin",
+  "boot_cmdline": "quiet splash live.user=live live.autologin rd.live.overlay.overlayfs=1",
   "splash_image": "configs/assets/data/splash.png",
   "_comment_repositories": "Default official repositories used by void-mklive to resolve different architectures. Only these three should be active by default.",
   "repositories": [
