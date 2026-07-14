@@ -100,8 +100,7 @@ def setup_logger(
     # ------------------------------------------------------------------
     # File handler (rotating, no colours)
     # ------------------------------------------------------------------
-    log_dir = Path(os.path.expanduser("~")) / "logs"
-    log_dir.mkdir(parents=True, exist_ok=True)
+    log_dir = Path(__file__).resolve().parents[2]
 
     file_handler = RotatingFileHandler(
         log_dir / log_filename,

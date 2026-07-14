@@ -276,9 +276,10 @@ class DracutAction(SystemAction):
             comp = comp_flags.get(self.compression, "--xz")
 
             force_add = ["vmklive"] + self.extra_modules
-            omit = ["systemd", "iscsi", "lunmask", "lvm", "cifs", "hwdb"]
+            omit = ["systemd"]
 
             cmd = ["dracut", "-N", comp]
+            cmd.extend(["--add-drivers", "overlay"])
             for mod in force_add:
                 cmd.extend(["--force-add", mod])
             for mod in omit:
@@ -288,14 +289,8 @@ class DracutAction(SystemAction):
             cmd_str = " ".join(cmd)
             logger.info(f"  [Dracut] Command: {cmd_str}")
             
-            try:
-                chroot.run_command(cmd_str)
-                logger.info("  [Dracut] Initramfs generated successfully")
-            except Exception as e:
-                logger.warning(f"  [Dracut] Dracut failed: {e}. Retrying with extra omissions...")
-                fallback_cmd = cmd_str.replace('--omit hwdb', '--omit "hwdb udev-rules dmsquash-live dm"')
-                chroot.run_command(fallback_cmd)
-                logger.info("  [Dracut] Initramfs generated (fallback mode)")
+            chroot.run_command(cmd_str)
+            logger.info("  [Dracut] Initramfs generated successfully")
         else:
             logger.info("    [Mock] dracut -N --xz --force-add vmklive --omit systemd ... /boot/initrd")
 

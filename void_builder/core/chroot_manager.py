@@ -39,6 +39,10 @@ class ChrootManager:
             # Under proot we do not mount virtual filesystems manually
             return
 
+        if self._mounted:
+            logger.info(f"[Chroot] Virtual filesystems already mounted at {self.chroot_path}.")
+            return
+
         from void_builder.utils.lib import mount_pseudofs
         logger.info(f"[Chroot] Mounting virtual filesystems at {self.chroot_path}...")
         mount_pseudofs(str(self.chroot_path))
@@ -51,6 +55,10 @@ class ChrootManager:
             
         import os
         if os.geteuid() != 0:
+            return
+
+        if not self._mounted:
+            logger.info(f"[Chroot] Virtual filesystems already unmounted at {self.chroot_path}.")
             return
 
         from void_builder.utils.lib import umount_pseudofs

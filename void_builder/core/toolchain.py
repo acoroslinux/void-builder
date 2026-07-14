@@ -125,7 +125,7 @@ class ToolchainManager:
         self._run_xbps_install(self.host_dir, host_arch, host_pkgs, host_repos)
 
         # 3. Install target bootloader packages into self.target_dir
-        target_pkgs = ["base-files"]
+        target_pkgs = ["base-files", "bash", "mtools", "dosfstools"]
         if self.arch.startswith(("x86_64", "i686")):
             target_pkgs.extend(["syslinux", "grub-i386-efi", "grub-x86_64-efi", "memtest86+"])
         elif self.arch.startswith("aarch64"):
