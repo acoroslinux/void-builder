@@ -90,8 +90,7 @@
     "xfsprogs",
     "cryptsetup",
     "lvm2",
-    "plymouth",
-    "plymouth-theme-void"
+    "plymouth"
   ],
   "package_sources": {
     "official": [
