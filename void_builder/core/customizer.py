@@ -504,6 +504,27 @@ class LoginManagerAction(SystemAction):
         else:
             logger.info(f"    [Mock] {self.display_manager} autologin configured: user={self.username}, session={self.session_name}")
 
+
+class FlatpakAction(SystemAction):
+    """Configures the official Flathub repository if flatpak is installed."""
+
+    def execute(self, chroot: ChrootManager, source_base: Path):
+        logger.info("  [Flatpak] Checking flatpak configuration...")
+        if chroot.mode == "real":
+            # Check if flatpak binary exists in chroot
+            flatpak_bin = chroot.chroot_path / "usr" / "bin" / "flatpak"
+            if flatpak_bin.exists():
+                logger.info("  [Flatpak] Flatpak detected. Adding Flathub remote...")
+                try:
+                    chroot.run_command("flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo", check=False)
+                except Exception as e:
+                    logger.warning(f"  [Flatpak] Failed to configure Flathub: {e}")
+            else:
+                logger.debug("  [Flatpak] Flatpak not installed, skipping configuration.")
+        else:
+            logger.info("    [Mock] flatpak remote-add --if-not-exists flathub ...")
+
+
 class StructuredCopyAction(SystemAction):
     """Configures structured copy of files from custom_files to rootfs."""
 
@@ -744,6 +765,9 @@ class SystemConfigurator:
                 if final_copy_list:
                     arch = _safe_get(config, "platform_specific.architecture", "x86_64")
                     self.actions.append(StructuredCopyAction(custom_path, final_copy_list, arch))
+
+        # 12. Flatpak Configuration (run unconditionally, checks inside if flatpak is installed)
+        self.actions.append(FlatpakAction())
 
     def apply(self, source_base_dir: Optional[Path] = None):
         if not self.chroot:

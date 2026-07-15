@@ -162,11 +162,31 @@ class VoidEngine(BaseEngine):
     def install_packages(self) -> None:
         plan = self._package_plan()
         chroot_manager = getattr(self.toolchain, "chroot_manager", None)
-        if chroot_manager and hasattr(chroot_manager, "install_packages"):
-            chroot_manager.install_packages(plan)
-        else:
+        if not chroot_manager or not hasattr(chroot_manager, "install_packages"):
             self.logger.error("No chroot manager available to install packages.")
             raise ISOBuilderError("ChrootManager missing.")
+
+        repos = self._cfg_get("repositories", []) + self._cfg_get("custom_repositories", [])
+        
+        # Support for Custom Local Packages (e.g. Calamares)
+        local_pkgs_dir_str = self.config.get("system", {}).get("local_packages_dir", "custom_packages")
+        local_pkgs_dir = resolve_from_project(local_pkgs_dir_str)
+        
+        if local_pkgs_dir.exists() and local_pkgs_dir.is_dir():
+            has_xbps = any(local_pkgs_dir.glob("*.xbps"))
+            if has_xbps:
+                self.logger.info(f"[Packages] Found custom local packages in {local_pkgs_dir}. Indexing...")
+                import subprocess
+                try:
+                    subprocess.run(["xbps-rindex", "-a", f"{local_pkgs_dir}/*.xbps"], shell=True, check=True)
+                    repos.insert(0, str(local_pkgs_dir))  # Insert at priority 0
+                    self.logger.info(f"[Packages] Added local repository to the front: {local_pkgs_dir}")
+                except Exception as e:
+                    self.logger.warning(f"[Packages] Failed to index local packages: {e}")
+            else:
+                self.logger.debug(f"[Packages] No .xbps files found in {local_pkgs_dir}")
+
+        chroot_manager.install_packages(plan["official"], repos=repos)
 
     def post_install_configure(self) -> None:
         chroot_manager = getattr(self.toolchain, "chroot_manager", None)

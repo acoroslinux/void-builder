@@ -41,8 +41,15 @@
       }
     ],
     "services": [
-      "dhcpcd",
-      "sshd"
+      "dbus",
+      "NetworkManager",
+      "polkitd",
+      "bluetoothd",
+      "cupsd",
+      "avahi-daemon",
+      "sshd",
+      "chronyd",
+      "alsa"
     ]
   },
   "common_desktop_packages": [
@@ -54,7 +61,21 @@
     "dbus",
     "elogind",
     "polkit",
-    "NetworkManager"
+    "NetworkManager",
+    "alsa-utils",
+    "alsa-pipewire",
+    "pipewire",
+    "bluez",
+    "blueman",
+    "cups",
+    "avahi",
+    "gvfs",
+    "gvfs-smb",
+    "gvfs-mtp",
+    "udisks2",
+    "chrony",
+    "linux-firmware",
+    "sof-firmware"
   ],
   "package_sources": {
     "official": [
