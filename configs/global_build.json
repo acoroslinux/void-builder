@@ -45,6 +45,17 @@
       "sshd"
     ]
   },
+  "common_desktop_packages": [
+    "xorg-minimal",
+    "xorg-video-drivers",
+    "xorg-input-drivers",
+    "xorg-fonts",
+    "mesa-dri",
+    "dbus",
+    "elogind",
+    "polkit",
+    "NetworkManager"
+  ],
   "package_sources": {
     "official": [
       "base-system",

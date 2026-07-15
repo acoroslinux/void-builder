@@ -101,6 +101,10 @@ class BaseEngine(ISOEngine):
         # Keep order while deduplicating.
         official_all = list(dict.fromkeys([*legacy, *official]))
 
+        if self.config.get("desktop_environment") or any(d in str(official_all) for d in ("xfce", "kde", "gnome", "mate")):
+            common_desktop = self._normalize_packages(self._cfg_get("common_desktop_packages", []))
+            official_all.extend(pkg for pkg in common_desktop if pkg not in official_all)
+
         return {
             "official": official_all,
             "aur": [],
@@ -382,9 +386,11 @@ class VoidEngine(BaseEngine):
                     time.sleep(1)
 
             # 5. Generate squashfs from tmp_dir
-            mksquashfs_bin = self.toolchain.get_host_tool("mksquashfs")
-            if not mksquashfs_bin:
-                raise ISOBuilderError("mksquashfs not found on host system.")
+            mksquashfs_bin = "mksquashfs"
+            if getattr(self.toolchain, "mode", "mock") == "real" and hasattr(self.toolchain, "host_dir"):
+                candidate = self.toolchain.host_dir / "usr" / "bin" / "mksquashfs"
+                if candidate.exists():
+                    mksquashfs_bin = str(candidate)
 
             comp_type = self.config.get("squashfs_compression", "xz")
             cpu_count = max(os.cpu_count() or 1, 1)
