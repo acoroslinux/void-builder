@@ -89,7 +89,9 @@
     "btrfs-progs",
     "xfsprogs",
     "cryptsetup",
-    "lvm2"
+    "lvm2",
+    "plymouth",
+    "plymouth-theme-void"
   ],
   "package_sources": {
     "official": [

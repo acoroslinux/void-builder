@@ -80,9 +80,9 @@ class Grub2Bootloader:
 
         base_append = (
             f"root=live:CDLABEL={iso_label} ro init=/sbin/init "
-            f"rd.luks=0 rd.md=0 rd.dm=0 loglevel=4 gpt add_efi_memmap "
+            f"rd.luks=0 rd.md=0 rd.dm=0 loglevel=3 gpt add_efi_memmap "
             f"vconsole.unicode=1 vconsole.keymap={keymap} "
-            f"locale.LANG={locale} {boot_cmdline}"
+            f"locale.LANG={locale} splash quiet rd.plymouth=1 vt.global_cursor_default=0 {boot_cmdline}"
         ).strip()
 
         # Helper to generate a single menuentry
