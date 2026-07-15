@@ -178,7 +178,8 @@ class VoidEngine(BaseEngine):
                 self.logger.info(f"[Packages] Found {len(xbps_files)} custom local packages in {local_pkgs_dir}. Indexing...")
                 import subprocess
                 try:
-                    subprocess.run(f"xbps-rindex -a {local_pkgs_dir}/*.xbps", shell=True, check=True)
+                    xbps_rindex_bin = str(self.toolchain.xbps_install_static).replace("xbps-install.static", "xbps-rindex.static")
+                    subprocess.run(f"{xbps_rindex_bin} -a {local_pkgs_dir}/*.xbps", shell=True, check=True)
                     repos.insert(0, str(local_pkgs_dir))  # Insert at priority 0
                     self.logger.info(f"[Packages] Added local repository to the front: {local_pkgs_dir}")
                 except Exception as e:

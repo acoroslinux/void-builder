@@ -78,7 +78,6 @@
     "sof-firmware",
     "python3-gobject",
     "python3-tkinter",
-    "python3-parted",
     "python3-netifaces",
     "python3-psutil",
     "python3-cryptography",
