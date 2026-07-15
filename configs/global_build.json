@@ -75,7 +75,22 @@
     "udisks2",
     "chrony",
     "linux-firmware",
-    "sof-firmware"
+    "sof-firmware",
+    "python3-gobject",
+    "python3-tkinter",
+    "python3-parted",
+    "python3-netifaces",
+    "python3-psutil",
+    "python3-cryptography",
+    "python3-yaml",
+    "python3-dbus",
+    "gptfdisk",
+    "dosfstools",
+    "e2fsprogs",
+    "btrfs-progs",
+    "xfsprogs",
+    "cryptsetup",
+    "lvm2"
   ],
   "package_sources": {
     "official": [

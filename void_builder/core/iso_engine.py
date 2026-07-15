@@ -186,7 +186,7 @@ class VoidEngine(BaseEngine):
             else:
                 self.logger.debug(f"[Packages] No .xbps files found in {local_pkgs_dir}")
 
-        chroot_manager.install_packages(plan["official"], repos=repos)
+        chroot_manager.install_packages(plan, repos=repos)
 
     def post_install_configure(self) -> None:
         chroot_manager = getattr(self.toolchain, "chroot_manager", None)

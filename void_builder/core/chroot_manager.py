@@ -87,7 +87,7 @@ class ChrootManager:
             raise ChrootError(f"Chroot command failed (exit {ret}): {stderr or stdout}")
         return stdout
 
-    def install_packages(self, plan: Dict[str, List[str]]) -> None:
+    def install_packages(self, plan: Dict[str, List[str]], repos: List[str] = None) -> None:
         """Install packages into the chroot using xbps-install.static."""
         packages = plan.get("official", [])
         if not packages:
@@ -107,8 +107,10 @@ class ChrootManager:
         cache_dir.mkdir(parents=True, exist_ok=True)
 
         # Determine package repositories
-        repos = []
+        internal_repos = []
         config_repos = []
+        if repos:
+            config_repos.extend(repos)
         if hasattr(self, "config") and self.config:
             r = self.config.get("repositories")
             if isinstance(r, list):
@@ -119,21 +121,21 @@ class ChrootManager:
 
         if config_repos:
             for r in config_repos:
-                if r not in repos:
-                    repos.append(r)
+                if r not in internal_repos:
+                    internal_repos.append(r)
         else:
             if self.arch.endswith("-musl"):
-                repos.append("https://repo-default.voidlinux.org/current/musl")
+                internal_repos.append("https://repo-default.voidlinux.org/current/musl")
             else:
-                repos.append("https://repo-default.voidlinux.org/current")
+                internal_repos.append("https://repo-default.voidlinux.org/current")
 
         # Filter repos to only use compatible ones for target arch
         from void_builder.utils.lib import filter_repositories
-        repos = filter_repositories(repos, self.arch)
+        internal_repos = filter_repositories(internal_repos, self.arch)
 
         logger.info(f"[Chroot] Installing {len(packages)} packages: {', '.join(packages)}")
         logger.info(f"[Chroot] Using package cache directory: {cache_dir}")
-        logger.info(f"[Chroot] Using package repositories: {', '.join(repos)}")
+        logger.info(f"[Chroot] Using package repositories: {', '.join(internal_repos)}")
 
         # Copy repository public keys to the target chroot
         if self.mode == "real":
@@ -148,7 +150,7 @@ class ChrootManager:
             xbps_install, "-S", "-r", str(self.chroot_path),
             "-c", str(cache_dir),
         ]
-        for repo in repos:
+        for repo in internal_repos:
             cmd.extend(["-R", repo])
         cmd.extend(["-y"])
         cmd.extend(packages)
