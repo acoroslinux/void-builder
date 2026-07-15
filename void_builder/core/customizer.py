@@ -259,12 +259,14 @@ class DracutAction(SystemAction):
             if not modules_dir.is_dir():
                 logger.error("  [Dracut] No kernel modules directory found!")
                 return
-            versions = [d.name for d in modules_dir.iterdir() if d.is_dir()]
-            if not versions:
+            versions_dirs = [d for d in modules_dir.iterdir() if d.is_dir()]
+            if not versions_dirs:
                 logger.error("  [Dracut] No kernel found in /usr/lib/modules!")
                 return
-            kernel_version = versions[0]
-            logger.info(f"  [Dracut] Detected kernel version: {kernel_version}")
+            # Sort by modified time (newest first) to match mklive.sh's `ls -t` behavior
+            versions_dirs.sort(key=lambda d: d.stat().st_mtime, reverse=True)
+            kernel_version = versions_dirs[0].name
+            logger.info(f"  [Dracut] Detected kernel version: {kernel_version} (most recently modified)")
 
             comp_flags = {
                 "xz": "--xz",

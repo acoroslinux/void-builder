@@ -1,4 +1,5 @@
 export voidlive
+set root=${voidlive}
 
 set pager="1"
 set locale_dir="(${voidlive})/boot/grub/locale"

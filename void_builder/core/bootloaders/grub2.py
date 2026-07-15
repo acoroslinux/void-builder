@@ -91,8 +91,8 @@ class Grub2Bootloader:
             cmd = f"{base_append} {extra_cmdline}".strip()
             ent = f'menuentry "{full_title}" --id "{entry_id}" {{\n'
             ent += '    set gfxpayload="keep"\n'
-            ent += f'    linux (${{voidlive}})/boot/{kernel_file} {cmd}\n'
-            ent += f'    initrd (${{voidlive}})/boot/initrd\n'
+            ent += f'    linux /boot/{kernel_file} {cmd}\n'
+            ent += f'    initrd /boot/initrd\n'
             ent += '}\n\n'
             return ent
 
@@ -113,7 +113,7 @@ class Grub2Bootloader:
                 p_cmdline = plat_info.get("cmdline", "")
                 p_dtb = plat_info.get("dtb", "")
                 
-                dtb_line = f"        devicetree (${{voidlive}})/boot/dtbs/{p_dtb}\n" if p_dtb else ""
+                dtb_line = f"        devicetree /boot/dtbs/{p_dtb}\n" if p_dtb else ""
                 
                 entries += f'\nsubmenu "{boot_title} for {p_name} >" --id platform-{platform} {{\n'
                 
@@ -122,8 +122,8 @@ class Grub2Bootloader:
                     cmd = f"{base_append} {p_cmdline} {extra_cmdline}".strip()
                     ent = f'    menuentry "{full_title}" --id "{entry_id}" {{\n'
                     ent += '        set gfxpayload="keep"\n'
-                    ent += f'        linux (${{voidlive}})/boot/{kernel_file} {cmd}\n'
-                    ent += f'        initrd (${{voidlive}})/boot/initrd\n'
+                    ent += f'        linux /boot/{kernel_file} {cmd}\n'
+                    ent += f'        initrd /boot/initrd\n'
                     ent += dtb_line
                     ent += '    }\n'
                     return ent
@@ -140,12 +140,12 @@ class Grub2Bootloader:
             entries += 'if [ "${grub_platform}" == "efi" ]; then\n'
             entries += '    menuentry "Run Memtest86+ (RAM test)" --id memtest {\n'
             entries += '        set gfxpayload="keep"\n'
-            entries += '        linux (${voidlive})/boot/memtest.efi\n'
+            entries += '        linux /boot/memtest.efi\n'
             entries += '    }\n'
             entries += 'else\n'
             entries += '    menuentry "Run Memtest86+ (RAM test)" --id memtest {\n'
             entries += '        set gfxpayload="keep"\n'
-            entries += '        linux (${voidlive})/boot/memtest.bin\n'
+            entries += '        linux /boot/memtest.bin\n'
             entries += '    }\n'
             entries += 'fi\n'
 
@@ -211,22 +211,8 @@ class Grub2Bootloader:
         """Generate efiboot.img using grub-mkstandalone inside chroot (or simulation)."""
         logger.info("[GRUB2] Generating UEFI boot image (efiboot.img)...")
 
-        arch = self._cfg_get("platform_specific.architecture", "x86_64")
-        arch_lower = arch.lower()
-        if arch_lower.startswith(("aarch64", "arm64")):
-            grub_target = "arm64-efi"
-            efi_filename = "BOOTAA64.EFI"
-        elif arch_lower.startswith(("i686", "i386")):
-            grub_target = "i386-efi"
-            efi_filename = "BOOTIA32.EFI"
-        else:
-            grub_target = "x86_64-efi"
-            efi_filename = "BOOTx64.EFI"
-
-        efi_img_path = workdir / "EFI" / "efiboot.img"
+        efi_img_path = workdir / "boot" / "grub" / "efiboot.img"
         efi_img_path.parent.mkdir(parents=True, exist_ok=True)
-        efi_binary = workdir / "EFI" / "BOOT" / efi_filename
-        efi_binary.parent.mkdir(parents=True, exist_ok=True)
 
         has_real_chroot = bool(
             chroot_path
@@ -239,149 +225,70 @@ class Grub2Bootloader:
 
         if not has_real_chroot:
             logger.info("[GRUB2] [MOCK] No real chroot — writing placeholder efiboot.img")
-            efi_binary.write_bytes(b"\x00" * 512)
             efi_img_path.write_bytes(b"\x00" * (32 * 1024 * 1024))
-            logger.warning("[GRUB2] [MOCK] efiboot.img is a placeholder — build a real ISO with a live chroot")
             return True
 
-        # Real mode chroot standalone compilation
         chroot = Path(chroot_path)
-        stage = chroot / "tmp" / "efiboot_stage"
-        shutil.rmtree(stage, ignore_errors=True)
-        stage_efi_dir = stage / "EFI" / "BOOT"
-        stage_efi_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Copy grub.cfg to chroot so grub-mkstandalone can embed it
+        chroot_grub_dir = chroot / "boot" / "grub"
+        chroot_grub_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(workdir / "boot" / "grub" / "grub.cfg", chroot_grub_dir / "grub.cfg")
 
-        # Generate simple grub embedded cfg to search ISO and load config
-        embed_cfg_content = (
-            "search --file --no-floppy --set=root /boot/grub/grub.cfg\n"
-            "set prefix=($root)/boot/grub\n"
-            "configfile ($root)/boot/grub/grub.cfg\n"
-        )
-        embed_cfg_chroot = stage / "grub-embed.cfg"
-        embed_cfg_chroot.write_text(embed_cfg_content, encoding="utf-8")
+        arch = self._cfg_get("platform_specific.architecture", "x86_64")
+        arch_lower = arch.lower()
 
-        grub_modules = (
-            "all_video at_keyboard boot cat chain configfile echo "
-            "efifwsetup efinet exfat ext2 fat font gfxmenu gfxterm gzio "
-            "halt hfsplus iso9660 jpeg keylayouts linux loadenv loopback "
-            "lsefi lsefimmap minicmd normal ntfs part_apple part_gpt "
-            "part_msdos png read reboot regexp search search_fs_file "
-            "search_fs_uuid search_label serial sleep udf usb video xfs zstd"
-        )
+        builds = []
+        if arch_lower.startswith(("i686", "x86_64")):
+            builds.append(("i386-efi", "BOOTIA32.EFI"))
+            builds.append(("x86_64-efi", "BOOTX64.EFI"))
+        elif arch_lower.startswith(("aarch64", "arm64")):
+            builds.append(("arm64-efi", "BOOTAA64.EFI"))
 
-        # Execute grub-mkstandalone in the chroot
-        stage_rel = "/tmp/efiboot_stage"
         chroot_cmd = ["chroot"]
         import os
         if os.geteuid() != 0:
             chroot_cmd = ["sudo", "chroot"]
 
-        # Run grub-mkstandalone
-        cmd_grub = [
-            *chroot_cmd, str(chroot), "bash", "-c",
-            f"grub-mkstandalone -O {grub_target} "
-            f"--modules=\"{grub_modules}\" "
-            f"--locales=\"en@quot\" "
-            f"--themes=\"\" "
-            f"-o {stage_rel}/EFI/BOOT/{efi_filename} "
-            f"boot/grub/grub.cfg={stage_rel}/grub-embed.cfg"
-        ]
-
-        logger.info(f"[GRUB2] Executing grub-mkstandalone inside chroot...")
-        res = subprocess.run(cmd_grub, capture_output=True, text=True, timeout=180)
-        if res.returncode != 0:
-            logger.error(f"[GRUB2] grub-mkstandalone failed: {res.stderr}")
-            raise Grub2BootloaderError(f"grub-mkstandalone failed: {res.stderr}")
-
-        # Copy BOOT*.EFI out to workdir/EFI/BOOT/
-        efi_in_stage = stage / "EFI" / "BOOT" / efi_filename
-        if efi_in_stage.exists():
-            shutil.copy2(efi_in_stage, efi_binary)
-
-        # Copy GRUB themes and fonts into the efiboot staging area so the EFI
-        # image can show the theme before loading the full ISO filesystem.
-        # Themes are expected to be present in the ISO staging tree at:
-        #   <workdir>/boot/grub/themes
-        # and fonts at:
-        #   <workdir>/boot/grub/fonts
-        grub_themes_src = workdir / "boot" / "grub" / "themes"
-        if grub_themes_src.exists():
-            try:
-                shutil.copytree(grub_themes_src, stage / "boot" / "grub" / "themes", dirs_exist_ok=True)
-                logger.info(f"[GRUB2] Copied GRUB themes into efiboot stage: {grub_themes_src}")
-            except Exception as e:
-                logger.warning(f"[GRUB2] Failed to copy GRUB themes into efiboot stage: {e}")
-
-        grub_fonts_src = workdir / "boot" / "grub" / "fonts"
-        if grub_fonts_src.exists():
-            try:
-                shutil.copytree(grub_fonts_src, stage / "boot" / "grub" / "fonts", dirs_exist_ok=True)
-                logger.info(f"[GRUB2] Copied GRUB fonts into efiboot stage: {grub_fonts_src}")
-            except Exception as e:
-                logger.warning(f"[GRUB2] Failed to copy GRUB fonts into efiboot stage: {e}")
-
-        # Calculate FAT image size and build it inside the chroot
-        total_bytes = sum(
-            f.stat().st_size for f in stage.rglob("*") if f.is_file()
-        )
-        size_mib = max(32, (total_bytes // (1024 * 1024)) + 16)
-
         efi_img_chroot = "/tmp/efiboot.img"
         efi_img_host = chroot / "tmp" / "efiboot.img"
 
+        # Create exact 32MB FAT image as void-mklive does
         with open(efi_img_host, "wb") as f:
-            f.write(b"\x00" * (size_mib * 1024 * 1024))
+            f.write(b"\x00" * (32 * 1024 * 1024))
 
         fat_cmds = [
-            f"mkfs.fat -n VOID_EFI {efi_img_chroot}",
+            f"mkfs.fat -F12 -S 512 -n grub_uefi {efi_img_chroot}",
             f"mmd -i {efi_img_chroot} ::/EFI ::/EFI/BOOT",
-            f"mcopy -i {efi_img_chroot} {stage_rel}/EFI/BOOT/{efi_filename} ::/EFI/BOOT/{efi_filename}",
         ]
 
-        # Ensure /boot and /boot/grub directories exist in the FAT image and
-        # copy any staged GRUB themes and fonts into the EFI image so the
-        # embedded GRUB binary can load them directly.
-        boot_theme_dir = stage / "boot" / "grub"
-        if boot_theme_dir.exists():
-            # Collect all directories needed in the FAT image dynamically so
-            # that nested theme directories (e.g. themes/modern/) are created.
-            dirs_to_create = set()
-            for f in (stage / "boot").rglob("*"):
-                if f.is_file():
-                    parent = f.relative_to(stage).parent
-                    # Add every intermediate path component
-                    parts = parent.parts
-                    for i in range(1, len(parts) + 1):
-                        dirs_to_create.add("::/" + "/".join(parts[:i]))
-            # Also ensure base dirs exist even if empty
-            dirs_to_create.update([
-                "::/boot", "::/boot/grub",
-                "::/boot/grub/themes", "::/boot/grub/fonts",
-            ])
-            # Sort by depth so parent dirs are created before children
-            sorted_dirs = sorted(dirs_to_create, key=lambda d: (d.count("/"), d))
-            fat_cmds.append(f"mmd -i {efi_img_chroot} {' '.join(sorted_dirs)}")
-            # Copy all files under stage/boot into the FAT image preserving relative paths
-            for f in (stage / "boot").rglob("*"):
-                if f.is_file():
-                    rel_path = f.relative_to(stage)
-                    fat_cmds.append(
-                        f"mcopy -i {efi_img_chroot} {stage_rel}/{rel_path} ::/{rel_path}"
-                    )
+        for grub_arch, efi_name in builds:
+            logger.info(f"[GRUB2] Building EFI loader for {grub_arch} ({efi_name})...")
+            cmd_grub = [
+                *chroot_cmd, str(chroot), "bash", "-c",
+                f"grub-mkstandalone "
+                f"--directory=\"/usr/lib/grub/{grub_arch}\" "
+                f"--format=\"{grub_arch}\" "
+                f"--output=\"/tmp/{efi_name}\" "
+                f"\"boot/grub/grub.cfg\""
+            ]
+            
+            res = subprocess.run(cmd_grub, capture_output=True, text=True, timeout=180)
+            if res.returncode != 0:
+                logger.warning(f"[GRUB2] Skipping {grub_arch} due to build failure (missing libs or unsupported).")
+                continue
 
+            fat_cmds.append(f"mcopy -i {efi_img_chroot} /tmp/{efi_name} ::/EFI/BOOT/{efi_name}")
+
+        logger.info(f"[GRUB2] Populating efiboot.img via mkfs.fat/mcopy...")
         cmd_fat = [*chroot_cmd, str(chroot), "bash", "-c", " && ".join(fat_cmds)]
-        logger.info(f"[GRUB2] Creating efiboot.img via mkfs.fat...")
         res = subprocess.run(cmd_fat, capture_output=True, text=True, timeout=180)
         if res.returncode != 0:
-            logger.error(f"[GRUB2] FAT image creation failed: {res.stderr}")
             raise Grub2BootloaderError(f"FAT image creation failed: {res.stderr}")
 
-        # Copy image out
         shutil.copy2(efi_img_host, efi_img_path)
         logger.info(f"[GRUB2] efiboot.img created successfully: {efi_img_path}")
 
-        # Cleanup
-        shutil.rmtree(stage, ignore_errors=True)
         efi_img_host.unlink(missing_ok=True)
         return True
 
