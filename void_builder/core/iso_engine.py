@@ -349,7 +349,7 @@ class VoidEngine(BaseEngine):
 
         img_size_mb = size_mb * 2 + 100
 
-        with tempfile.TemporaryDirectory(dir=self.workdir) as tmp_dir:
+        with tempfile.TemporaryDirectory(dir=self.iso_staging.parent) as tmp_dir:
             tmp_path = Path(tmp_dir)
             tmp_liveos = tmp_path / "LiveOS"
             tmp_liveos.mkdir(parents=True, exist_ok=True)

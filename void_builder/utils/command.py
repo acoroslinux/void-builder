@@ -11,7 +11,8 @@ class CommandRunner:
         env: Optional[Dict[str, str]] = None,
         check: bool = True,
         capture_output: bool = True,
-        stream: bool = False
+        stream: bool = False,
+        silent_errors: bool = False
     ) -> Tuple[int, str, str]:
         """
         Runs a shell command and returns (returncode, stdout, stderr).
@@ -23,12 +24,14 @@ class CommandRunner:
             check: Raise exception on non-zero exit code
             capture_output: Capture stdout/stderr
             stream: Stream output in real-time
+            silent_errors: Do not print [ERROR] if return code is non-zero
             
         Returns:
             Tuple of (returncode, stdout, stderr)
         """
         cmd_str = ' '.join(command)
-        print(f"\033[1m[CMD]\033[0m {cmd_str}")
+        if not silent_errors:
+            print(f"\033[1m[CMD]\033[0m {cmd_str}")
         
         try:
             if stream:
@@ -75,9 +78,10 @@ class CommandRunner:
                 stderr = result.stderr if capture_output else ''
             
             if returncode != 0:
-                print(f"\033[91m[ERROR]\033[0m Command failed with exit code {returncode}")
-                if stderr:
-                    print(f"\033[91m[STDERR]\033[0m {stderr}")
+                if not silent_errors:
+                    print(f"\033[91m[ERROR]\033[0m Command failed with exit code {returncode}")
+                    if stderr:
+                        print(f"\033[91m[STDERR]\033[0m {stderr}")
                 if check:
                     raise subprocess.CalledProcessError(
                         returncode, cmd_str, stdout, stderr
