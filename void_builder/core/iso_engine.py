@@ -169,22 +169,22 @@ class VoidEngine(BaseEngine):
         repos = self._cfg_get("repositories", []) + self._cfg_get("custom_repositories", [])
         
         # Support for Custom Local Packages (e.g. Calamares)
-        local_pkgs_dir_str = self.config.get("system", {}).get("local_packages_dir", "custom_packages")
-        local_pkgs_dir = resolve_from_project(local_pkgs_dir_str)
+        from void_builder.core.path_utils import resolve_from_project
+        local_pkgs_dir = resolve_from_project("custom_packages")
         
         if local_pkgs_dir.exists() and local_pkgs_dir.is_dir():
-            has_xbps = any(local_pkgs_dir.glob("*.xbps"))
-            if has_xbps:
-                self.logger.info(f"[Packages] Found custom local packages in {local_pkgs_dir}. Indexing...")
+            xbps_files = list(local_pkgs_dir.glob("*.xbps"))
+            if len(xbps_files) > 0:
+                self.logger.info(f"[Packages] Found {len(xbps_files)} custom local packages in {local_pkgs_dir}. Indexing...")
                 import subprocess
                 try:
-                    subprocess.run(["xbps-rindex", "-a", f"{local_pkgs_dir}/*.xbps"], shell=True, check=True)
+                    subprocess.run(f"xbps-rindex -a {local_pkgs_dir}/*.xbps", shell=True, check=True)
                     repos.insert(0, str(local_pkgs_dir))  # Insert at priority 0
                     self.logger.info(f"[Packages] Added local repository to the front: {local_pkgs_dir}")
                 except Exception as e:
                     self.logger.warning(f"[Packages] Failed to index local packages: {e}")
             else:
-                self.logger.debug(f"[Packages] No .xbps files found in {local_pkgs_dir}")
+                self.logger.warning(f"[Packages] Directory {local_pkgs_dir} exists but no .xbps files found.")
 
         chroot_manager.install_packages(plan, repos=repos)
 
