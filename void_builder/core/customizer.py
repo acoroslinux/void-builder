@@ -180,28 +180,37 @@ class ServiceAction(SystemAction):
                 runsvdir_default = chroot.chroot_path / "etc" / "runit" / "runsvdir" / "default"
                 if not runsvdir_default.exists():
                     try:
-                        import subprocess
                         import os
-                        cmd = ["mkdir", "-p", str(runsvdir_default)]
                         if os.geteuid() != 0:
-                            cmd = ["sudo"] + cmd
-                        subprocess.run(cmd, check=True)
+                            import subprocess
+                            subprocess.run(["sudo", "mkdir", "-p", str(runsvdir_default)], check=True)
+                        else:
+                            runsvdir_default.mkdir(parents=True, exist_ok=True)
                     except Exception as e:
                         logger.warning(f"  [Service] Could not create runsvdir directory: {e}")
                 
                 sv_dir = chroot.chroot_path / "etc" / "sv" / srv
+                target_link = runsvdir_default / srv
+                
                 if sv_dir.exists():
                     try:
-                        import subprocess
                         import os
-                        cmd = ["ln", "-sf", f"/etc/sv/{srv}", f"/etc/runit/runsvdir/default/{srv}"]
+                        import subprocess
+                        
+                        source_in_chroot = f"/etc/sv/{srv}"
+                        
                         if os.geteuid() != 0:
-                            cmd = ["sudo"] + cmd
-                        subprocess.run(cmd, check=True)
+                            subprocess.run(["sudo", "ln", "-sfn", source_in_chroot, str(target_link)], check=True)
+                        else:
+                            if target_link.is_symlink() or target_link.exists():
+                                target_link.unlink()
+                            os.symlink(source_in_chroot, target_link)
+                            
+                        logger.info(f"  [Service] Symbolic link for service '{srv}' created successfully.")
                     except Exception as e:
                         logger.warning(f"  [Service] Could not symlink service {srv}: {e}")
                 else:
-                    logger.warning(f"  [Service] Service '{srv}' directory does not exist at /etc/sv/{srv}. Is it installed?")
+                    logger.warning(f"  [Service] Service '{srv}' directory does not exist at {sv_dir}. Is it installed?")
             else:
                 logger.info(f"    [Mock] ln -sf /etc/sv/{srv} /etc/runit/runsvdir/default/{srv}")
 
