@@ -99,7 +99,7 @@ def mount_pseudofs(rootfs):
     for fs in ('dev', 'proc', 'sys'):
         target = os.path.join(rootfs, fs)
         os.makedirs(target, exist_ok=True)
-        rc, _, _ = CommandRunner.run(['mountpoint', '-q', target], check=False, capture_output=True)
+        rc, _, _ = CommandRunner.run(['mountpoint', '-q', target], check=False, capture_output=True, silent_errors=True)
         if rc == 0:
             continue
         rc, _, stderr = CommandRunner.run(
