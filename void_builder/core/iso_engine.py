@@ -186,7 +186,13 @@ class VoidEngine(BaseEngine):
         self.logger.info("[post_install] Running Void 3-pass reconfigure...")
         chroot_manager.run_reconfigure()
 
-        # 4. Unmount virtual systems
+        # 4. Cleanup rootfs before unmounting (cache, tmp, dracut modules)
+        self.logger.info("[post_install] Cleaning up rootfs caches and temporary files...")
+        chroot_manager.run_command("rm -rf /var/cache/xbps/*", check=False)
+        chroot_manager.run_command("rm -rf /var/tmp/* /tmp/* /run/*", check=False)
+        chroot_manager.run_command("rm -rf /usr/lib/dracut/modules.d/01vmklive", check=False)
+
+        # 5. Unmount virtual systems
         chroot_manager.umount()
 
     def build_bootloaders(self, mountpoint: str) -> None:
