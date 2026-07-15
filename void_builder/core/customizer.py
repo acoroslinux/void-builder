@@ -525,6 +525,30 @@ class FlatpakAction(SystemAction):
             logger.info("    [Mock] flatpak remote-add --if-not-exists flathub ...")
 
 
+class PlymouthAction(SystemAction):
+    """Configures the default Plymouth theme to bgrt."""
+
+    def execute(self, chroot: ChrootManager, source_base: Path):
+        logger.info("  [Plymouth] Configuring default boot theme...")
+        if chroot.mode == "real":
+            plymouth_dir = chroot.chroot_path / "etc" / "plymouth"
+            plymouth_conf = plymouth_dir / "plymouthd.conf"
+            
+            if plymouth_dir.exists():
+                logger.info("  [Plymouth] Setting theme to 'bgrt'.")
+                conf_content = "[Daemon]\nTheme=bgrt\nShowDelay=0\n"
+                
+                # Use standard writing without sudo if possible, or run_command
+                try:
+                    chroot.run_command("sh -c 'echo \"[Daemon]\nTheme=bgrt\nShowDelay=0\n\" > /etc/plymouth/plymouthd.conf'", check=False)
+                except Exception as e:
+                    logger.warning(f"  [Plymouth] Failed to set default theme: {e}")
+            else:
+                logger.debug("  [Plymouth] Plymouth is not installed. Skipping.")
+        else:
+            logger.info("    [Mock] Set Plymouth theme to 'bgrt'")
+
+
 class StructuredCopyAction(SystemAction):
     """Configures structured copy of files from custom_files to rootfs."""
 
@@ -768,6 +792,9 @@ class SystemConfigurator:
 
         # 12. Flatpak Configuration (run unconditionally, checks inside if flatpak is installed)
         self.actions.append(FlatpakAction())
+        
+        # 13. Plymouth Configuration (sets bgrt theme)
+        self.actions.append(PlymouthAction())
 
     def apply(self, source_base_dir: Optional[Path] = None):
         if not self.chroot:
