@@ -36,7 +36,8 @@
           "video",
           "storage",
           "network"
-        ]
+        ],
+        "password": "live"
       }
     ],
     "services": [

@@ -159,7 +159,7 @@ class UserAction(SystemAction):
             chroot.run_command(f"chown -R {name}:{name} /home/{name}")
 
             if password:
-                chroot.run_command(f"echo '{name}:{password}' | chpasswd -c SHA512")
+                chroot.run_command(f"sh -c \"echo '{name}:{password}' | chpasswd\"")
 
             if "wheel" in groups:
                 chroot.run_command(
