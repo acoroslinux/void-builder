@@ -90,7 +90,8 @@
     "xfsprogs",
     "cryptsetup",
     "lvm2",
-    "plymouth"
+    "plymouth",
+    "polkit-gnome"
   ],
   "package_sources": {
     "official": [

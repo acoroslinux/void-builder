@@ -235,6 +235,14 @@ class Grub2Bootloader:
         chroot_grub_dir.mkdir(parents=True, exist_ok=True)
         shutil.copy2(workdir / "boot" / "grub" / "grub.cfg", chroot_grub_dir / "grub.cfg")
 
+        # Copy unicode.pf2 from chroot to ISO boot directory to enable graphics
+        chroot_font = chroot / "usr" / "share" / "grub" / "unicode.pf2"
+        if chroot_font.exists():
+            fonts_dir = workdir / "boot" / "grub" / "fonts"
+            fonts_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(chroot_font, fonts_dir / "unicode.pf2")
+            logger.info("[GRUB2] Copied unicode.pf2 to enable graphical boot")
+
         arch = self._cfg_get("platform_specific.architecture", "x86_64")
         arch_lower = arch.lower()
 

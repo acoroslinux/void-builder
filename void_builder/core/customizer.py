@@ -526,27 +526,36 @@ class FlatpakAction(SystemAction):
 
 
 class PlymouthAction(SystemAction):
-    """Configures the default Plymouth theme to bgrt."""
+    """Configures the default Plymouth theme."""
 
     def execute(self, chroot: ChrootManager, source_base: Path):
         logger.info("  [Plymouth] Configuring default boot theme...")
         if chroot.mode == "real":
+            import shutil
+            from void_builder.core.path_utils import resolve_from_project
+            
+            # Check for our custom theme
+            custom_theme_src = resolve_from_project("custom_files/usr/share/plymouth/themes/void-modern")
+            theme_name = "bgrt"
+            if custom_theme_src.exists():
+                dest = chroot.chroot_path / "usr/share/plymouth/themes/void-modern"
+                dest.mkdir(parents=True, exist_ok=True)
+                shutil.copytree(custom_theme_src, dest, dirs_exist_ok=True)
+                theme_name = "void-modern"
+                logger.info("  [Plymouth] Custom 'void-modern' theme deployed!")
+            
             plymouth_dir = chroot.chroot_path / "etc" / "plymouth"
-            plymouth_conf = plymouth_dir / "plymouthd.conf"
             
             if plymouth_dir.exists():
-                logger.info("  [Plymouth] Setting theme to 'bgrt'.")
-                conf_content = "[Daemon]\nTheme=bgrt\nShowDelay=0\n"
-                
-                # Use standard writing without sudo if possible, or run_command
+                logger.info(f"  [Plymouth] Setting theme to '{theme_name}'.")
                 try:
-                    chroot.run_command("sh -c 'echo \"[Daemon]\nTheme=bgrt\nShowDelay=0\n\" > /etc/plymouth/plymouthd.conf'", check=False)
+                    chroot.run_command(f"sh -c 'echo \"[Daemon]\nTheme={theme_name}\nShowDelay=0\n\" > /etc/plymouth/plymouthd.conf'", check=False)
                 except Exception as e:
                     logger.warning(f"  [Plymouth] Failed to set default theme: {e}")
             else:
                 logger.debug("  [Plymouth] Plymouth is not installed. Skipping.")
         else:
-            logger.info("    [Mock] Set Plymouth theme to 'bgrt'")
+            logger.info("    [Mock] Set Plymouth theme")
 
 
 class StructuredCopyAction(SystemAction):

@@ -100,9 +100,15 @@ class SyslinuxBootloader:
         # Copy splash image
         splash_image_path = self._cfg_get("splash_image", "")
         splash_src = Path(splash_image_path) if splash_image_path else mklive_dir / "data" / "splash.png"
+        
+        # Override for ISOLINUX due to strict 640x480 resolution limits
+        isolinux_specific_splash = mklive_dir / "data" / "splash_isolinux.png"
+        if isolinux_specific_splash.exists():
+            splash_src = isolinux_specific_splash
+            
         if splash_src.exists():
             shutil.copy(splash_src, isolinux_dir / "splash.png")
-            logger.info("[SYSLINUX] Copied splash.png")
+            logger.info("[SYSLINUX] Copied splash.png (resolution adapted)")
 
         return True
 
