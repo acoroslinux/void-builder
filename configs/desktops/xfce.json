@@ -30,6 +30,10 @@
         "destination": "/etc/skel/.config"
       },
       {
+        "source": "etc/lightdm/lightdm.conf.d/10-autologin.conf",
+        "destination": "/etc/lightdm/lightdm.conf.d/10-autologin.conf"
+      },
+      {
         "source": "usr/share/void_installer",
         "destination": "/usr/share/void_installer"
       },
