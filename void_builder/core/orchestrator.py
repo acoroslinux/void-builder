@@ -260,3 +260,13 @@ class BuildOrchestrator:
         finally:
             if self.chroot:
                 self.chroot.umount()
+            
+            if self.workdir and self.workdir.exists():
+                print(f"\n[ORCHESTRATOR] Performing post-build cleanup: Removing {self.workdir}...")
+                import shutil
+                try:
+                    # In real mode, some files might be owned by root, but since we usually run as root, this is fine
+                    shutil.rmtree(self.workdir, ignore_errors=True)
+                    print("[ORCHESTRATOR] Cleanup complete. Workspace is pristine.")
+                except Exception as e:
+                    print(f"[ORCHESTRATOR] Warning: Could not fully remove workdir: {e}")

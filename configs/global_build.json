@@ -2,7 +2,7 @@
   "system": {
     "iso_label": "VOID_MODERN",
     "workdir_base": "void-builder/workdir",
-    "xbps_cache": "output/cache/xbps"
+    "xbps_cache": "void-builder/workdir/cache/xbps"
   },
   "iso": {
     "compression_type": "xz"
