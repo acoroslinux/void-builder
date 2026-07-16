@@ -465,6 +465,7 @@ class LoginManagerAction(SystemAction):
                     f"Session={sddm_session}\n"
                 )
                 write_chroot_file("etc/sddm.conf", sddm_content)
+                write_chroot_file("etc/sddm.conf.d/autologin.conf", sddm_content)
                 
             # 3. GDM Configuration
             elif self.display_manager in ("gdm", "gdm3"):
