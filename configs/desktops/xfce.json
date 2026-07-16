@@ -9,7 +9,8 @@
       "file-roller",
       "mousepad",
       "galculator",
-      "ristretto"
+      "ristretto",
+      "xfce4-plugins"
     ]
   },
   "customizations": {
@@ -29,8 +30,12 @@
         "destination": "/etc/skel/.config"
       },
       {
-        "source": "void_installer",
+        "source": "usr/share/void_installer",
         "destination": "/usr/share/void_installer"
+      },
+      {
+        "source": "etc/skel/.xinitrc",
+        "destination": "/etc/skel/.xinitrc"
       },
       {
         "source": "void_installer_integration/add-installer-desktop-icon.sh",

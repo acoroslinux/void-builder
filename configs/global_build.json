@@ -36,8 +36,7 @@
           "video",
           "storage",
           "network"
-        ],
-        "password": "live"
+        ]
       }
     ],
     "services": [
@@ -49,7 +48,10 @@
       "avahi-daemon",
       "sshd",
       "chronyd",
-      "alsa"
+      "alsa",
+      "acpid",
+      "elogind",
+      "wpa_supplicant"
     ]
   },
   "common_desktop_packages": [
@@ -62,6 +64,7 @@
     "elogind",
     "polkit",
     "NetworkManager",
+    "wpa_supplicant",
     "alsa-utils",
     "alsa-pipewire",
     "pipewire",
@@ -91,7 +94,9 @@
     "cryptsetup",
     "lvm2",
     "plymouth",
-    "polkit-gnome"
+    "polkit-gnome",
+    "octoxbps",
+    "acpid"
   ],
   "package_sources": {
     "official": [

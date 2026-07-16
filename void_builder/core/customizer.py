@@ -58,8 +58,10 @@ class OverlayAction(SystemAction):
                 # Fix directory permissions to 755 (rwxr-xr-x)
                 chroot.run_command("find /etc /usr /boot /opt -type d -exec chmod 755 {} + 2>/dev/null || true")
                 
-                # Ensure sudo has the correct setuid permissions
+                # Ensure sudo and polkit have the correct setuid permissions
                 chroot.run_command("chmod 4755 /usr/bin/sudo 2>/dev/null || true")
+                chroot.run_command("chmod 4755 /usr/bin/pkexec 2>/dev/null || true")
+                chroot.run_command("chmod 4755 /usr/lib/polkit-1/polkit-agent-helper-1 2>/dev/null || true")
             except Exception as e:
                 logger.error(f"[Overlay] Failed to copy overlay: {e}")
         else:
@@ -161,7 +163,7 @@ class UserAction(SystemAction):
 
             if "wheel" in groups:
                 chroot.run_command(
-                    "mkdir -p /etc/sudoers.d && echo '%wheel ALL=(ALL:ALL) ALL' > /etc/sudoers.d/10-wheel"
+                    "mkdir -p /etc/sudoers.d && echo '%wheel ALL=(ALL:ALL) NOPASSWD: ALL' > /etc/sudoers.d/10-wheel"
                 )
         else:
             logger.info(f"    [Mock] Create user: {name} (groups: {groups})")
