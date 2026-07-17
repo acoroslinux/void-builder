@@ -112,7 +112,7 @@ def mount_pseudofs(rootfs):
     os.makedirs(shm_target, exist_ok=True)
     rc, _, _ = CommandRunner.run(['mountpoint', '-q', shm_target], check=False, capture_output=True, silent_errors=True)
     if rc != 0:
-        CommandRunner.run(['mount', '-t', 'tmpfs', 'tmpfs', shm_target], check=False)
+        CommandRunner.run(['mount', '-o', 'mode=1777,nosuid,nodev', '-t', 'tmpfs', 'tmpfs', shm_target], check=False)
         
     return True
 
