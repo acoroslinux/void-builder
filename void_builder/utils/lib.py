@@ -94,40 +94,31 @@ def setup_qemu_binfmt(target_arch):
 
 
 def mount_pseudofs(rootfs):
-    """Mount /dev, /proc, /sys into the rootfs."""
-    for fs in ('dev', 'proc', 'sys'):
+    """Mount /dev, /proc, /sys, /run into the rootfs (arch-chroot style)."""
+    for fs in ('dev', 'proc', 'sys', 'run'):
         target = os.path.join(rootfs, fs)
         os.makedirs(target, exist_ok=True)
         rc, _, _ = CommandRunner.run(['mountpoint', '-q', target], check=False, capture_output=True, silent_errors=True)
         if rc == 0:
             continue
-        rc, _, stderr = CommandRunner.run(
-            ['mount', '-r', '--rbind', f'/{fs}', target, '--make-rslave'], check=False)
+            
+        # Bind mount without the -r (Read-Only) flag to allow python multiprocessing in /dev/shm
+        rc, _, stderr = CommandRunner.run(['mount', '--rbind', f'/{fs}', target], check=False)
         if rc != 0:
             error_msg(f"Failed to mount {fs}: {stderr}")
             return False
             
-    # Mount /dev/shm for python multiprocessing locks
-    shm_target = os.path.join(rootfs, 'dev', 'shm')
-    os.makedirs(shm_target, exist_ok=True)
-    
-    # Unconditionally mount a fresh read-write tmpfs over /dev/shm 
-    # This overrides the inherited Read-Only permission from the /dev bind mount!
-    CommandRunner.run(['mount', '-o', 'mode=1777,nosuid,nodev', '-t', 'tmpfs', 'tmpfs', shm_target], check=False)
+        CommandRunner.run(['mount', '--make-rslave', target], check=False)
         
     return True
 
 
 def umount_pseudofs(rootfs):
-    """Unmount /dev, /proc, /sys from the rootfs."""
+    """Unmount /dev, /proc, /sys, /run from the rootfs."""
     success = True
-    
-    # Unmount /dev/shm first to avoid 'target is busy' errors
-    shm_target = os.path.join(rootfs, 'dev', 'shm')
-    if os.path.isdir(shm_target):
-        CommandRunner.run(['umount', '-f', shm_target], check=False)
         
-    for fs in ('dev', 'proc', 'sys'):
+    # Unmount in reverse order to avoid busy targets
+    for fs in ('run', 'sys', 'proc', 'dev'):
         target = os.path.join(rootfs, fs)
         if os.path.isdir(target):
             rc, _, stderr = CommandRunner.run(['umount', '-R', '-f', target], check=False)

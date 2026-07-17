@@ -65,6 +65,7 @@ Thumbs.db
 *.tmp
 *.bak
 .cache/
+logs/
 
 # ===========================
 # Working and Output Folders
