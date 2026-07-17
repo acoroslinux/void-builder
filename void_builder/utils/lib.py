@@ -107,12 +107,26 @@ def mount_pseudofs(rootfs):
         if rc != 0:
             error_msg(f"Failed to mount {fs}: {stderr}")
             return False
+            
+    # Mount /dev/shm for python multiprocessing locks
+    shm_target = os.path.join(rootfs, 'dev', 'shm')
+    os.makedirs(shm_target, exist_ok=True)
+    rc, _, _ = CommandRunner.run(['mountpoint', '-q', shm_target], check=False, capture_output=True, silent_errors=True)
+    if rc != 0:
+        CommandRunner.run(['mount', '-t', 'tmpfs', 'tmpfs', shm_target], check=False)
+        
     return True
 
 
 def umount_pseudofs(rootfs):
     """Unmount /dev, /proc, /sys from the rootfs."""
     success = True
+    
+    # Unmount /dev/shm first to avoid 'target is busy' errors
+    shm_target = os.path.join(rootfs, 'dev', 'shm')
+    if os.path.isdir(shm_target):
+        CommandRunner.run(['umount', '-f', shm_target], check=False)
+        
     for fs in ('dev', 'proc', 'sys'):
         target = os.path.join(rootfs, fs)
         if os.path.isdir(target):
