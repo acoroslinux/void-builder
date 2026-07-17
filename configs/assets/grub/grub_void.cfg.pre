@@ -1,3 +1,4 @@
+search --file --set=voidlive /boot/grub/@@SPLASHIMAGE@@
 export voidlive
 set root=${voidlive}
 
