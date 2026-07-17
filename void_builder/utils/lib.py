@@ -110,9 +110,10 @@ def mount_pseudofs(rootfs):
     # Mount /dev/shm for python multiprocessing locks
     shm_target = os.path.join(rootfs, 'dev', 'shm')
     os.makedirs(shm_target, exist_ok=True)
-    rc, _, _ = CommandRunner.run(['mountpoint', '-q', shm_target], check=False, capture_output=True, silent_errors=True)
-    if rc != 0:
-        CommandRunner.run(['mount', '-o', 'mode=1777,nosuid,nodev', '-t', 'tmpfs', 'tmpfs', shm_target], check=False)
+    
+    # Unconditionally mount a fresh read-write tmpfs over /dev/shm 
+    # This overrides the inherited Read-Only permission from the /dev bind mount!
+    CommandRunner.run(['mount', '-o', 'mode=1777,nosuid,nodev', '-t', 'tmpfs', 'tmpfs', shm_target], check=False)
         
     return True
 
