@@ -98,7 +98,8 @@ class ChrootManager:
         from void_builder.core.path_utils import resolve_from_project
         cache_path_str = None
         if hasattr(self, "config") and self.config:
-            cache_path_str = self.config.get("system.xbps_cache")
+            system_cfg = self.config.get("system", {})
+            cache_path_str = system_cfg.get("xbps_cache")
         
         if not cache_path_str:
             cache_path_str = "output/cache/xbps"
