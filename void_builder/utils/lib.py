@@ -1,6 +1,5 @@
 """
 lib.py - Central utility library for void_builder.
-Equivalent to void-mklive's lib.sh.
 """
 
 import os
