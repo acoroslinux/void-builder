@@ -106,6 +106,7 @@
     "linux-firmware-network",
     "linux-firmware-nvidia",
     "linux-firmware-qualcomm",
+    "libwebkit2gtk41",
     "lvm2",
     "mdadm",
     "mesa-dri",
