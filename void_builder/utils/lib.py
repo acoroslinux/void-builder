@@ -94,34 +94,57 @@ def setup_qemu_binfmt(target_arch):
 
 
 def mount_pseudofs(rootfs):
-    """Mount /dev, /proc, /sys, /run into the rootfs (arch-chroot style)."""
-    for fs in ('dev', 'proc', 'sys', 'run'):
+    """Mount /dev, /proc, /sys into the rootfs defensively."""
+    for fs in ('dev', 'proc', 'sys'):
         target = os.path.join(rootfs, fs)
         os.makedirs(target, exist_ok=True)
         rc, _, _ = CommandRunner.run(['mountpoint', '-q', target], check=False, capture_output=True, silent_errors=True)
         if rc == 0:
             continue
             
-        # Bind mount without the -r (Read-Only) flag to allow python multiprocessing in /dev/shm
-        rc, _, stderr = CommandRunner.run(['mount', '--rbind', f'/{fs}', target], check=False)
+        # Revert to -r (Read-Only) to strictly protect the host from rm -rf!
+        rc, _, stderr = CommandRunner.run(['mount', '-r', '--rbind', f'/{fs}', target], check=False)
         if rc != 0:
             error_msg(f"Failed to mount {fs}: {stderr}")
             return False
             
         CommandRunner.run(['mount', '--make-rslave', target], check=False)
         
+    # Python Multiprocessing SemLocks STRICT FIX:
+    # We must explicitly mount a tmpfs on /run and /dev/shm so they are writable without risking the host!
+    run_target = os.path.join(rootfs, 'run')
+    os.makedirs(run_target, exist_ok=True)
+    if CommandRunner.run(['mountpoint', '-q', run_target], check=False, capture_output=True)[0] != 0:
+        CommandRunner.run(['mount', '-t', 'tmpfs', 'tmpfs', run_target], check=False)
+        
+    run_shm = os.path.join(rootfs, 'run', 'shm')
+    os.makedirs(run_shm, exist_ok=True)
+    CommandRunner.run(['chmod', '1777', run_shm], check=False)
+    
+    dev_shm = os.path.join(rootfs, 'dev', 'shm')
+    if os.path.isdir(dev_shm):
+        if CommandRunner.run(['mountpoint', '-q', dev_shm], check=False, capture_output=True)[0] != 0:
+            CommandRunner.run(['mount', '-t', 'tmpfs', 'tmpfs', dev_shm], check=False)
+            CommandRunner.run(['chmod', '1777', dev_shm], check=False)
+            
     return True
 
 
 def umount_pseudofs(rootfs):
-    """Unmount /dev, /proc, /sys, /run from the rootfs."""
+    """Safely unmount pseudo-filesystems using lazy unmounting to avoid lockups."""
     success = True
-        
-    # Unmount in reverse order to avoid busy targets
-    for fs in ('run', 'sys', 'proc', 'dev'):
+    
+    # Pre-emptively unmount internal tmpfs
+    for fs in ('dev/shm', 'run/shm', 'run'):
         target = os.path.join(rootfs, fs)
         if os.path.isdir(target):
-            rc, _, stderr = CommandRunner.run(['umount', '-R', '-f', target], check=False)
+            CommandRunner.run(['umount', '-l', target], check=False)
+            
+    # Unmount main points
+    for fs in ('sys', 'proc', 'dev'):
+        target = os.path.join(rootfs, fs)
+        if os.path.isdir(target):
+            rc, _, stderr = CommandRunner.run(['umount', '-R', '-l', target], check=False)
             if rc != 0:
                 warn_msg(f"Failed to unmount {target}: {stderr}")
                 success = False
