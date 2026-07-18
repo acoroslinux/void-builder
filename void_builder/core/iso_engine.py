@@ -166,6 +166,9 @@ class VoidEngine(BaseEngine):
             self.logger.error("No chroot manager available to install packages.")
             raise ISOBuilderError("ChrootManager missing.")
 
+        # Mount virtual filesystems BEFORE installing packages so that python compilation hooks have /dev/shm
+        chroot_manager.mount()
+
         repos = self._cfg_get("repositories", []) + self._cfg_get("custom_repositories", [])
         
         # Support for Custom Local Packages (e.g. Calamares)
