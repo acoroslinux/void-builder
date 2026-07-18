@@ -85,7 +85,7 @@ class ToolchainManager:
 
     def _run_xbps_install(self, rootdir: Path, arch: str, packages: List[str], repos: List[str]):
         from void_builder.core.path_utils import resolve_from_project
-        cache_dir = resolve_from_project("output/cache/xbps") / arch
+        cache_dir = resolve_from_project("void-builder/workdir/cache/xbps") / arch
         cache_dir.mkdir(parents=True, exist_ok=True)
 
         cmd = [

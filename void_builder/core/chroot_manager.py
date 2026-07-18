@@ -102,7 +102,7 @@ class ChrootManager:
             cache_path_str = system_cfg.get("xbps_cache")
         
         if not cache_path_str:
-            cache_path_str = "output/cache/xbps"
+            cache_path_str = "void-builder/workdir/cache/xbps"
             
         cache_dir = resolve_from_project(cache_path_str) / self.arch
         cache_dir.mkdir(parents=True, exist_ok=True)
