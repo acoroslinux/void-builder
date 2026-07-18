@@ -110,8 +110,14 @@ def mount_pseudofs(rootfs):
             
         CommandRunner.run(['mount', '--make-rslave', target], check=False)
         
-    # Python Multiprocessing SemLocks STRICT FIX:
-    # We must explicitly mount a tmpfs on /run and /dev/shm so they are writable without risking the host!
+        # If we just mounted /dev, we MUST immediately cover /dev/shm with a Read-Write tmpfs!
+        if fs == 'dev':
+            dev_shm = os.path.join(target, 'shm')
+            if os.path.isdir(dev_shm) and not os.path.islink(dev_shm):
+                CommandRunner.run(['mount', '-t', 'tmpfs', 'tmpfs', dev_shm], check=False)
+                CommandRunner.run(['chmod', '1777', dev_shm], check=False)
+        
+    # Ensure /run exists as a tmpfs so symlinked /dev/shm -> /run/shm works on Debian/Arch hosts
     run_target = os.path.join(rootfs, 'run')
     os.makedirs(run_target, exist_ok=True)
     if CommandRunner.run(['mountpoint', '-q', run_target], check=False, capture_output=True)[0] != 0:
@@ -121,12 +127,6 @@ def mount_pseudofs(rootfs):
     os.makedirs(run_shm, exist_ok=True)
     CommandRunner.run(['chmod', '1777', run_shm], check=False)
     
-    dev_shm = os.path.join(rootfs, 'dev', 'shm')
-    if os.path.isdir(dev_shm):
-        if CommandRunner.run(['mountpoint', '-q', dev_shm], check=False, capture_output=True)[0] != 0:
-            CommandRunner.run(['mount', '-t', 'tmpfs', 'tmpfs', dev_shm], check=False)
-            CommandRunner.run(['chmod', '1777', dev_shm], check=False)
-            
     return True
 
 
