@@ -206,7 +206,66 @@ def main():
         "-v", "--verbose", action="store_true", help="Enable verbose logging."
     )
 
+    # Calamares Pipeline
+    parser.add_argument(
+        "--build-calamares",
+        action="store_true",
+        help="Build the Calamares package from the local template and exit.",
+    )
+
+    parser.add_argument(
+        "--with-calamares",
+        action="store_true",
+        help="Build the Calamares package first and inject it into the ISO build as a local repository.",
+    )
+
     args = parser.parse_args()
+
+    def build_calamares_package():
+        import subprocess
+        import shutil
+        
+        print("\n[Calamares] Inciando compilação do Calamares via void-packages...")
+        workdir = resolve_from_project("void-builder/workdir/void-packages")
+        template_src = resolve_from_project("custom_packages/calamares")
+        
+        if not template_src.exists():
+            print(f"Erro: Template do Calamares não encontrado em {template_src}")
+            sys.exit(1)
+            
+        if not workdir.exists():
+            print("[Calamares] A clonar repositório void-packages (depth=1)...")
+            workdir.parent.mkdir(parents=True, exist_ok=True)
+            subprocess.run(["git", "clone", "--depth", "1", "https://github.com/void-linux/void-packages.git", str(workdir)], check=True)
+        else:
+            print("[Calamares] Repositório void-packages detetado.")
+            # Opcional: git pull
+            
+        print("[Calamares] A preparar o seu template...")
+        dest_pkg = workdir / "srcpkgs" / "calamares"
+        if dest_pkg.exists():
+            shutil.rmtree(dest_pkg)
+        shutil.copytree(template_src, dest_pkg)
+        
+        print("[Calamares] A configurar o ambiente xbps-src (binary-bootstrap)...")
+        subprocess.run(["./xbps-src", "binary-bootstrap"], cwd=str(workdir), check=True)
+        
+        print("[Calamares] A compilar o pacote (Isto pode demorar algum tempo e CPU)...")
+        subprocess.run(["./xbps-src", "pkg", "calamares"], cwd=str(workdir), check=True)
+        
+        binpkgs_dir = workdir / "hostdir" / "binpkgs"
+        print(f"\n[Calamares] ✅ Compilação concluída com sucesso!")
+        print(f"[Calamares] Repositório binário gerado em: {binpkgs_dir}\n")
+        return binpkgs_dir
+
+    if args.build_calamares:
+        build_calamares_package()
+        sys.exit(0)
+        
+    if args.with_calamares:
+        bin_repo = build_calamares_package()
+        args.repository.append(str(bin_repo))
+
     VALID_ARCHS = (
         "x86_64", "x86_64-musl",
         "i686",

@@ -5,112 +5,44 @@
       "destination": "/usr/lib"
     },
     {
-      "source": "desktop-config/fontconfig/fonts.conf",
-      "destination": "/etc/skel/.config/fontconfig/fonts.conf"
+      "source": "calamares",
+      "destination": "/etc/calamares"
     },
     {
-      "source": "face/face.png",
-      "destination": "/etc/skel/.config/.face"
+      "source": "skel",
+      "destination": "/etc/skel"
     },
     {
-      "source": "aliases",
-      "destination": "/etc/skel/.bash_aliases"
+      "source": "autostart",
+      "destination": "/etc/xdg/autostart"
     },
     {
-      "source": "wallpaper",
-      "destination": "/usr/share/backgrounds"
-    },
-    {
-      "source": "icons",
-      "destination": "/usr/share/icons"
-    },
-    {
-      "source": "theme",
-      "destination": "/usr/share/themes"
-    },
-    {
-      "source": "font",
-      "destination": "/usr/share/fonts/pepconf"
-    },
-    {
-      "source": "artwork",
-      "destination": "/usr/share/pep-artwork"
-    },
-    {
-      "source": "PepProPixMaps",
-      "destination": "/usr/share/pixmaps"
-    },
-    {
-      "source": "polkit",
-      "destination": "/usr/share/polkit-1/actions"
-    },
-    {
-      "source": "pylibraries",
-      "destination": "/usr/lib/python{python_version}/site-packages"
-    },
-    {
-      "source": "grub/themes",
-      "destination": "/boot/grub/themes"
-    },
-    {
-      "source": "plymouth/themes/joy",
-      "destination": "/usr/share/plymouth/themes/joy"
-    },
-    {
-      "source": "pep_installer",
-      "destination": "/usr/share/pep_installer"
-    },
-    {
-      "source": "pep_installer_integration/add-installer-desktop-icon.sh",
-      "destination": "/usr/local/bin/add-installer-desktop-icon.sh"
-    },
-    {
-      "source": "pep_installer_integration/autostart/create_installer_icon.desktop",
-      "destination": "/etc/xdg/autostart/create_installer_icon.desktop"
-    },
-    {
-      "source": "pep_installer_integration/polkit/org.peppermintos.installer.policy",
-      "destination": "/usr/share/polkit-1/actions/org.peppermintos.installer.policy"
-    },
-    {
-      "source": "software-center",
-      "destination": "/usr/share/software-center"
-    },
-    {
-      "source": "application",
+      "source": "applications",
       "destination": "/usr/share/applications"
     },
     {
-      "source": "suggested",
-      "destination": "/usr/share/pep-suggested"
+      "source": "plymouth",
+      "destination": "/usr/share/plymouth/themes"
     },
     {
-      "source": "kumo",
-      "destination": "/usr/share/pep-kumo"
+      "source": "lightdm",
+      "destination": "/etc/lightdm"
     },
     {
-      "source": "kumo/images/kumosm.png",
-      "destination": "/usr/share/icons/hicolor/256x256/apps/kumo.png"
+      "source": "samba",
+      "destination": "/etc/samba"
     },
     {
-      "source": "pfetch",
-      "destination": "/usr/share/pep-fetch"
+      "source": "sudoers.d",
+      "destination": "/etc/sudoers.d"
     },
     {
-      "source": "welcome",
-      "destination": "/usr/share/pep-welcome"
+      "source": "default",
+      "destination": "/etc/default"
     },
     {
-      "source": "autostart/Peppermint_Welcome.desktop",
-      "destination": "/etc/skel/.config/autostart/Peppermint_Welcome.desktop"
-    },
-    {
-      "source": "updater",
-      "destination": "/usr/share/pep-updater"
-    },
-    {
-      "source": "autostart/pep-updater.desktop",
-      "destination": "/etc/xdg/autostart/pep-updater.desktop"
+      "source": "scripts",
+      "destination": "/usr/local/bin"
     }
   ]
 }
