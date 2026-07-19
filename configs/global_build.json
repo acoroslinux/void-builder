@@ -134,7 +134,6 @@
     "python3-gobject",
     "python3-psutil",
     "python3-requests",
-    "qemu-firmware",
     "rpcbind",
     "rsync",
     "samba",

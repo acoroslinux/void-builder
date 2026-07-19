@@ -2,11 +2,13 @@
   "architecture_packages": {
     "x86_64": [
       "grub-x86_64-efi",
-      "syslinux"
+      "syslinux",
+      "qemu-firmware"
     ],
     "x86_64-musl": [
       "grub-x86_64-efi",
-      "syslinux"
+      "syslinux",
+      "qemu-firmware"
     ],
     "i686": [
       "grub-i386-efi",
