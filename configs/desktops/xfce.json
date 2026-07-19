@@ -26,12 +26,12 @@
     "use_common_config": true,
     "copy_files": [
       {
-        "source": "desktop-config/xfce",
-        "destination": "/etc/skel/.config"
+        "source": "desktops/xfce/etc/skel",
+        "destination": "/etc/skel"
       },
       {
-        "source": "etc/lightdm/lightdm.conf.d/10-autologin.conf",
-        "destination": "/etc/lightdm/lightdm.conf.d/10-autologin.conf"
+        "source": "lightdm",
+        "destination": "/etc/lightdm"
       }
     ]
   }

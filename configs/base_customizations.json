@@ -24,10 +24,7 @@
       "source": "plymouth",
       "destination": "/usr/share/plymouth/themes"
     },
-    {
-      "source": "lightdm",
-      "destination": "/etc/lightdm"
-    },
+
     {
       "source": "samba",
       "destination": "/etc/samba"
