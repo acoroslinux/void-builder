@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=Create Install Icon
-Exec=/usr/local/bin/create-install-icon.sh
+Exec=/usr/local/bin/add-installer-desktop-icon.sh
 Icon=calamares
 Terminal=false
 NoDisplay=true

@@ -72,5 +72,6 @@ logs/
 # ===========================
 void-builder/
 output/
+/workdir/
 custom_files/*
 !custom_files/.gitkeep
