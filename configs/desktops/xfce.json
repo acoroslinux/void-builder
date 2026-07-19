@@ -22,7 +22,7 @@
   "desktop_environment": {
     "name": "XFCE Desktop",
     "description": "Lightweight, fast, and user-friendly desktop environment.",
-    "customizations_path": "custom_files/",
+    "customizations_path": "configs/custom_files",
     "use_common_config": true,
     "copy_files": [
       {
@@ -32,30 +32,6 @@
       {
         "source": "etc/lightdm/lightdm.conf.d/10-autologin.conf",
         "destination": "/etc/lightdm/lightdm.conf.d/10-autologin.conf"
-      },
-      {
-        "source": "usr/share/void_installer",
-        "destination": "/usr/share/void_installer"
-      },
-      {
-        "source": "etc/skel/.xinitrc",
-        "destination": "/etc/skel/.xinitrc"
-      },
-      {
-        "source": "void_installer_integration/add-installer-desktop-icon.sh",
-        "destination": "/usr/local/bin/add-installer-desktop-icon.sh"
-      },
-      {
-        "source": "void_installer_integration/autostart/create_installer_icon.desktop",
-        "destination": "/etc/xdg/autostart/create_installer_icon.desktop"
-      },
-      {
-        "source": "void_installer_integration/void-installer.desktop",
-        "destination": "/usr/share/applications/void-installer.desktop"
-      },
-      {
-        "source": "void_installer_integration/polkit/org.voidmodern.installer.policy",
-        "destination": "/usr/share/polkit-1/actions/org.voidmodern.installer.policy"
       }
     ]
   }

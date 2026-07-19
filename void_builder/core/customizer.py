@@ -616,8 +616,8 @@ class StructuredCopyAction(SystemAction):
                 
                 chroot.run_command(f"mkdir -p {dest_dir_in_chroot}")
                 
-                # Copy file/directory preserving all attributes
-                cmd_copy = ["cp", "-a", str(src_path), str(dest_path)]
+                # Copy file/directory preserving all attributes and merging contents (-T)
+                cmd_copy = ["cp", "-aT", str(src_path), str(dest_path)]
                 try:
                     if os.geteuid() != 0:
                         subprocess.run(["sudo"] + cmd_copy, check=True)

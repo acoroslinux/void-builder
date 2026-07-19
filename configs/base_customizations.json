@@ -9,10 +9,6 @@
       "destination": "/etc/calamares"
     },
     {
-      "source": "calamares/branding",
-      "destination": "/usr/share/calamares/branding"
-    },
-    {
       "source": "skel",
       "destination": "/etc/skel"
     },
