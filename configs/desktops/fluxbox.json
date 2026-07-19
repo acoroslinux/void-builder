@@ -5,6 +5,7 @@
       "feh",
       "lightdm",
       "lightdm-gtk-greeter",
+      "lightdm-gtk-greeter-settings",
       "network-manager-applet",
       "xterm"
     ]
