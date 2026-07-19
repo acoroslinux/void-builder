@@ -4,6 +4,7 @@
       "grub-x86_64-efi",
       "syslinux",
       "qemu-firmware",
+      "sof-firmware",
       "xf86-video-intel",
       "xf86-video-amdgpu",
       "xf86-video-ati",
@@ -14,6 +15,7 @@
       "grub-x86_64-efi",
       "syslinux",
       "qemu-firmware",
+      "sof-firmware",
       "xf86-video-intel",
       "xf86-video-amdgpu",
       "xf86-video-ati",
@@ -23,6 +25,7 @@
     "i686": [
       "grub-i386-efi",
       "syslinux",
+      "sof-firmware",
       "xf86-video-intel",
       "xf86-video-amdgpu",
       "xf86-video-ati",
