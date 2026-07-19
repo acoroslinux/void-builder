@@ -222,16 +222,33 @@ def main():
     args = parser.parse_args()
 
     def build_calamares_package():
+        import os
         import subprocess
         import shutil
+        from void_builder.utils.lib import ensure_static_xbps, get_tools_dir
         
         print("\n[Calamares] Inciando compilação do Calamares via void-packages...")
-        workdir = resolve_from_project("void-builder/workdir/void-packages")
+        workdir = resolve_from_project("workdir/void-packages")
         template_src = resolve_from_project("custom_packages/calamares")
         
         if not template_src.exists():
             print(f"Erro: Template do Calamares não encontrado em {template_src}")
             sys.exit(1)
+            
+        print("[Calamares] A preparar ferramentas estáticas xbps...")
+        tools_dir = get_tools_dir()
+        ensure_static_xbps(tools_dir=tools_dir)
+        
+        # Symlink .static tools so void-packages can find them
+        bin_dir = Path(tools_dir) / "usr" / "bin"
+        for f in bin_dir.glob("*.static"):
+            link_name = f.with_suffix("")
+            if not link_name.exists():
+                os.symlink(f.name, link_name)
+                
+        # Inject our portable tools into PATH
+        env = os.environ.copy()
+        env["PATH"] = f"{bin_dir}:{env.get('PATH', '')}"
             
         if not workdir.exists():
             print("[Calamares] A clonar repositório void-packages (depth=1)...")
@@ -239,7 +256,6 @@ def main():
             subprocess.run(["git", "clone", "--depth", "1", "https://github.com/void-linux/void-packages.git", str(workdir)], check=True)
         else:
             print("[Calamares] Repositório void-packages detetado.")
-            # Opcional: git pull
             
         print("[Calamares] A preparar o seu template...")
         dest_pkg = workdir / "srcpkgs" / "calamares"
@@ -248,10 +264,10 @@ def main():
         shutil.copytree(template_src, dest_pkg)
         
         print("[Calamares] A configurar o ambiente xbps-src (binary-bootstrap)...")
-        subprocess.run(["./xbps-src", "binary-bootstrap"], cwd=str(workdir), check=True)
+        subprocess.run(["./xbps-src", "binary-bootstrap"], cwd=str(workdir), env=env, check=True)
         
         print("[Calamares] A compilar o pacote (Isto pode demorar algum tempo e CPU)...")
-        subprocess.run(["./xbps-src", "pkg", "calamares"], cwd=str(workdir), check=True)
+        subprocess.run(["./xbps-src", "pkg", "calamares"], cwd=str(workdir), env=env, check=True)
         
         binpkgs_dir = workdir / "hostdir" / "binpkgs"
         print(f"\n[Calamares] ✅ Compilação concluída com sucesso!")
