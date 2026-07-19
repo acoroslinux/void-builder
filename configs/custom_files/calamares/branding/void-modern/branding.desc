@@ -11,10 +11,10 @@ strings:
     versionedName:       "Void Modern 2026.07"
     shortVersionedName:  "VoidModern 2026.07"
     installLabel:        "Install Void Modern"
-    productUrl:          "https://codeberg.org/manuelr1"
-    supportUrl:          "https://codeberg.org/manuelr1"
-    knownIssuesUrl:      "https://codeberg.org/manuelr1"
-    releaseNotesUrl:     "https://codeberg.org/manuelr1"
+    productUrl:          "https://github.com/acoroslinux/void-builder"
+    supportUrl:          "https://github.com/acoroslinux/void-builder"
+    knownIssuesUrl:      "https://github.com/acoroslinux/void-builder"
+    releaseNotesUrl:     "https://github.com/acoroslinux/void-builder"
 
 images:
     productLogo:         "logo.png"
@@ -31,6 +31,7 @@ sidebar: qml,bottom
 navigation: qml,right
 
 slideshow:               "show.qml"
+slideshowAPI:            2
 
 style:
     SidebarBackground:    "#1A1C1E"

@@ -77,22 +77,6 @@ class BuildOrchestrator:
         self.include_dirs = include_dirs or []
         self.update_toolchain = update_toolchain
 
-        # Ensure default workspace custom files directory exists
-        custom_files_dir = resolve_from_project("custom_files")
-        if not custom_files_dir.exists():
-            try:
-                custom_files_dir.mkdir(parents=True, exist_ok=True)
-                (custom_files_dir / ".gitkeep").touch()
-            except Exception as e:
-                print(f"[ORCHESTRATOR] Warning: Could not create custom_files directory: {e}")
-
-        # Automatically add custom_files directory if it contains items besides .gitkeep
-        if custom_files_dir.exists():
-            has_items = any(item.name != ".gitkeep" for item in custom_files_dir.iterdir())
-            if has_items:
-                if str(custom_files_dir) not in self.include_dirs:
-                    self.include_dirs.append(str(custom_files_dir))
-
         self.config_loader = ConfigLoader()
         self.builder: Optional[ISOBuilder] = None
         self.chroot: Optional[ChrootManager] = None

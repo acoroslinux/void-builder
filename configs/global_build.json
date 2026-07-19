@@ -70,6 +70,7 @@
     "btrfs-progs",
     "calamares",
     "cantarell-fonts",
+    "dbus",
     "f2fs-tools",
     "xfsprogs",
     "chrony",

@@ -536,17 +536,12 @@ class PlymouthAction(SystemAction):
         if chroot.mode == "real":
             import shutil
             from void_builder.core.path_utils import resolve_from_project
-            
-            # Check for our custom theme
-            custom_theme_src = resolve_from_project("custom_files/usr/share/plymouth/themes/void-modern")
+            # Check if our custom theme was injected by StructuredCopyAction
+            dest = chroot.chroot_path / "usr/share/plymouth/themes/void-modern"
             theme_name = "bgrt"
-            if custom_theme_src.exists():
-                dest = chroot.chroot_path / "usr/share/plymouth/themes/void-modern"
-                dest.mkdir(parents=True, exist_ok=True)
-                shutil.copytree(custom_theme_src, dest, dirs_exist_ok=True)
+            if dest.exists():
                 theme_name = "void-modern"
-                logger.info("  [Plymouth] Custom 'void-modern' theme deployed!")
-            
+                logger.info("  [Plymouth] Custom 'void-modern' theme detected and deployed!")
             plymouth_dir = chroot.chroot_path / "etc" / "plymouth"
             
             if plymouth_dir.exists():
@@ -621,8 +616,10 @@ class StructuredCopyAction(SystemAction):
                 try:
                     if os.geteuid() != 0:
                         subprocess.run(["sudo"] + cmd_copy, check=True)
+                        subprocess.run(["sudo", "chroot", str(chroot.chroot_path), "chown", "-R", "0:0", f"/{dest_rel.lstrip('/')}"], check=True)
                     else:
                         subprocess.run(cmd_copy, check=True)
+                        subprocess.run(["chroot", str(chroot.chroot_path), "chown", "-R", "0:0", f"/{dest_rel.lstrip('/')}"], check=True)
                 except Exception as e:
                     logger.error(f"  [StructuredCopy] Failed to copy {src_path} to {dest_path}: {e}")
             else:

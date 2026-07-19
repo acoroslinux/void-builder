@@ -1,5 +1,5 @@
 import QtQuick 2.8
-import calamares.ui 1.0
+import calamares.slideshow 1.0
 
 Presentation {
     id: presentation
@@ -7,7 +7,7 @@ Presentation {
     Timer {
         id: advanceTimer
         interval: 5000
-        running: presentation.currentSlide != presentation.slides.length - 1
+        running: true
         repeat: true
         onTriggered: presentation.goToNextSlide()
     }
