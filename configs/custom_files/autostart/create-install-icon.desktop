@@ -5,4 +5,3 @@ Exec=/usr/local/bin/add-installer-desktop-icon.sh
 Icon=calamares
 Terminal=false
 NoDisplay=true
-X-GNOME-Autostart-enabled=true

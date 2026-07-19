@@ -3,11 +3,8 @@
 # Void Modern Installer - Universal Desktop Icon Creation Script
 # ==============================================================================
 
-# Check if the system is in live mode by checking the root filesystem type
-root_fs_type=$(findmnt -n -o FSTYPE /)
-
-# If the root filesystem is overlay or squashfs, we are likely in live mode
-if [ "$root_fs_type" == "overlay" ] || [ "$root_fs_type" == "squashfs" ]; then
+# Check if the system is in live mode by reading kernel parameters
+if grep -q "live.user=" /proc/cmdline; then
     # Path to the live user's Desktop directory
     desktop_dir="/home/live/Desktop"
     mkdir -p "$desktop_dir"
