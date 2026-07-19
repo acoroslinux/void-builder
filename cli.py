@@ -314,6 +314,7 @@ def main():
         "aarch64", "aarch64-musl",
         "armv7l", "armv7l-musl",
         "armv6l", "armv6l-musl",
+        "rpi-aarch64", "rpi-armv7l", "rpi-armv6l",
     )
     arch_lower = args.architecture.lower()
     if arch_lower not in VALID_ARCHS:

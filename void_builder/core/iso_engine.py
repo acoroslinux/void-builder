@@ -552,3 +552,91 @@ class ISOBuilder:
 
         logger.info("=== Build completed successfully! ===")
         return str(resolve_from_project(output_path))
+
+@ISOEngine.register("rpi-aarch64")
+@ISOEngine.register("rpi-armv7l")
+@ISOEngine.register("rpi-armv6l")
+class PlatformEngine(BaseEngine):
+    """Engine in charge of Single Board Computers (Raspberry Pi, etc.)"""
+
+    def build_bootloaders(self, workdir: str) -> None:
+        self.logger.info("=== Step 5: Bootloaders ===")
+        self.logger.info("Platform image (rpi) relies on native firmware from rpi-base. Skipping GRUB/Syslinux.")
+
+    def finalize_isofile(self, output_path: str) -> None:
+        self.logger.info("=== Step 6: Finalizing Platform .img File ===")
+        import subprocess
+        import os
+        from void_builder.core.path_utils import resolve_from_project
+        
+        output_abs = str(resolve_from_project(output_path))
+        if output_abs.endswith(".iso"):
+            output_abs = output_abs.replace(".iso", ".img")
+            
+        Path(output_abs).parent.mkdir(parents=True, exist_ok=True)
+        img_size = self._cfg_get("system.img_size", "2G")
+        
+        self.logger.info(f"[finalize] Creating platform image: {output_abs} ({img_size})")
+        if os.geteuid() != 0:
+            raise ISOBuilderError("Root privileges are required to generate platform images via loop devices.")
+            
+        # 1. Create file
+        subprocess.run(["truncate", "-s", img_size, output_abs], check=True)
+        
+        # 2. Partition
+        boot_size = "256MiB"
+        sfdisk_cmd = f"label: dos\n2048,{boot_size},b,*\n,+,L\n"
+        subprocess.run(["sfdisk", output_abs], input=sfdisk_cmd.encode(), check=True)
+        
+        # 3. Setup Loop
+        res = subprocess.run(["losetup", "--show", "--find", "--partscan", output_abs], capture_output=True, text=True, check=True)
+        loop_dev = res.stdout.strip()
+        
+        try:
+            # 4. Format
+            self.logger.info(f"[finalize] Formatting partitions on {loop_dev}...")
+            subprocess.run(["mkfs.vfat", "-I", "-F16", f"{loop_dev}p1"], check=True)
+            subprocess.run(["mkfs.ext4", "-O", "^has_journal", f"{loop_dev}p2"], check=True)
+            
+            # 5. Mount
+            import tempfile
+            mnt_root = Path(tempfile.mkdtemp(dir=Path(output_abs).parent))
+            subprocess.run(["mount", f"{loop_dev}p2", str(mnt_root)], check=True)
+            (mnt_root / "boot").mkdir(parents=True, exist_ok=True)
+            subprocess.run(["mount", f"{loop_dev}p1", str(mnt_root / "boot")], check=True)
+            
+            try:
+                # 6. Get UUIDs
+                boot_uuid = subprocess.run(["blkid", "-o", "value", "-s", "UUID", f"{loop_dev}p1"], capture_output=True, text=True).stdout.strip()
+                root_uuid = subprocess.run(["blkid", "-o", "value", "-s", "UUID", f"{loop_dev}p2"], capture_output=True, text=True).stdout.strip()
+                root_partuuid = subprocess.run(["blkid", "-o", "value", "-s", "PARTUUID", f"{loop_dev}p2"], capture_output=True, text=True).stdout.strip()
+                
+                # 7. Copy RootFS
+                self.logger.info(f"[finalize] Copying RootFS to image (This may take a moment)...")
+                subprocess.run(["cp", "-a", f"{self.chroot_path}/.", str(mnt_root)], check=True)
+                
+                # 8. Setup Fstab & Bootloader
+                fstab = mnt_root / "etc" / "fstab"
+                with open(fstab, "a") as f:
+                    f.write(f"\nUUID={root_uuid} / ext4 defaults 0 1\n")
+                    f.write(f"UUID={boot_uuid} /boot vfat defaults 0 2\n")
+                    
+                cmdline = mnt_root / "boot" / "cmdline.txt"
+                if cmdline.exists():
+                    import re
+                    content = cmdline.read_text()
+                    content = re.sub(r'root=[^ ]+', f'root=PARTUUID={root_partuuid}', content)
+                    cmdline.write_text(content)
+                else:
+                    cmdline.write_text(f"root=PARTUUID={root_partuuid} rw rootwait console=ttyAMA0,115200 console=tty1\n")
+                    
+            finally:
+                subprocess.run(["umount", "-f", str(mnt_root / "boot")], check=False)
+                subprocess.run(["umount", "-f", str(mnt_root)], check=False)
+                os.rmdir(str(mnt_root))
+                
+        finally:
+            subprocess.run(["partx", "-d", loop_dev], check=False)
+            subprocess.run(["losetup", "-d", loop_dev], check=False)
+            
+        self.logger.info(f"[finalize] Successfully created platform image: {output_abs}")

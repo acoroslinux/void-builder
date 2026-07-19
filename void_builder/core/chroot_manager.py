@@ -156,10 +156,15 @@ class ChrootManager:
         cmd.extend(["-y"])
         cmd.extend(packages)
 
-        cmd_env = os.environ.copy()
-        cmd_env["XBPS_ARCH"] = self.arch
+        xbps_arch = self.arch
+        if self.arch.startswith("rpi-"):
+            xbps_arch = self.arch.replace("rpi-", "")
+        # Add other platform mappings here later if needed (e.g. pinebookpro -> aarch64)
 
-        logger.info(f"[Chroot] Running host-side xbps-install.static: {' '.join(cmd)}")
+        cmd_env = os.environ.copy()
+        cmd_env["XBPS_ARCH"] = xbps_arch
+
+        logger.info(f"[Chroot] Running host-side xbps-install.static for {xbps_arch}: {' '.join(cmd)}")
         res = subprocess.run(cmd, env=cmd_env)
         if res.returncode != 0:
             logger.error(f"[Chroot] Package installation failed (exit {res.returncode}).")
@@ -180,8 +185,12 @@ class ChrootManager:
         if is_target_native(self.arch):
             import shutil
             if shutil.which("xbps-reconfigure"):
+                xbps_arch = self.arch
+                if self.arch.startswith("rpi-"):
+                    xbps_arch = self.arch.replace("rpi-", "")
+
                 cmd_env = os.environ.copy()
-                cmd_env["XBPS_ARCH"] = self.arch
+                cmd_env["XBPS_ARCH"] = xbps_arch
                 subprocess.run(
                     ["xbps-reconfigure", "--rootdir", str(self.chroot_path), "base-files"],
                     env=cmd_env, capture_output=True
