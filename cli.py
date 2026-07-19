@@ -280,18 +280,12 @@ def main():
         if os.geteuid() == 0:
             cmd_prefix = ["sudo", "-u", real_user, "env", f"PATH={env['PATH']}"]
             
-        print("[Calamares] Configuring xbps-src environment (binary-bootstrap)...")
-        subprocess.run(cmd_prefix + ["./xbps-src", "binary-bootstrap"], cwd=str(workdir), check=True)
+        masterdir = f"masterdir-{target_arch}"
+        print(f"[Calamares] Configuring xbps-src native environment ({masterdir})...")
+        subprocess.run(cmd_prefix + ["./xbps-src", "-m", masterdir, "-A", target_arch, "binary-bootstrap"], cwd=str(workdir), check=True)
         
-        print(f"[Calamares] Compiling the package for {target_arch} (This may take some time and CPU)...")
-        import platform
-        host_arch = platform.machine()
-        
-        # Only use cross-compile flag (-a) if target architecture differs from host
-        if host_arch == target_arch:
-            pkg_cmd = cmd_prefix + ["./xbps-src", "pkg", "calamares"]
-        else:
-            pkg_cmd = cmd_prefix + ["./xbps-src", "-a", target_arch, "pkg", "calamares"]
+        print(f"[Calamares] Compiling the package natively for {target_arch} (This may take some time and CPU)...")
+        pkg_cmd = cmd_prefix + ["./xbps-src", "-m", masterdir, "-A", target_arch, "pkg", "calamares"]
             
         subprocess.run(pkg_cmd, cwd=str(workdir), check=True)
         

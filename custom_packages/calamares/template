@@ -32,6 +32,10 @@ case ${XBPS_TARGET_MACHINE} in
 		depends+=" musl-locales" ;;
 esac
 
+if [ "$CROSS_BUILD" ]; then
+	configure_args+=" -DQT_QTPATHS_EXECUTABLE=/usr/lib/qt6/bin/qtpaths"
+fi
+
 pre_configure() {
     vsed -i -e "s/desired_size = 512 \* 1024 \* 1024  \# 512MiB/desired_size = 512 \* 1024 \* 1024 \* 4  \# 2048MiB/" src/modules/fstab/main.py
     vsed -i 's/services-systemd/services-runit/g' settings.conf

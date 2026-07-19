@@ -21,8 +21,16 @@
       "destination": "/usr/share/applications"
     },
     {
-      "source": "plymouth",
-      "destination": "/usr/share/plymouth/themes"
+      "source": "plymouth/themes/void-modern",
+      "destination": "/usr/share/plymouth/themes/void-modern"
+    },
+    {
+      "source": "plymouth/plymouthd.conf",
+      "destination": "/etc/plymouth/plymouthd.conf"
+    },
+    {
+      "source": "grub",
+      "destination": "/usr/share/grub/themes"
     },
 
     {

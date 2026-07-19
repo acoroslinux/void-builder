@@ -204,6 +204,13 @@ class Grub2Bootloader:
         if splash_src.exists():
             shutil.copy2(splash_src, grub_dir / "splash.png")
 
+        # Copy custom GRUB theme to Live ISO
+        custom_theme_src = resolve_from_project("configs/custom_files/grub")
+        if custom_theme_src.exists():
+            dest_themes = grub_dir / "themes"
+            dest_themes.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(custom_theme_src, dest_themes, dirs_exist_ok=True)
+
         logger.info("[GRUB2] GRUB EFI configured")
         return True
 
