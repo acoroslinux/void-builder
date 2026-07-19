@@ -221,21 +221,27 @@ def main():
 
     args = parser.parse_args()
 
-    def build_calamares_package():
+    def build_calamares_package(target_arch):
         import os
         import subprocess
         import shutil
+        import pwd
         from void_builder.utils.lib import ensure_static_xbps, get_tools_dir
         
-        print("\n[Calamares] Inciando compilação do Calamares via void-packages...")
+        real_user = os.environ.get("SUDO_USER") or os.environ.get("USER")
+        if not real_user or real_user == "root":
+            print("Error: Could not determine a non-root user for compilation. Please run without sudo or with 'sudo -E'.")
+            sys.exit(1)
+            
+        print(f"\n[Calamares] Starting Calamares compilation via void-packages for architecture: {target_arch}...")
         workdir = resolve_from_project("workdir/void-packages")
         template_src = resolve_from_project("custom_packages/calamares")
         
         if not template_src.exists():
-            print(f"Erro: Template do Calamares não encontrado em {template_src}")
+            print(f"Error: Calamares template not found at {template_src}")
             sys.exit(1)
             
-        print("[Calamares] A preparar ferramentas estáticas xbps...")
+        print("[Calamares] Preparing static xbps tools...")
         tools_dir = get_tools_dir()
         ensure_static_xbps(tools_dir=tools_dir)
         
@@ -251,35 +257,61 @@ def main():
         env["PATH"] = f"{bin_dir}:{env.get('PATH', '')}"
             
         if not workdir.exists():
-            print("[Calamares] A clonar repositório void-packages (depth=1)...")
+            print("[Calamares] Cloning void-packages repository (depth=1)...")
             workdir.parent.mkdir(parents=True, exist_ok=True)
             subprocess.run(["git", "clone", "--depth", "1", "https://github.com/void-linux/void-packages.git", str(workdir)], check=True)
         else:
-            print("[Calamares] Repositório void-packages detetado.")
+            print("[Calamares] void-packages repository detected.")
             
-        print("[Calamares] A preparar o seu template...")
+        # Ensure correct ownership before dropping privileges
+        if os.geteuid() == 0:
+            subprocess.run(["chown", "-R", f"{real_user}:{real_user}", str(workdir)], check=True)
+            
+        print("[Calamares] Preparing the template...")
         dest_pkg = workdir / "srcpkgs" / "calamares"
         if dest_pkg.exists():
             shutil.rmtree(dest_pkg)
         shutil.copytree(template_src, dest_pkg)
         
-        print("[Calamares] A configurar o ambiente xbps-src (binary-bootstrap)...")
-        subprocess.run(["./xbps-src", "binary-bootstrap"], cwd=str(workdir), env=env, check=True)
+        if os.geteuid() == 0:
+            subprocess.run(["chown", "-R", f"{real_user}:{real_user}", str(dest_pkg)], check=True)
+            
+        cmd_prefix = []
+        if os.geteuid() == 0:
+            cmd_prefix = ["sudo", "-u", real_user, "env", f"PATH={env['PATH']}"]
+            
+        print("[Calamares] Configuring xbps-src environment (binary-bootstrap)...")
+        subprocess.run(cmd_prefix + ["./xbps-src", "binary-bootstrap"], cwd=str(workdir), check=True)
         
-        print("[Calamares] A compilar o pacote (Isto pode demorar algum tempo e CPU)...")
-        subprocess.run(["./xbps-src", "pkg", "calamares"], cwd=str(workdir), env=env, check=True)
+        print(f"[Calamares] Compiling the package for {target_arch} (This may take some time and CPU)...")
+        import platform
+        host_arch = platform.machine()
+        
+        # Only use cross-compile flag (-a) if target architecture differs from host
+        if host_arch == target_arch:
+            pkg_cmd = cmd_prefix + ["./xbps-src", "pkg", "calamares"]
+        else:
+            pkg_cmd = cmd_prefix + ["./xbps-src", "-a", target_arch, "pkg", "calamares"]
+            
+        subprocess.run(pkg_cmd, cwd=str(workdir), check=True)
         
         binpkgs_dir = workdir / "hostdir" / "binpkgs"
-        print(f"\n[Calamares] ✅ Compilação concluída com sucesso!")
-        print(f"[Calamares] Repositório binário gerado em: {binpkgs_dir}\n")
+        if target_arch != "x86_64":
+             # xbps-src stores cross compiled packages in hostdir/binpkgs/<arch>
+             binpkgs_dir = binpkgs_dir / target_arch
+             if not binpkgs_dir.exists():
+                 binpkgs_dir = workdir / "hostdir" / "binpkgs" # fallback
+                 
+        print(f"\n[Calamares] ✅ Compilation completed successfully!")
+        print(f"[Calamares] Binary repository generated at: {binpkgs_dir}\n")
         return binpkgs_dir
 
     if args.build_calamares:
-        build_calamares_package()
+        build_calamares_package(args.architecture)
         sys.exit(0)
         
     if args.with_calamares:
-        bin_repo = build_calamares_package()
+        bin_repo = build_calamares_package(args.architecture)
         args.repository.append(str(bin_repo))
 
     VALID_ARCHS = (
