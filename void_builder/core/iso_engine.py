@@ -624,7 +624,7 @@ class PlatformEngine(VoidEngine):
             # 4. Format
             self.logger.info(f"[finalize] Formatting partitions on {loop_dev}...")
             subprocess.run(["mkfs.vfat", "-I", "-F16", f"{loop_dev}p1"], check=True)
-            subprocess.run(["mkfs.ext4", "-O", "^has_journal", f"{loop_dev}p2"], check=True)
+            subprocess.run(["mkfs.ext4", "-F", "-O", "^has_journal", f"{loop_dev}p2"], check=True)
             
             # 5. Mount
             import tempfile
@@ -670,20 +670,22 @@ class PlatformEngine(VoidEngine):
                         self.logger.warning("[finalize] U-Boot binaries not found in /usr/lib/pinebookpro-uboot!")
                     
                     # Run post-install for extlinux or kernel
-                    chroot_manager = getattr(self.toolchain, "chroot_manager", None)
-                    if chroot_manager:
-                        chroot_manager.mount()
-                        chroot_manager.run_command("xbps-reconfigure -f pinebookpro-kernel", check=False)
-                        chroot_manager.umount()
+                    from void_builder.utils.lib import mount_pseudofs, umount_pseudofs, run_cmd_chroot
+                    try:
+                        mount_pseudofs(str(mnt_root))
+                        run_cmd_chroot(str(mnt_root), "xbps-reconfigure -f pinebookpro-kernel", check=False)
+                    finally:
+                        umount_pseudofs(str(mnt_root))
                 
                 elif self.arch == "asahi":
                     self.logger.info(f"[finalize] Installing GRUB EFI for Asahi...")
-                    chroot_manager = getattr(self.toolchain, "chroot_manager", None)
-                    if chroot_manager:
-                        chroot_manager.mount()
-                        chroot_manager.run_command(f"grub-install --target=arm64-efi --efi-directory=/boot --removable {loop_dev}", check=False)
-                        chroot_manager.run_command("xbps-reconfigure -f linux-asahi", check=False)
-                        chroot_manager.umount()
+                    from void_builder.utils.lib import mount_pseudofs, umount_pseudofs, run_cmd_chroot
+                    try:
+                        mount_pseudofs(str(mnt_root))
+                        run_cmd_chroot(str(mnt_root), f"grub-install --target=arm64-efi --efi-directory=/boot --removable {loop_dev}", check=False)
+                        run_cmd_chroot(str(mnt_root), "xbps-reconfigure -f linux-asahi", check=False)
+                    finally:
+                        umount_pseudofs(str(mnt_root))
                     
             finally:
                 subprocess.run(["umount", "-f", str(mnt_root / "boot")], check=False)
