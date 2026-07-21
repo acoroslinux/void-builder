@@ -43,25 +43,12 @@ class OverlayAction(SystemAction):
                 import subprocess
                 import os
 
-                cmd = ["cp", "-aT", str(overlay_path), str(chroot_path)]
+                # Instead of recursive chown on the entire /etc and /usr, we use rsync
+                # to copy and set ownership only on the files being copied.
+                cmd = ["rsync", "-a", "--chown=0:0", f"{overlay_path}/", f"{chroot_path}/"]
                 if os.geteuid() != 0:
                     cmd = ["sudo"] + cmd
-
                 subprocess.run(cmd, check=True)
-                
-                # Fix ownership of copied system directories to be owned by root (0:0)
-                chroot.run_command("chown -R 0:0 /etc 2>/dev/null || true")
-                chroot.run_command("chown -R 0:0 /usr 2>/dev/null || true")
-                chroot.run_command("chown -R 0:0 /boot 2>/dev/null || true")
-                chroot.run_command("chown -R 0:0 /opt 2>/dev/null || true")
-                
-                # Fix directory permissions to 755 (rwxr-xr-x)
-                chroot.run_command("find /etc /usr /boot /opt -type d -exec chmod 755 {} + 2>/dev/null || true")
-                
-                # Ensure sudo and polkit have the correct setuid permissions
-                chroot.run_command("chmod 4755 /usr/bin/sudo 2>/dev/null || true")
-                chroot.run_command("chmod 4755 /usr/bin/pkexec 2>/dev/null || true")
-                chroot.run_command("chmod 4755 /usr/lib/polkit-1/polkit-agent-helper-1 2>/dev/null || true")
             except Exception as e:
                 logger.error(f"[Overlay] Failed to copy overlay: {e}")
         else:
@@ -611,15 +598,16 @@ class StructuredCopyAction(SystemAction):
                 
                 chroot.run_command(f"mkdir -p {dest_dir_in_chroot}")
                 
-                # Copy file/directory preserving all attributes and merging contents (-T)
-                cmd_copy = ["cp", "-aT", str(src_path), str(dest_path)]
+                # Use rsync to preserve attributes but set ownership to root:root safely
+                src_str = str(src_path) + "/" if src_path.is_dir() else str(src_path)
+                dest_str = str(dest_path) + "/" if src_path.is_dir() else str(dest_path)
+                
+                cmd_copy = ["rsync", "-a", "--chown=0:0", src_str, dest_str]
                 try:
                     if os.geteuid() != 0:
                         subprocess.run(["sudo"] + cmd_copy, check=True)
-                        subprocess.run(["sudo", "chroot", str(chroot.chroot_path), "chown", "-R", "0:0", f"/{dest_rel.lstrip('/')}"], check=True)
                     else:
                         subprocess.run(cmd_copy, check=True)
-                        subprocess.run(["chroot", str(chroot.chroot_path), "chown", "-R", "0:0", f"/{dest_rel.lstrip('/')}"], check=True)
                 except Exception as e:
                     logger.error(f"  [StructuredCopy] Failed to copy {src_path} to {dest_path}: {e}")
             else:
