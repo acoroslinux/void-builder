@@ -97,8 +97,11 @@ class ToolchainManager:
             cmd.extend(["-R", repo])
         cmd.extend(packages)
 
+        from void_builder.utils.lib import map_xbps_arch
+        xbps_arch = map_xbps_arch(arch)
+
         cmd_env = os.environ.copy()
-        cmd_env["XBPS_ARCH"] = arch
+        cmd_env["XBPS_ARCH"] = xbps_arch
 
         logger.info(f"[TOOLCHAIN] Bootstrapping packages in {rootdir}: {', '.join(packages)}")
         res = subprocess.run(cmd, env=cmd_env)
@@ -151,9 +154,10 @@ class ToolchainManager:
             chroot_path = Path(chroot_path)
             
             # Setup QEMU user static binary if not native
-            from void_builder.utils.lib import is_target_native, setup_qemu_binfmt
-            if not is_target_native(self.arch):
-                setup_qemu_binfmt(self.arch)
+            from void_builder.utils.lib import is_target_native, setup_qemu_binfmt, map_xbps_arch
+            canonical_arch = map_xbps_arch(self.arch)
+            if not is_target_native(canonical_arch):
+                setup_qemu_binfmt(canonical_arch)
                 
             # Check host UID to decide on native chroot vs proot
             import os

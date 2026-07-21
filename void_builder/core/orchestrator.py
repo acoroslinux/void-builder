@@ -51,6 +51,8 @@ class BuildOrchestrator:
             "aarch64", "aarch64-musl",
             "armv7l", "armv7l-musl",
             "armv6l", "armv6l-musl",
+            "rpi-aarch64", "rpi-armv7l", "rpi-armv6l",
+            "pinebookpro", "asahi",
         )
         self.arch = (arch or "x86_64").lower()
         if self.arch not in VALID_ARCHS:

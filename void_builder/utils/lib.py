@@ -163,7 +163,7 @@ def run_cmd_chroot(rootfs, command, env=None, check=True):
 def run_cmd_target(command, target_arch, check=True):
     """Run a command with XBPS_ARCH set to the target architecture."""
     merged_env = os.environ.copy()
-    merged_env['XBPS_ARCH'] = target_arch
+    merged_env['XBPS_ARCH'] = map_xbps_arch(target_arch)
     return CommandRunner.run(command, env=merged_env, check=check)
 
 
@@ -269,10 +269,19 @@ def ensure_dir(path):
     return path
 
 
+def map_xbps_arch(arch: str) -> str:
+    """Map platform architectures to their canonical Void XBPS architecture."""
+    if arch.startswith("rpi-"):
+        return arch.replace("rpi-", "")
+    elif arch in ("pinebookpro", "asahi"):
+        return "aarch64"
+    return arch
+
 def filter_repositories(repos: list, arch: str) -> list:
     """Filter repositories to only keep those compatible with the target architecture/libc."""
-    is_musl = "musl" in arch
-    is_arm = any(x in arch for x in ("aarch64", "armv7l", "armv6l"))
+    canonical_arch = map_xbps_arch(arch)
+    is_musl = "musl" in canonical_arch
+    is_arm = any(x in canonical_arch for x in ("aarch64", "armv7l", "armv6l"))
     
     filtered = []
     for r in repos:

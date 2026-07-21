@@ -156,10 +156,8 @@ class ChrootManager:
         cmd.extend(["-y"])
         cmd.extend(packages)
 
-        xbps_arch = self.arch
-        if self.arch.startswith("rpi-"):
-            xbps_arch = self.arch.replace("rpi-", "")
-        # Add other platform mappings here later if needed (e.g. pinebookpro -> aarch64)
+        from void_builder.utils.lib import map_xbps_arch
+        xbps_arch = map_xbps_arch(self.arch)
 
         cmd_env = os.environ.copy()
         cmd_env["XBPS_ARCH"] = xbps_arch
@@ -185,9 +183,8 @@ class ChrootManager:
         if is_target_native(self.arch):
             import shutil
             if shutil.which("xbps-reconfigure"):
-                xbps_arch = self.arch
-                if self.arch.startswith("rpi-"):
-                    xbps_arch = self.arch.replace("rpi-", "")
+                from void_builder.utils.lib import map_xbps_arch
+                xbps_arch = map_xbps_arch(self.arch)
 
                 cmd_env = os.environ.copy()
                 cmd_env["XBPS_ARCH"] = xbps_arch
