@@ -581,7 +581,21 @@ class PlatformEngine(VoidEngine):
             output_abs = output_abs.replace(".iso", ".img")
             
         Path(output_abs).parent.mkdir(parents=True, exist_ok=True)
-        img_size = self._cfg_get("system.img_size", "2G")
+        # Calculate required size dynamically if not hardcoded in config
+        img_size_config = self._cfg_get("system.img_size", None)
+        if img_size_config:
+            img_size = img_size_config
+        else:
+            try:
+                du_res = subprocess.run(["du", "-sm", str(self.chroot_path)], capture_output=True, text=True, check=True)
+                used_mb = int(du_res.stdout.split()[0])
+                # Add 25% buffer + 600MB for Boot partition and fs overhead
+                required_mb = int(used_mb * 1.25) + 600
+                img_size = f"{required_mb}M"
+                self.logger.info(f"[finalize] Dynamically calculated image size: {img_size} (rootfs is ~{used_mb}MB)")
+            except Exception as e:
+                self.logger.warning(f"[finalize] Failed to calculate rootfs size: {e}. Falling back to 4G.")
+                img_size = "4G"
         
         self.logger.info(f"[finalize] Creating platform image: {output_abs} ({img_size})")
         if os.geteuid() != 0:
