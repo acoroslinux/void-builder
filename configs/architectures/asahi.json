@@ -1,0 +1,12 @@
+{
+  "platform_specific": {
+    "architecture": "asahi",
+    "packages": [
+      "asahi-base",
+      "asahi-scripts",
+      "linux-asahi",
+      "mesa-asahi-dri",
+      "grub-arm64-efi"
+    ]
+  }
+}

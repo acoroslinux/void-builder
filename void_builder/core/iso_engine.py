@@ -556,12 +556,19 @@ class ISOBuilder:
 @ISOEngine.register("rpi-aarch64")
 @ISOEngine.register("rpi-armv7l")
 @ISOEngine.register("rpi-armv6l")
+@ISOEngine.register("pinebookpro")
+@ISOEngine.register("asahi")
 class PlatformEngine(BaseEngine):
-    """Engine in charge of Single Board Computers (Raspberry Pi, etc.)"""
+    """Engine in charge of Single Board Computers (Raspberry Pi, Pinebook Pro, Asahi, etc.)"""
 
     def build_bootloaders(self, workdir: str) -> None:
         self.logger.info("=== Step 5: Bootloaders ===")
-        self.logger.info("Platform image (rpi) relies on native firmware from rpi-base. Skipping GRUB/Syslinux.")
+        if self.arch.startswith("rpi"):
+            self.logger.info("Platform image (rpi) relies on native firmware from rpi-base. Skipping GRUB/Syslinux.")
+        elif self.arch == "pinebookpro":
+            self.logger.info("Pinebook Pro relies on u-boot written directly to disk. Skipping GRUB/Syslinux inside chroot.")
+        elif self.arch == "asahi":
+            self.logger.info("Asahi requires GRUB EFI. Will be installed during image finalization.")
 
     def finalize_isofile(self, output_path: str) -> None:
         self.logger.info("=== Step 6: Finalizing Platform .img File ===")
@@ -585,7 +592,14 @@ class PlatformEngine(BaseEngine):
         
         # 2. Partition
         boot_size = "256MiB"
-        sfdisk_cmd = f"label: dos\n2048,{boot_size},b,*\n,+,L\n"
+        if self.arch == "pinebookpro":
+            boot_size = "512MiB" # RK3399 needs larger boot space for kernels
+            sfdisk_cmd = f"label: gpt\nunit: sectors\nfirst-lba: 32768\nname=BootFS, size={boot_size}, type=L, bootable, attrs=\"LegacyBIOSBootable\"\nname=RootFS, type=L\n"
+        elif self.arch == "asahi":
+            sfdisk_cmd = f"label: dos\n2048,{boot_size},b,*\n,+,L\n"
+        else:
+            sfdisk_cmd = f"label: dos\n2048,{boot_size},b,*\n,+,L\n"
+
         subprocess.run(["sfdisk", output_abs], input=sfdisk_cmd.encode(), check=True)
         
         # 3. Setup Loop
@@ -615,20 +629,47 @@ class PlatformEngine(BaseEngine):
                 self.logger.info(f"[finalize] Copying RootFS to image (This may take a moment)...")
                 subprocess.run(["cp", "-a", f"{self.chroot_path}/.", str(mnt_root)], check=True)
                 
-                # 8. Setup Fstab & Bootloader
+                # 8. Setup Fstab
                 fstab = mnt_root / "etc" / "fstab"
                 with open(fstab, "a") as f:
                     f.write(f"\nUUID={root_uuid} / ext4 defaults 0 1\n")
                     f.write(f"UUID={boot_uuid} /boot vfat defaults 0 2\n")
                     
-                cmdline = mnt_root / "boot" / "cmdline.txt"
-                if cmdline.exists():
-                    import re
-                    content = cmdline.read_text()
-                    content = re.sub(r'root=[^ ]+', f'root=PARTUUID={root_partuuid}', content)
-                    cmdline.write_text(content)
-                else:
-                    cmdline.write_text(f"root=PARTUUID={root_partuuid} rw rootwait console=ttyAMA0,115200 console=tty1\n")
+                # 9. Setup Bootloader specific logic
+                if self.arch.startswith("rpi"):
+                    cmdline = mnt_root / "boot" / "cmdline.txt"
+                    if cmdline.exists():
+                        import re
+                        content = cmdline.read_text()
+                        content = re.sub(r'root=[^ ]+', f'root=PARTUUID={root_partuuid}', content)
+                        cmdline.write_text(content)
+                    else:
+                        cmdline.write_text(f"root=PARTUUID={root_partuuid} rw rootwait console=ttyAMA0,115200 console=tty1\n")
+                
+                elif self.arch == "pinebookpro":
+                    self.logger.info(f"[finalize] Writing U-Boot to {loop_dev} for Pinebook Pro...")
+                    uboot_dir = mnt_root / "usr" / "lib" / "pinebookpro-uboot"
+                    if uboot_dir.exists():
+                        subprocess.run(["dd", f"if={uboot_dir}/idbloader.img", f"of={loop_dev}", "bs=512", "seek=64", "conv=notrunc,fsync"], check=True)
+                        subprocess.run(["dd", f"if={uboot_dir}/u-boot.itb", f"of={loop_dev}", "bs=512", "seek=16384", "conv=notrunc,fsync"], check=True)
+                    else:
+                        self.logger.warning("[finalize] U-Boot binaries not found in /usr/lib/pinebookpro-uboot!")
+                    
+                    # Run post-install for extlinux or kernel
+                    chroot_manager = getattr(self.toolchain, "chroot_manager", None)
+                    if chroot_manager:
+                        chroot_manager.mount()
+                        chroot_manager.run_command("xbps-reconfigure -f pinebookpro-kernel", check=False)
+                        chroot_manager.umount()
+                
+                elif self.arch == "asahi":
+                    self.logger.info(f"[finalize] Installing GRUB EFI for Asahi...")
+                    chroot_manager = getattr(self.toolchain, "chroot_manager", None)
+                    if chroot_manager:
+                        chroot_manager.mount()
+                        chroot_manager.run_command(f"grub-install --target=arm64-efi --efi-directory=/boot --removable {loop_dev}", check=False)
+                        chroot_manager.run_command("xbps-reconfigure -f linux-asahi", check=False)
+                        chroot_manager.umount()
                     
             finally:
                 subprocess.run(["umount", "-f", str(mnt_root / "boot")], check=False)

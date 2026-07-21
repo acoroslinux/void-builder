@@ -1,0 +1,10 @@
+{
+  "platform_specific": {
+    "architecture": "pinebookpro",
+    "packages": [
+      "pinebookpro-base",
+      "pinebookpro-kernel",
+      "pinebookpro-uboot"
+    ]
+  }
+}
