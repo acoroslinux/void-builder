@@ -1,0 +1,9 @@
+{
+  "platform_specific": {
+    "architecture": "armv7l",
+    "packages": [
+      "rpi-base",
+      "rpi-kernel"
+    ]
+  }
+}

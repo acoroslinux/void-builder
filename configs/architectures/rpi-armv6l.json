@@ -1,0 +1,9 @@
+{
+  "platform_specific": {
+    "architecture": "armv6l",
+    "packages": [
+      "rpi-base",
+      "rpi-kernel"
+    ]
+  }
+}

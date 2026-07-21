@@ -1,0 +1,9 @@
+{
+  "platform_specific": {
+    "architecture": "aarch64",
+    "packages": [
+      "rpi-base",
+      "rpi-kernel"
+    ]
+  }
+}
