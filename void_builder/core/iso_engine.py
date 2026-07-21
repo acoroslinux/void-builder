@@ -558,7 +558,7 @@ class ISOBuilder:
 @ISOEngine.register("rpi-armv6l")
 @ISOEngine.register("pinebookpro")
 @ISOEngine.register("asahi")
-class PlatformEngine(BaseEngine):
+class PlatformEngine(VoidEngine):
     """Engine in charge of Single Board Computers (Raspberry Pi, Pinebook Pro, Asahi, etc.)"""
 
     def build_bootloaders(self, workdir: str) -> None:
