@@ -5,10 +5,6 @@
       "destination": "/usr/lib"
     },
     {
-      "source": "calamares",
-      "destination": "/etc/calamares"
-    },
-    {
       "source": "skel",
       "destination": "/etc/skel"
     },
@@ -44,10 +40,6 @@
     {
       "source": "default",
       "destination": "/etc/default"
-    },
-    {
-      "source": "scripts",
-      "destination": "/usr/local/bin"
     }
   ]
 }

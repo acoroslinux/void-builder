@@ -3,5 +3,15 @@
   "description": "Graphical system installer (Calamares)",
   "packages": [
     "calamares"
+  ],
+  "copy_files": [
+    {
+      "source": "calamares",
+      "destination": "/etc/calamares"
+    },
+    {
+      "source": "scripts/add-installer-desktop-icon.sh",
+      "destination": "/usr/local/bin/add-installer-desktop-icon.sh"
+    }
   ]
 }
