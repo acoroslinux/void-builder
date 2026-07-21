@@ -1,0 +1,7 @@
+{
+  "name": "installer",
+  "description": "Graphical system installer (Calamares)",
+  "packages": [
+    "calamares"
+  ]
+}
