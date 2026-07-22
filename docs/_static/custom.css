@@ -1,0 +1,21 @@
+/* Custom CSS styling for Void-Builder documentation */
+
+.wy-nav-side {
+    background: #1e1e24;
+}
+
+.wy-side-nav-search {
+    background-color: #E31937 !important;
+}
+
+.rst-content .admonition.note, .rst-content .admonition.seealso {
+    background: #eef7fa;
+    border-color: #00838f;
+}
+
+code.literal {
+    color: #E31937;
+    background: #f4f4f5;
+    padding: 2px 5px;
+    border-radius: 3px;
+}

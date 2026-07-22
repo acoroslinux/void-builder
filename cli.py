@@ -206,6 +206,44 @@ def main():
         "-v", "--verbose", action="store_true", help="Enable verbose logging."
     )
 
+    # Validation & Verification
+    parser.add_argument(
+        "--check",
+        "--validate",
+        dest="validate_only",
+        action="store_true",
+        help="Validate configuration files, profile references, and package dependencies without building.",
+    )
+
+    # Output Format & Compression
+    parser.add_argument(
+        "--format",
+        choices=["iso", "img", "tarball"],
+        default="iso",
+        help="Target build artifact format: 'iso' (bootable ISO), 'img' (disk image), or 'tarball' (rootfs tar.xz). Default: iso",
+    )
+
+    parser.add_argument(
+        "--compression",
+        choices=["xz", "zstd", "gzip"],
+        default="xz",
+        help="SquashFS and Initramfs compression algorithm. Default: xz",
+    )
+
+    parser.add_argument(
+        "--generate-manifest",
+        dest="generate_manifest",
+        action="store_true",
+        default=True,
+        help="Generate SHA256/MD5 checksums and manifest.json alongside the build artifact (default: enabled).",
+    )
+    parser.add_argument(
+        "--no-manifest",
+        dest="generate_manifest",
+        action="store_false",
+        help="Disable automatic checksum and manifest generation.",
+    )
+
     # Calamares Pipeline
     parser.add_argument(
         "--build-calamares",
@@ -375,9 +413,31 @@ def main():
         update_toolchain=args.update_toolchain,
     )
 
+    # Handle Validation Mode (--check / --validate)
+    if args.validate_only:
+        print(f"\n🔍 Validating configuration for target architecture '{args.architecture}'...")
+        report = orchestrator.validate()
+        if report.get("valid"):
+            print("✅ Configuration is VALID!")
+            print("Summary:")
+            summary = report.get("summary", {})
+            print(f"  - Target Architecture: {summary.get('target_arch')}")
+            print(f"  - Desktop Profile:     {summary.get('desktop')}")
+            print(f"  - Total Packages:      {summary.get('total_packages')}")
+            print(f"  - Enabled Services:    {', '.join(summary.get('services', []))}")
+            sys.exit(0)
+        else:
+            print("❌ Configuration validation FAILED!")
+            for err in report.get("errors", []):
+                print(f"  - ERROR: {err}")
+            sys.exit(1)
+
     print(f"--- Void-Builder Execution ---")
     print(f"Target Arch: {args.architecture}")
     print(f"Mode:        {args.mode}")
+    print(f"Format:      {args.format}")
+    print(f"Compression: {args.compression}")
+    print(f"Manifest:    {'enabled' if args.generate_manifest else 'disabled'}")
     print(f"Clean:       {'yes' if args.clean else 'no'}")
     if args.force_isolated_toolchain:
         print("Toolchain:   forced isolated bootstrap")
@@ -408,8 +468,14 @@ def main():
     print(f"------------------------------\n")
 
     try:
-        result_iso = orchestrator.run_build(output_name)
-        print(f"\n✅ Success! ISO created at: {result_iso}")
+        # Pass compression & manifest options into orchestrator configuration
+        orchestrator._setup()
+        orchestrator.config._data["iso"] = orchestrator.config._data.get("iso", {})
+        orchestrator.config._data["iso"]["compression_type"] = args.compression
+        orchestrator.config._data["generate_manifest"] = args.generate_manifest
+
+        result_file = orchestrator.builder.build(output_name, str(orchestrator.workdir), output_format=args.format)
+        print(f"\n✅ Success! Build artifact created at: {result_file}")
     except BuildOrchestratorError as e:
         print(f"\n❌ Build Orchestration Error: {e}")
         sys.exit(1)

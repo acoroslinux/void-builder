@@ -175,7 +175,7 @@ class BuildOrchestrator:
                     inc_dirs.append(d)
 
         # 2. Workdir resolution
-        configured_base = self.config.get("system.workdir_base", "void-builder/workdir")
+        configured_base = self.config.get("system.workdir_base", "workdir")
         base_workdir = resolve_from_project(str(configured_base))
         workdir = self._resolve_writable_workdir(base_workdir)
 
@@ -226,16 +226,29 @@ class BuildOrchestrator:
         except ISOBuilderError as e:
             raise BuildOrchestratorError(f"Failed to initialize the builder: {e}")
 
-    def run_build(self, output_iso: str) -> Path:
+    def validate(self) -> Dict[str, Any]:
+        """Validate configuration files and components without running the build."""
+        from void_builder.core.config_loader import ConfigAssembler
+        assembler = ConfigAssembler(str(Path(self.config_path).parent))
+        return assembler.validate(
+            target_arch=self.arch,
+            target_desktop=self.desktop,
+            target_kernel=self.kernel,
+            target_bootloader=self.bootloader,
+            package_profiles=self.package_profiles,
+            service_profiles=self.service_profiles,
+        )
+
+    def run_build(self, output_iso: str, output_format: str = "iso") -> Path:
         try:
             self._setup()
 
-            print("\n[STEP 1/1] Running build pipeline through the engine...")
+            print(f"\n[STEP 1/1] Running build pipeline (format: {output_format})...")
             output_path = Path(output_iso)
-            result_iso = self.builder.build(output_path, str(self.workdir))
+            result_iso = self.builder.build(output_path, str(self.workdir), output_format=output_format)
 
             print("\n✅ BUILD SUCCEEDED!")
-            print(f"ISO generated at: {result_iso}")
+            print(f"Artifact generated at: {result_iso}")
 
             return result_iso
 

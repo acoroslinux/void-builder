@@ -102,10 +102,18 @@ class ChrootManager:
             cache_path_str = system_cfg.get("xbps_cache")
         
         if not cache_path_str:
-            cache_path_str = "void-builder/workdir/cache/xbps"
+            cache_path_str = "workdir/cache/xbps"
             
+        import tempfile
         cache_dir = resolve_from_project(cache_path_str) / self.arch
-        cache_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            probe = cache_dir / ".write_test"
+            probe.write_text("ok")
+            probe.unlink(missing_ok=True)
+        except Exception:
+            cache_dir = Path(tempfile.gettempdir()) / "void-builder-cache" / "xbps" / self.arch
+            cache_dir.mkdir(parents=True, exist_ok=True)
 
         # Determine package repositories
         internal_repos = []

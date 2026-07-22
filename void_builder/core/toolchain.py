@@ -85,8 +85,16 @@ class ToolchainManager:
 
     def _run_xbps_install(self, rootdir: Path, arch: str, packages: List[str], repos: List[str]):
         from void_builder.core.path_utils import resolve_from_project
-        cache_dir = resolve_from_project("void-builder/workdir/cache/xbps") / arch
-        cache_dir.mkdir(parents=True, exist_ok=True)
+        import tempfile
+        cache_dir = resolve_from_project("workdir/cache/xbps") / arch
+        try:
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            probe = cache_dir / ".write_test"
+            probe.write_text("ok")
+            probe.unlink(missing_ok=True)
+        except Exception:
+            cache_dir = Path(tempfile.gettempdir()) / "void-builder-cache" / "xbps" / arch
+            cache_dir.mkdir(parents=True, exist_ok=True)
 
         cmd = [
             str(self.xbps_install_static), "-S", "-r", str(rootdir),

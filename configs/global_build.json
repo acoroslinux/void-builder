@@ -1,8 +1,8 @@
 {
   "system": {
     "iso_label": "VOID_MODERN",
-    "workdir_base": "void-builder/workdir",
-    "xbps_cache": "void-builder/workdir/cache/xbps"
+    "workdir_base": "workdir",
+    "xbps_cache": "workdir/cache/xbps"
   },
   "iso": {
     "compression_type": "xz"

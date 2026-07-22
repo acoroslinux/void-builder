@@ -31,6 +31,10 @@ ENV/
 *.tar.xz
 *.tgz
 *.squashfs
+*.sha256
+*.md5
+*.manifest.json
+.pytest_cache/
 
 # ===========================
 # XBPS Tools and Binaries
@@ -66,6 +70,7 @@ Thumbs.db
 *.bak
 .cache/
 logs/
+docs/_build/
 
 # ===========================
 # Working and Output Folders

@@ -75,7 +75,7 @@ class BaseEngine(ISOEngine):
     def _workdir_base(self) -> str:
         configured = (
             self.config.get("system.workdir_base")
-            or "void-builder/workdir"
+            or "workdir"
         )
         return str(resolve_from_project(str(configured)))
 
@@ -137,6 +137,85 @@ class BaseEngine(ISOEngine):
     @abstractmethod
     def finalize_isofile(self, output_path: str) -> None:
         """Produce the final ISO file."""
+
+    def _generate_manifest_and_checksums(self, output_file_path: str) -> None:
+        import hashlib
+        import json
+        from datetime import datetime, timezone
+
+        output_file = Path(output_file_path)
+        if not output_file.exists():
+            return
+
+        generate_manifest = self.config.get("generate_manifest", True)
+        if not generate_manifest:
+            return
+
+        self.logger.info(f"[manifest] Generating checksums and manifest for {output_file.name}...")
+
+        sha256_hash = hashlib.sha256()
+        md5_hash = hashlib.md5()
+
+        with open(output_file, "rb") as f:
+            for byte_block in iter(lambda: f.read(65536), b""):
+                sha256_hash.update(byte_block)
+                md5_hash.update(byte_block)
+
+        sha256_val = sha256_hash.hexdigest()
+        md5_val = md5_hash.hexdigest()
+
+        sha256_file = output_file.with_suffix(output_file.suffix + ".sha256")
+        md5_file = output_file.with_suffix(output_file.suffix + ".md5")
+
+        sha256_file.write_text(f"{sha256_val}  {output_file.name}\n")
+        md5_file.write_text(f"{md5_val}  {output_file.name}\n")
+
+        packages = self._package_plan().get("official", [])
+        manifest_data = {
+            "name": output_file.name,
+            "architecture": self.arch,
+            "desktop": self.config.get("desktop_environment", "base"),
+            "kernel": self.config.get("kernel", "default"),
+            "bootloader": self.config.get("bootloader", "default"),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "file_size_bytes": output_file.stat().st_size if output_file.exists() else 0,
+            "checksums": {
+                "sha256": sha256_val,
+                "md5": md5_val,
+            },
+            "packages_count": len(packages),
+            "packages": sorted(packages),
+        }
+
+        manifest_file = output_file.with_suffix(output_file.suffix + ".manifest.json")
+        with open(manifest_file, "w") as mf:
+            json.dump(manifest_data, mf, indent=2)
+
+        self.logger.info(f"[manifest] Generated SHA256: {sha256_file.name}")
+        self.logger.info(f"[manifest] Generated MD5: {md5_file.name}")
+        self.logger.info(f"[manifest] Generated Manifest: {manifest_file.name}")
+
+    def export_tarball(self, output_path: str) -> str:
+        import subprocess
+        output_abs = str(resolve_from_project(output_path))
+        if output_abs.endswith(".iso") or output_abs.endswith(".img"):
+            output_abs = output_abs.rsplit(".", 1)[0] + ".tar.xz"
+
+        Path(output_abs).parent.mkdir(parents=True, exist_ok=True)
+        self.logger.info(f"[tarball] Exporting rootfs tarball to {output_abs}...")
+
+        is_mock = getattr(self.toolchain, "mode", "mock") == "mock"
+        if is_mock:
+            self.logger.info(f"[tarball] [MOCK] Would create rootfs tarball: {output_abs}")
+            Path(output_abs).touch()
+            self._generate_manifest_and_checksums(output_abs)
+            return output_abs
+
+        cmd = ["tar", "-cJf", output_abs, "-C", str(self.chroot_path), "."]
+        subprocess.run(cmd, check=True)
+        self.logger.info(f"[tarball] Rootfs tarball created: {output_abs}")
+        self._generate_manifest_and_checksums(output_abs)
+        return output_abs
 
 
 @ISOEngine.register("x86_64")
@@ -494,6 +573,8 @@ class VoidEngine(BaseEngine):
         if is_mock:
             self.logger.info(f"[finalize] [MOCK] Would create ISO: {output_abs} from {self.iso_staging}")
             self.logger.info(f"[finalize] [MOCK] Command: {' '.join(command)}")
+            Path(output_abs).touch()
+            self._generate_manifest_and_checksums(output_abs)
             return
 
         self.logger.info(f"[finalize] Creating bootable hybrid ISO with xorriso: {output_abs}")
@@ -512,6 +593,7 @@ class VoidEngine(BaseEngine):
                 raise ISOBuilderError(f"xorriso failed: {res.stderr}")
 
         self.logger.info(f"[finalize] Bootable ISO created: {output_abs}")
+        self._generate_manifest_and_checksums(output_abs)
 
 
 class ISOBuilder:
@@ -528,7 +610,7 @@ class ISOBuilder:
             raise ISOBuilderError(f"No build engine registered for architecture '{arch}'.")
         self.engine = engine_cls(arch, config, toolchain)
 
-    def build(self, output_path: str, workdir: Optional[str] = None) -> str:
+    def build(self, output_path: str, workdir: Optional[str] = None, output_format: str = "iso") -> str:
         """Execute the full build pipeline."""
         logger.info(f"=== Starting build pipeline for architecture {self.arch} ===")
 
@@ -547,11 +629,15 @@ class ISOBuilder:
         # 5. Build bootloaders
         self.engine.build_bootloaders(str(workdir_path))
 
-        # 6. Finalize ISO file
-        self.engine.finalize_isofile(output_path)
+        # 6. Finalize ISO / IMG / Tarball file
+        if output_format == "tarball":
+            final_file = self.engine.export_tarball(output_path)
+        else:
+            self.engine.finalize_isofile(output_path)
+            final_file = str(resolve_from_project(output_path))
 
         logger.info("=== Build completed successfully! ===")
-        return str(resolve_from_project(output_path))
+        return final_file
 
 @ISOEngine.register("rpi-aarch64")
 @ISOEngine.register("rpi-armv7l")
@@ -597,6 +683,13 @@ class PlatformEngine(VoidEngine):
                 self.logger.warning(f"[finalize] Failed to calculate rootfs size: {e}. Falling back to 4G.")
                 img_size = "4G"
         
+        is_mock = getattr(self.toolchain, "mode", "mock") == "mock"
+        if is_mock:
+            self.logger.info(f"[finalize] [MOCK] Would create platform image: {output_abs} ({img_size})")
+            Path(output_abs).touch()
+            self._generate_manifest_and_checksums(output_abs)
+            return
+
         self.logger.info(f"[finalize] Creating platform image: {output_abs} ({img_size})")
         if os.geteuid() != 0:
             raise ISOBuilderError("Root privileges are required to generate platform images via loop devices.")
@@ -697,3 +790,13 @@ class PlatformEngine(VoidEngine):
             subprocess.run(["losetup", "-d", loop_dev], check=False)
             
         self.logger.info(f"[finalize] Successfully created platform image: {output_abs}")
+        
+        # Compress the raw .img file
+        self.logger.info(f"[finalize] Compressing image with xz (This will take a while but will drastically reduce size)...")
+        try:
+            subprocess.run(["xz", "-z", "-T0", "-6", output_abs], check=True)
+            self.logger.info(f"[finalize] Successfully compressed image: {output_abs}.xz")
+            self._generate_manifest_and_checksums(f"{output_abs}.xz")
+        except Exception as e:
+            self.logger.error(f"[finalize] Failed to compress image: {e}")
+            self._generate_manifest_and_checksums(output_abs)

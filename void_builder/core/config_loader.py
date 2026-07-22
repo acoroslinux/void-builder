@@ -436,6 +436,84 @@ class ConfigAssembler:
         logger.info("Configuration assembly completed successfully.")
         return Config(self.master_config)
 
+    def validate(
+        self,
+        target_arch: str,
+        target_desktop: Optional[str] = None,
+        target_kernel: Optional[str] = None,
+        target_bootloader: Optional[str] = None,
+        package_profiles: Optional[List[str]] = None,
+        service_profiles: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """Validate configuration files and profile references before starting build."""
+        report: Dict[str, Any] = {"valid": True, "errors": [], "warnings": [], "summary": {}}
+
+        # Check global build file
+        global_path = self.config_root / "global_build.json"
+        if not global_path.exists():
+            report["valid"] = False
+            report["errors"].append(f"Global build config missing at {global_path}")
+
+        # Check architecture profile
+        arch_path = self.config_root / "architectures" / f"{target_arch}.json"
+        if not arch_path.exists():
+            report["valid"] = False
+            report["errors"].append(f"Architecture profile '{target_arch}' missing at {arch_path}")
+
+        # Check desktop profile
+        if target_desktop:
+            dt_path = self.config_root / "desktops" / f"{target_desktop}.json"
+            if not dt_path.exists():
+                report["valid"] = False
+                report["errors"].append(f"Desktop profile '{target_desktop}' missing at {dt_path}")
+
+        # Check bootloader profile
+        if target_bootloader:
+            bl_path = self.config_root / "bootloaders" / f"{target_bootloader}.json"
+            if not bl_path.exists():
+                report["valid"] = False
+                report["errors"].append(f"Bootloader profile '{target_bootloader}' missing at {bl_path}")
+
+        # Check package profiles
+        if package_profiles:
+            for pkg_prof in package_profiles:
+                p_path = self.config_root / "packages" / f"{pkg_prof}.json"
+                if not p_path.exists():
+                    report["valid"] = False
+                    report["errors"].append(f"Package profile '{pkg_prof}' missing at {p_path}")
+
+        # Check service profiles
+        if service_profiles:
+            for srv_prof in service_profiles:
+                s_path = self.config_root / "services" / f"{srv_prof}.json"
+                if not s_path.exists():
+                    report["valid"] = False
+                    report["errors"].append(f"Service profile '{srv_prof}' missing at {s_path}")
+
+        try:
+            config = self.assemble(
+                target_arch=target_arch,
+                target_desktop=target_desktop,
+                target_kernel=target_kernel,
+                target_bootloader=target_bootloader,
+                package_profiles=package_profiles,
+                service_profiles=service_profiles,
+            )
+            pkgs = config.get("package_sources.official", []) + config.get("common_desktop_packages", [])
+            report["summary"] = {
+                "target_arch": target_arch,
+                "desktop": target_desktop or "base",
+                "kernel": target_kernel or "default",
+                "total_packages": len(set(pkgs)),
+                "services": config.get("customizations.services", []),
+                "repositories": config.get("repositories", []),
+            }
+        except Exception as e:
+            report["valid"] = False
+            report["errors"].append(f"Assembly failed: {e}")
+
+        return report
+
 
 class ConfigLoader:
     def __init__(self, config_root: Optional[str] = None):
