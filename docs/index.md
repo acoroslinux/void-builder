@@ -1,8 +1,8 @@
-# Void-Builder Documentation
+# Void-Builder Comprehensive Manual
 
-Welcome to the official documentation for **Void-Builder**, a modular, dynamic, and multi-architecture Void Linux ISO and disk image building toolkit.
+Welcome to the exhaustive technical documentation for **Void-Builder**, the modular, dynamic, and multi-architecture Void Linux ISO and disk image building toolkit.
 
-```
+```text
                   _     _                      _  _     _                 
   _   ___ (_) __| |   |__  _  _  _ | |__| |___  _ __ 
  | |/ / _ \| |/ _` |  | '_ \| | | | | | / _` / _ \| '__|
@@ -12,28 +12,48 @@ Welcome to the official documentation for **Void-Builder**, a modular, dynamic, 
 
 ---
 
-## Table of Contents
+## Technical Documentation Index
 
 ```{toctree}
 :maxdepth: 2
+:caption: User Guide
 
 getting_started
 usage
-architecture
+cli_reference
 configuration
+package_rules
+custom_packages
+```
+
+```{toctree}
+:maxdepth: 2
+:caption: Architecture & Bootloaders
+
+architecture
+bootloaders
 calamares
+api_reference
 troubleshooting
 ```
 
 ---
 
-## Highlights & Key Features
+## Overview & Technical Summary
 
-- **Multi-Architecture Support**: Native and cross-architecture builds for `x86_64`, `x86_64-musl`, `i686`, `aarch64`, `aarch64-musl`, `armv7l`, `armv7l-musl`, `rpi-aarch64`, `rpi-armv7l`, `rpi-armv6l`, `pinebookpro`, and `asahi`.
-- **Multiple Output Formats**: Generate bootable ISO images (`.iso`), raw platform disk images (`.img`), or RootFS container tarballs (`.tar.xz`).
-- **Flexible Execution Modes**: Simulation mode (`--mode mock`) for fast non-root configuration testing, and real mode (`--mode real`) for production image building.
-- **Config Validation**: Built-in verification command (`--check`) to audit JSON configurations and profile integrity before starting a build.
-- **Automatic Checksums & Manifests**: Automatically generates `.sha256`, `.md5`, and structured `.manifest.json` files detailing installed packages, versions, and build metadata.
-- **Compression Algorithms**: Choose between `xz`, `zstd`, and `gzip` for SquashFS and Dracut initramfs.
-- **Modular Profiles**: Dynamic JSON configuration profiles for desktops, kernels, bootloaders, packages, services, live users, and hardware platforms.
-- **Calamares Pipeline**: Native compilation and local repository injection pipeline for the Calamares installer.
+Void-Builder is a enterprise-grade Python application designed to assemble bootable live ISO images, raw Single-Board Computer (SBC) disk images, and container rootfs archives for **Void Linux**. It provides a fully decoupled architecture separating configuration resolution, host toolchain management, pseudo-filesystem chroot management, system customization, and output finalization.
+
+### Supported Target Architectures (12 Total)
+
+1. **`x86_64`**: Standard 64-bit AMD/Intel PC (glibc)
+2. **`x86_64-musl`**: 64-bit AMD/Intel PC with Musl C library
+3. **`i686`**: 32-bit Legacy x86 PC
+4. **`aarch64`**: 64-bit ARM64 Generic (glibc)
+5. **`aarch64-musl`**: 64-bit ARM64 Generic (Musl)
+6. **`armv7l`**: 32-bit ARMv7 Hard Float (glibc)
+7. **`armv7l-musl`**: 32-bit ARMv7 Hard Float (Musl)
+8. **`rpi-aarch64`**: Raspberry Pi 3/4/5 (64-bit)
+9. **`rpi-armv7l`**: Raspberry Pi 2/3 (32-bit v7)
+10. **`rpi-armv6l`**: Raspberry Pi 1/Zero (32-bit v6)
+11. **`pinebookpro`**: Pine64 Pinebook Pro (RK3399 SoC)
+12. **`asahi`**: Apple Silicon (M1/M2/M3) Asahi Linux
