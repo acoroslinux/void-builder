@@ -5,7 +5,24 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
-[![Documentation](https://img.shields.io/badge/docs-sphinx--rtd-red.svg)](docs/_build/html/index.html)
+[![Online Documentation](https://img.shields.io/badge/docs-online--sphinx-red.svg)](https://acoroslinux.github.io/void-builder/)
+
+---
+
+## 📖 Online Documentation
+
+The complete, interactive HTML documentation for Void-Builder is hosted online:
+
+👉 **[https://acoroslinux.github.io/void-builder/](https://acoroslinux.github.io/void-builder/)**
+
+The online manual covers:
+- [Getting Started & System Requirements](https://acoroslinux.github.io/void-builder/getting_started.html)
+- [CLI Reference & 10 End-to-End Examples](https://acoroslinux.github.io/void-builder/usage.html)
+- [Complete JSON Configuration Schemas](https://acoroslinux.github.io/void-builder/configuration.html)
+- [System Architecture & Build Pipeline](https://acoroslinux.github.io/void-builder/architecture.html)
+- [Bootloaders (BIOS, UEFI, Raspberry Pi, Pinebook Pro, Asahi)](https://acoroslinux.github.io/void-builder/bootloaders.html)
+- [Python API Reference](https://acoroslinux.github.io/void-builder/api_reference.html)
+- [Troubleshooting & FAQ](https://acoroslinux.github.io/void-builder/troubleshooting.html)
 
 ---
 
@@ -20,6 +37,7 @@
 - 🌐 **12 Supported Architectures & Platforms**:
   - **PC / Generic**: `x86_64`, `x86_64-musl`, `i686`, `aarch64`, `aarch64-musl`, `armv7l`, `armv7l-musl`
   - **SBCs & Arm Platforms**: `rpi-aarch64`, `rpi-armv7l`, `rpi-armv6l`, `pinebookpro`, `asahi`
+- 🛡️ **Total Build Isolation**: Zero host package manager dependencies! Static `xbps-install.static` and `proot` binaries are automatically downloaded and executed in isolated environments.
 - 🛠️ **Multiple Output Formats**:
   - `.iso`: Hybrid bootable ISO images (BIOS + UEFI)
   - `.img`: Partitioned raw disk images for SD cards / eMMC
@@ -60,13 +78,9 @@ sudo python3 cli.py x86_64 -d gnome --mode real
 
 ### 4. Raspberry Pi 4 Disk Image
 
-Prepare host QEMU emulators and build a Raspberry Pi 64-bit disk image:
+Build a Raspberry Pi 64-bit disk image:
 
 ```bash
-# Setup host cross-building environment (once)
-sudo ./setup_host_build_env.sh
-
-# Build disk image
 sudo python3 cli.py rpi-aarch64 --mode real
 ```
 
@@ -95,11 +109,9 @@ sudo python3 cli.py x86_64 --mode real --format tarball
 
 ---
 
-## Documentation
+## Building Documentation Locally
 
-Full Sphinx documentation is available in the [`docs/`](docs/) directory.
-
-To build the HTML documentation locally:
+To compile the HTML documentation locally:
 
 ```bash
 sphinx-build -b html docs docs/_build/html
