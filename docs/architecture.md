@@ -9,9 +9,10 @@ This document provides a deep architectural analysis of **Void-Builder**, detail
 Void-Builder is built around four core design principles:
 
 1. **Separation of Concerns**: Configuration parsing (`config_loader`), host tools (`toolchain`), environment execution (`chroot_manager`), image generation (`iso_engine`), and rootfs configuration (`customizer`) are decoupled into specialized modules.
-2. **Abstract Engine Registry**: Architecture engines (`VoidEngine`, `PlatformEngine`) register via `@ISOEngine.register("name")` decorators, allowing new hardware platforms to be added without modifying existing code.
-3. **Dual Execution Modes**: High-speed `--mode mock` non-root simulation alongside production `--mode real` root operations.
-4. **Resilient Workdir Fallbacks**: Automated permission testing for workspace directories, falling back to `/tmp/void-builder-fallback` and `/tmp/void-builder-cache` if project root permissions are restricted.
+2. **Total Build Isolation**: No host package manager or host package installation is required. `ToolchainManager` automatically downloads static `xbps-install.static` and `proot` binaries into `void_builder/tools/` for zero-host-dependency execution across any Linux distribution.
+3. **Abstract Engine Registry**: Architecture engines (`VoidEngine`, `PlatformEngine`) register via `@ISOEngine.register("name")` decorators, allowing new hardware platforms to be added without modifying existing code.
+4. **Dual Execution Modes**: High-speed `--mode mock` non-root simulation alongside production `--mode real` root operations.
+5. **Resilient Workdir Fallbacks**: Automated permission testing for workspace directories, falling back to `/tmp/void-builder-fallback` and `/tmp/void-builder-cache` if project root permissions are restricted.
 
 ---
 
