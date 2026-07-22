@@ -1,0 +1,181 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Custom Packages &amp; Local XBPS Repositories &mdash; Void-Builder</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=f5127f15" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=72619f87" />
+
+  
+      <script src="_static/jquery.js?v=8dae8fb0"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Architecture &amp; System Design" href="architecture.html" />
+    <link rel="prev" title="Dynamic Package Rules &amp; Resolution" href="package_rules.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #E31937" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Void-Builder
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage &amp; Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli_reference.html">CLI Complete Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="package_rules.html">Dynamic Package Rules &amp; Resolution</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Custom Packages &amp; Local XBPS Repositories</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#the-custom-packages-directory">The <code class="docutils literal notranslate"><span class="pre">custom_packages/</span></code> Directory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#automatic-repository-indexing">Automatic Repository Indexing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#creating-custom-packages-with-xbps-src">Creating Custom Packages with <code class="docutils literal notranslate"><span class="pre">xbps-src</span></code></a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Architecture &amp; Bootloaders</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture &amp; System Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bootloaders.html">Bootloaders &amp; Boot Process</a></li>
+<li class="toctree-l1"><a class="reference internal" href="calamares.html">Calamares Installer Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">Python API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting &amp; FAQ</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #E31937" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Void-Builder</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Custom Packages &amp; Local XBPS Repositories</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/custom_packages.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="custom-packages-local-xbps-repositories">
+<h1>Custom Packages &amp; Local XBPS Repositories<a class="headerlink" href="#custom-packages-local-xbps-repositories" title="Link to this heading"></a></h1>
+<p>This document explains how to include custom local <code class="docutils literal notranslate"><span class="pre">.xbps</span></code> binary packages into Void-Builder images.</p>
+<hr class="docutils" />
+<section id="the-custom-packages-directory">
+<h2>The <code class="docutils literal notranslate"><span class="pre">custom_packages/</span></code> Directory<a class="headerlink" href="#the-custom-packages-directory" title="Link to this heading"></a></h2>
+<p>Void-Builder automatically monitors the <code class="docutils literal notranslate"><span class="pre">custom_packages/</span></code> directory at the project root:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/repos/frs/projects/pep-void/void-builder/custom_packages/
+├── calamares/               # Source template for Calamares package
+├── my-package-1.0_1.x86_64.xbps
+└── my-tool-2.1_1.x86_64.xbps
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="automatic-repository-indexing">
+<h2>Automatic Repository Indexing<a class="headerlink" href="#automatic-repository-indexing" title="Link to this heading"></a></h2>
+<p>When <code class="docutils literal notranslate"><span class="pre">VoidEngine.install_packages()</span></code> runs:</p>
+<ol class="arabic simple">
+<li><p>Checks if <code class="docutils literal notranslate"><span class="pre">custom_packages/</span></code> contains any <code class="docutils literal notranslate"><span class="pre">.xbps</span></code> package files.</p></li>
+<li><p>If found, automatically executes <code class="docutils literal notranslate"><span class="pre">xbps-rindex</span> <span class="pre">-a</span> <span class="pre">custom_packages/*.xbps</span></code> to build <code class="docutils literal notranslate"><span class="pre">x86_64-repodata</span></code> (or target architecture index).</p></li>
+<li><p>Prepends <code class="docutils literal notranslate"><span class="pre">custom_packages/</span></code> to the repository priority list at position <code class="docutils literal notranslate"><span class="pre">0</span></code>.</p></li>
+<li><p>Allows <code class="docutils literal notranslate"><span class="pre">xbps-install</span></code> to resolve and install your custom packages during chroot provisioning.</p></li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="creating-custom-packages-with-xbps-src">
+<h2>Creating Custom Packages with <code class="docutils literal notranslate"><span class="pre">xbps-src</span></code><a class="headerlink" href="#creating-custom-packages-with-xbps-src" title="Link to this heading"></a></h2>
+<p>If you are developing custom applications or modified Void packages:</p>
+<ol class="arabic">
+<li><p>Clone <code class="docutils literal notranslate"><span class="pre">void-packages</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/void-linux/void-packages.git
+<span class="nb">cd</span><span class="w"> </span>void-packages
+./xbps-src<span class="w"> </span>binary-bootstrap
+</pre></div>
+</div>
+</li>
+<li><p>Create package template in <code class="docutils literal notranslate"><span class="pre">srcpkgs/&lt;my-package&gt;/template</span></code>.</p></li>
+<li><p>Compile package:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./xbps-src<span class="w"> </span>pkg<span class="w"> </span>&lt;my-package&gt;
+</pre></div>
+</div>
+</li>
+<li><p>Copy compiled <code class="docutils literal notranslate"><span class="pre">.xbps</span></code> file into <code class="docutils literal notranslate"><span class="pre">custom_packages/</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cp<span class="w"> </span>hostdir/binpkgs/&lt;my-package&gt;-*.xbps<span class="w"> </span>/path/to/void-builder/custom_packages/
+</pre></div>
+</div>
+</li>
+<li><p>Run build:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>x86_64<span class="w"> </span>-p<span class="w"> </span>my-package<span class="w"> </span>--mode<span class="w"> </span>real
+</pre></div>
+</div>
+</li>
+</ol>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="package_rules.html" class="btn btn-neutral float-left" title="Dynamic Package Rules &amp; Resolution" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="architecture.html" class="btn btn-neutral float-right" title="Architecture &amp; System Design" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026-2026, Manuel Rosa.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

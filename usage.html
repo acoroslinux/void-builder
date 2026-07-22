@@ -1,0 +1,406 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Comprehensive Usage Manual &amp; Examples &mdash; Void-Builder</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=f5127f15" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=75d58705" />
+
+  
+      <script src="_static/jquery.js?v=8dae8fb0"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="CLI Complete Reference" href="cli_reference.html" />
+    <link rel="prev" title="Getting Started &amp; System Preparation" href="getting_started.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #E31937" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Void-Builder
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started &amp; System Preparation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Comprehensive Usage Manual &amp; Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#supported-architecture-targets-matrix">1. Supported Architecture Targets Matrix</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#output-formats-explained">2. Output Formats Explained</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#a-bootable-iso-image-format-iso">A. Bootable ISO Image (<code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">iso</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#b-raw-platform-disk-image-format-img">B. Raw Platform Disk Image (<code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">img</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#c-rootfs-container-tarball-format-tarball">C. RootFS Container Tarball (<code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">tarball</span></code>)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#compression-algorithms-compared">3. Compression Algorithms Compared</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#complete-usage-examples">4. 10 Complete Usage Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#example-1-standard-non-root-simulation-mock-build">Example 1: Standard Non-Root Simulation (Mock Build)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-2-production-real-iso-build-gnome-desktop">Example 2: Production Real ISO Build (GNOME Desktop)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-3-ultra-fast-boot-iso-with-zstd-compression">Example 3: Ultra-Fast Boot ISO with ZSTD Compression</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-4-raspberry-pi-4-64-bit-disk-image">Example 4: Raspberry Pi 4 64-Bit Disk Image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-5-container-base-tarball-export">Example 5: Container Base Tarball Export</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-6-pinebook-pro-laptop-image">Example 6: Pinebook Pro Laptop Image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-7-apple-silicon-mac-image-asahi-linux">Example 7: Apple Silicon Mac Image (Asahi Linux)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-8-lightweight-musl-c-library-iso">Example 8: Lightweight Musl C Library ISO</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-9-offline-graphical-installer-iso-with-calamares">Example 9: Offline Graphical Installer ISO with Calamares</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-10-custom-repository-included-directory-overlay">Example 10: Custom Repository &amp; Included Directory Overlay</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cli_reference.html">CLI Complete Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration Guide &amp; JSON Schemas</a></li>
+<li class="toctree-l1"><a class="reference internal" href="package_rules.html">Dynamic Package Rules &amp; Resolution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="custom_packages.html">Custom Packages &amp; Local XBPS Repositories</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Architecture &amp; Bootloaders</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architectural Blueprint &amp; Engine Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bootloaders.html">Bootloaders &amp; Hardware Boot Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="calamares.html">Calamares Installer Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">Python API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting &amp; FAQ</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #E31937" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Void-Builder</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Comprehensive Usage Manual &amp; Examples</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/usage.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="comprehensive-usage-manual-examples">
+<h1>Comprehensive Usage Manual &amp; Examples<a class="headerlink" href="#comprehensive-usage-manual-examples" title="Link to this heading"></a></h1>
+<p>This manual provides an in-depth operational guide for <strong>Void-Builder</strong>, detailing all command-line options, architecture targets, output formats, compression choices, and 10 complete end-to-end execution examples.</p>
+<hr class="docutils" />
+<section id="supported-architecture-targets-matrix">
+<h2>1. Supported Architecture Targets Matrix<a class="headerlink" href="#supported-architecture-targets-matrix" title="Link to this heading"></a></h2>
+<p>Void-Builder natively supports 12 target architectures and single-board computer platform profiles.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>Target Name</p></th>
+<th class="head text-left"><p>Architecture Family</p></th>
+<th class="head text-left"><p>C Standard Library</p></th>
+<th class="head text-left"><p>Target Hardware</p></th>
+<th class="head text-left"><p>Default Engine</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">x86_64</span></code></p></td>
+<td class="text-left"><p>x86 64-bit</p></td>
+<td class="text-left"><p>glibc</p></td>
+<td class="text-left"><p>Standard Intel/AMD 64-bit PCs &amp; Laptops</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">VoidEngine</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">x86_64-musl</span></code></p></td>
+<td class="text-left"><p>x86 64-bit</p></td>
+<td class="text-left"><p>musl</p></td>
+<td class="text-left"><p>Lightweight 64-bit PCs &amp; Servers</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">VoidEngine</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">i686</span></code></p></td>
+<td class="text-left"><p>x86 32-bit</p></td>
+<td class="text-left"><p>glibc</p></td>
+<td class="text-left"><p>Legacy 32-bit Intel/AMD PCs</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">VoidEngine</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">aarch64</span></code></p></td>
+<td class="text-left"><p>ARM64 64-bit</p></td>
+<td class="text-left"><p>glibc</p></td>
+<td class="text-left"><p>Generic ARM64 Servers &amp; Workstations</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">VoidEngine</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">aarch64-musl</span></code></p></td>
+<td class="text-left"><p>ARM64 64-bit</p></td>
+<td class="text-left"><p>musl</p></td>
+<td class="text-left"><p>Lightweight ARM64 Containers &amp; SBCs</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">VoidEngine</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">armv7l</span></code></p></td>
+<td class="text-left"><p>ARMv7 32-bit</p></td>
+<td class="text-left"><p>glibc</p></td>
+<td class="text-left"><p>Generic 32-bit ARMv7 Hard-Float SBCs</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">VoidEngine</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">armv7l-musl</span></code></p></td>
+<td class="text-left"><p>ARMv7 32-bit</p></td>
+<td class="text-left"><p>musl</p></td>
+<td class="text-left"><p>Lightweight 32-bit ARMv7 Devices</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">VoidEngine</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">rpi-aarch64</span></code></p></td>
+<td class="text-left"><p>ARM64 64-bit</p></td>
+<td class="text-left"><p>glibc</p></td>
+<td class="text-left"><p>Raspberry Pi 3, 4, 400, 5, Zero 2 W</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">PlatformEngine</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">rpi-armv7l</span></code></p></td>
+<td class="text-left"><p>ARMv7 32-bit</p></td>
+<td class="text-left"><p>glibc</p></td>
+<td class="text-left"><p>Raspberry Pi 2, 3 (32-bit mode)</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">PlatformEngine</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">rpi-armv6l</span></code></p></td>
+<td class="text-left"><p>ARMv6 32-bit</p></td>
+<td class="text-left"><p>glibc</p></td>
+<td class="text-left"><p>Raspberry Pi 1, Zero (32-bit ARMv6)</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">PlatformEngine</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">pinebookpro</span></code></p></td>
+<td class="text-left"><p>ARM64 64-bit</p></td>
+<td class="text-left"><p>glibc</p></td>
+<td class="text-left"><p>Pine64 Pinebook Pro (Rockchip RK3399)</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">PlatformEngine</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">asahi</span></code></p></td>
+<td class="text-left"><p>ARM64 64-bit</p></td>
+<td class="text-left"><p>glibc</p></td>
+<td class="text-left"><p>Apple Silicon Macs (M1, M1 Pro/Max, M2)</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">PlatformEngine</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<hr class="docutils" />
+<section id="output-formats-explained">
+<h2>2. Output Formats Explained<a class="headerlink" href="#output-formats-explained" title="Link to this heading"></a></h2>
+<p>Void-Builder supports three primary output format types specified via <code class="docutils literal notranslate"><span class="pre">--format</span></code>:</p>
+<section id="a-bootable-iso-image-format-iso">
+<h3>A. Bootable ISO Image (<code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">iso</span></code>)<a class="headerlink" href="#a-bootable-iso-image-format-iso" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Extension</strong>: <code class="docutils literal notranslate"><span class="pre">.iso</span></code></p></li>
+<li><p><strong>Use Case</strong>: Bootable Live USB flash drives, DVDs, virtual machines (QEMU, KVM, VirtualBox, VMware).</p></li>
+<li><p><strong>Structure</strong>: Hybrid ISO 9660 filesystem containing a SquashFS container image (<code class="docutils literal notranslate"><span class="pre">LiveOS/squashfs.img</span></code>), El Torito BIOS MBR boot code (SYSLINUX), and UEFI FAT boot image (<code class="docutils literal notranslate"><span class="pre">boot/grub/efiboot.img</span></code>).</p></li>
+</ul>
+</section>
+<section id="b-raw-platform-disk-image-format-img">
+<h3>B. Raw Platform Disk Image (<code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">img</span></code>)<a class="headerlink" href="#b-raw-platform-disk-image-format-img" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Extension</strong>: <code class="docutils literal notranslate"><span class="pre">.img</span></code> (or <code class="docutils literal notranslate"><span class="pre">.img.xz</span></code> compressed)</p></li>
+<li><p><strong>Use Case</strong>: Single-Board Computers (Raspberry Pi, Pinebook Pro, Asahi). Designed to be flashed directly to SD cards, eMMC drives, or NVMe storage using <code class="docutils literal notranslate"><span class="pre">dd</span></code>, Raspberry Pi Imager, or BalenaEtcher.</p></li>
+<li><p><strong>Structure</strong>: Partitioned disk image (Partition 1: VFAT <code class="docutils literal notranslate"><span class="pre">/boot</span></code> partition; Partition 2: EXT4 root <code class="docutils literal notranslate"><span class="pre">/</span></code> partition).</p></li>
+</ul>
+</section>
+<section id="c-rootfs-container-tarball-format-tarball">
+<h3>C. RootFS Container Tarball (<code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">tarball</span></code>)<a class="headerlink" href="#c-rootfs-container-tarball-format-tarball" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Extension</strong>: <code class="docutils literal notranslate"><span class="pre">.tar.xz</span></code></p></li>
+<li><p><strong>Use Case</strong>: Docker container base images, Podman containers, LXC/Proxmox templates, systemd-nspawn containers, chroot bootstrap environments.</p></li>
+<li><p><strong>Structure</strong>: Compressed tar archive containing the exact customized root directory structure (<code class="docutils literal notranslate"><span class="pre">/bin</span></code>, <code class="docutils literal notranslate"><span class="pre">/etc</span></code>, <code class="docutils literal notranslate"><span class="pre">/usr</span></code>, <code class="docutils literal notranslate"><span class="pre">/var</span></code>).</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="compression-algorithms-compared">
+<h2>3. Compression Algorithms Compared<a class="headerlink" href="#compression-algorithms-compared" title="Link to this heading"></a></h2>
+<p>Select the compression algorithm via <code class="docutils literal notranslate"><span class="pre">--compression</span></code>:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>Algorithm</p></th>
+<th class="head text-left"><p>Compression Ratio</p></th>
+<th class="head text-left"><p>Decompression Speed</p></th>
+<th class="head text-left"><p>CPU Usage</p></th>
+<th class="head text-left"><p>Best For</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">xz</span></code> (default)</p></td>
+<td class="text-left"><p>Very High (Smallest file size)</p></td>
+<td class="text-left"><p>Moderate</p></td>
+<td class="text-left"><p>High</p></td>
+<td class="text-left"><p>Distribution ISOs, internet downloads</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">zstd</span></code></p></td>
+<td class="text-left"><p>High (Very close to XZ)</p></td>
+<td class="text-left"><p><strong>Ultra Fast (3-5x faster boot)</strong></p></td>
+<td class="text-left"><p>Low</p></td>
+<td class="text-left"><p>High-performance desktop ISOs, fast boots</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">gzip</span></code></p></td>
+<td class="text-left"><p>Moderate</p></td>
+<td class="text-left"><p>Fast</p></td>
+<td class="text-left"><p>Low</p></td>
+<td class="text-left"><p>Compatibility with legacy systems</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<hr class="docutils" />
+<section id="complete-usage-examples">
+<h2>4. 10 Complete Usage Examples<a class="headerlink" href="#complete-usage-examples" title="Link to this heading"></a></h2>
+<section id="example-1-standard-non-root-simulation-mock-build">
+<h3>Example 1: Standard Non-Root Simulation (Mock Build)<a class="headerlink" href="#example-1-standard-non-root-simulation-mock-build" title="Link to this heading"></a></h3>
+<p>Simulate an x86_64 ISO build with XFCE desktop environment without root privileges:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>cli.py<span class="w"> </span>x86_64<span class="w"> </span>-d<span class="w"> </span>xfce<span class="w"> </span>--mode<span class="w"> </span>mock
+</pre></div>
+</div>
+<p>Expected Output Files:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">void-builder-xfce-x86_64.iso</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">void-builder-xfce-x86_64.iso.sha256</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">void-builder-xfce-x86_64.iso.md5</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">void-builder-xfce-x86_64.iso.manifest.json</span></code></p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="example-2-production-real-iso-build-gnome-desktop">
+<h3>Example 2: Production Real ISO Build (GNOME Desktop)<a class="headerlink" href="#example-2-production-real-iso-build-gnome-desktop" title="Link to this heading"></a></h3>
+<p>Build a real production ISO containing the GNOME desktop environment for 64-bit PCs:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>x86_64<span class="w"> </span>-d<span class="w"> </span>gnome<span class="w"> </span>--mode<span class="w"> </span>real
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="example-3-ultra-fast-boot-iso-with-zstd-compression">
+<h3>Example 3: Ultra-Fast Boot ISO with ZSTD Compression<a class="headerlink" href="#example-3-ultra-fast-boot-iso-with-zstd-compression" title="Link to this heading"></a></h3>
+<p>Build a KDE Plasma desktop ISO compressed with <code class="docutils literal notranslate"><span class="pre">zstd</span></code> for maximum boot speed:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>x86_64<span class="w"> </span>-d<span class="w"> </span>kde<span class="w"> </span>--mode<span class="w"> </span>real<span class="w"> </span>--compression<span class="w"> </span>zstd
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="example-4-raspberry-pi-4-64-bit-disk-image">
+<h3>Example 4: Raspberry Pi 4 64-Bit Disk Image<a class="headerlink" href="#example-4-raspberry-pi-4-64-bit-disk-image" title="Link to this heading"></a></h3>
+<p>Generate a bootable SD Card image for Raspberry Pi 4:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Setup host cross-emulation once</span>
+sudo<span class="w"> </span>./setup_host_build_env.sh
+
+<span class="c1"># Build Raspberry Pi 64-bit disk image</span>
+sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>rpi-aarch64<span class="w"> </span>--mode<span class="w"> </span>real
+</pre></div>
+</div>
+<p>Generated Artifact:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">void-builder-base-rpi-aarch64.img.xz</span></code></p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="example-5-container-base-tarball-export">
+<h3>Example 5: Container Base Tarball Export<a class="headerlink" href="#example-5-container-base-tarball-export" title="Link to this heading"></a></h3>
+<p>Export a customized Void Linux rootfs tarball for LXC, Docker, or Podman:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>x86_64<span class="w"> </span>-d<span class="w"> </span>base<span class="w"> </span>--mode<span class="w"> </span>real<span class="w"> </span>--format<span class="w"> </span>tarball
+</pre></div>
+</div>
+<p>Generated Artifact:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">void-builder-base-x86_64.tar.xz</span></code></p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="example-6-pinebook-pro-laptop-image">
+<h3>Example 6: Pinebook Pro Laptop Image<a class="headerlink" href="#example-6-pinebook-pro-laptop-image" title="Link to this heading"></a></h3>
+<p>Build a raw disk image for the Pine64 Pinebook Pro laptop featuring Rockchip RK3399 U-Boot loader:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>pinebookpro<span class="w"> </span>-d<span class="w"> </span>sway<span class="w"> </span>--mode<span class="w"> </span>real
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="example-7-apple-silicon-mac-image-asahi-linux">
+<h3>Example 7: Apple Silicon Mac Image (Asahi Linux)<a class="headerlink" href="#example-7-apple-silicon-mac-image-asahi-linux" title="Link to this heading"></a></h3>
+<p>Build an Apple Silicon ARM64 disk image formatted with Asahi Linux kernel and GRUB EFI:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>asahi<span class="w"> </span>-d<span class="w"> </span>gnome<span class="w"> </span>--mode<span class="w"> </span>real
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="example-8-lightweight-musl-c-library-iso">
+<h3>Example 8: Lightweight Musl C Library ISO<a class="headerlink" href="#example-8-lightweight-musl-c-library-iso" title="Link to this heading"></a></h3>
+<p>Build an <code class="docutils literal notranslate"><span class="pre">x86_64-musl</span></code> lightweight ISO for server deployments:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>x86_64-musl<span class="w"> </span>-d<span class="w"> </span>base<span class="w"> </span>-s<span class="w"> </span>ssh<span class="w"> </span>--mode<span class="w"> </span>real
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="example-9-offline-graphical-installer-iso-with-calamares">
+<h3>Example 9: Offline Graphical Installer ISO with Calamares<a class="headerlink" href="#example-9-offline-graphical-installer-iso-with-calamares" title="Link to this heading"></a></h3>
+<p>Compile the Calamares graphical installer from source templates and inject it into an XFCE live ISO:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>x86_64<span class="w"> </span>-d<span class="w"> </span>xfce<span class="w"> </span>--with-calamares<span class="w"> </span>--mode<span class="w"> </span>real
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="example-10-custom-repository-included-directory-overlay">
+<h3>Example 10: Custom Repository &amp; Included Directory Overlay<a class="headerlink" href="#example-10-custom-repository-included-directory-overlay" title="Link to this heading"></a></h3>
+<p>Build an ISO with custom XBPS packages from an external repository and overlay local configuration files:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>x86_64<span class="w"> </span>-d<span class="w"> </span>awesome<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-R<span class="w"> </span>https://my-custom-repo.org/voidlinux<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-I<span class="w"> </span>/home/user/custom_skel:/etc/skel<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-p<span class="w"> </span>dev-tools<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--mode<span class="w"> </span>real
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="getting_started.html" class="btn btn-neutral float-left" title="Getting Started &amp; System Preparation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="cli_reference.html" class="btn btn-neutral float-right" title="CLI Complete Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026-2026, Manuel Rosa.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

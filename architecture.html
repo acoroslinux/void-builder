@@ -1,0 +1,369 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Architectural Blueprint &amp; Engine Design &mdash; Void-Builder</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=f5127f15" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=75d58705" />
+
+  
+      <script src="_static/jquery.js?v=8dae8fb0"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Bootloaders &amp; Hardware Boot Manual" href="bootloaders.html" />
+    <link rel="prev" title="Custom Packages &amp; Local XBPS Repositories" href="custom_packages.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #E31937" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Void-Builder
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started &amp; Total Build Isolation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Comprehensive Usage Manual &amp; Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli_reference.html">CLI Complete Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration Guide &amp; JSON Schemas</a></li>
+<li class="toctree-l1"><a class="reference internal" href="package_rules.html">Dynamic Package Rules &amp; Resolution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="custom_packages.html">Custom Packages &amp; Local XBPS Repositories</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Architecture &amp; Bootloaders</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Architectural Blueprint &amp; Engine Design</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#architectural-principles">1. Architectural Principles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#complete-execution-sequence-diagram">2. Complete Execution Sequence Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#class-hierarchy-responsibilities">3. Class Hierarchy &amp; Responsibilities</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-void-builder-core-config-loader">Module: <code class="docutils literal notranslate"><span class="pre">void_builder.core.config_loader</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#config"><code class="docutils literal notranslate"><span class="pre">Config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#configassembler"><code class="docutils literal notranslate"><span class="pre">ConfigAssembler</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#configloader"><code class="docutils literal notranslate"><span class="pre">ConfigLoader</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-void-builder-core-toolchain">Module: <code class="docutils literal notranslate"><span class="pre">void_builder.core.toolchain</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#toolchainmanager"><code class="docutils literal notranslate"><span class="pre">ToolchainManager</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-void-builder-core-chroot-manager">Module: <code class="docutils literal notranslate"><span class="pre">void_builder.core.chroot_manager</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#chrootmanager"><code class="docutils literal notranslate"><span class="pre">ChrootManager</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-void-builder-core-iso-engine">Module: <code class="docutils literal notranslate"><span class="pre">void_builder.core.iso_engine</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#isoengine"><code class="docutils literal notranslate"><span class="pre">ISOEngine</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#baseengine"><code class="docutils literal notranslate"><span class="pre">BaseEngine</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#voidengine-baseengine"><code class="docutils literal notranslate"><span class="pre">VoidEngine(BaseEngine)</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#platformengine-voidengine"><code class="docutils literal notranslate"><span class="pre">PlatformEngine(VoidEngine)</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-void-builder-core-customizer">Module: <code class="docutils literal notranslate"><span class="pre">void_builder.core.customizer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#systemconfigurator"><code class="docutils literal notranslate"><span class="pre">SystemConfigurator</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#step-by-step-pipeline-phases">4. Step-by-Step Pipeline Phases</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="bootloaders.html">Bootloaders &amp; Hardware Boot Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="calamares.html">Calamares Installer Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">Python API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting &amp; FAQ</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #E31937" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Void-Builder</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Architectural Blueprint &amp; Engine Design</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/architecture.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="architectural-blueprint-engine-design">
+<h1>Architectural Blueprint &amp; Engine Design<a class="headerlink" href="#architectural-blueprint-engine-design" title="Link to this heading"></a></h1>
+<p>This document provides a deep architectural analysis of <strong>Void-Builder</strong>, detailing component responsibilities, class hierarchies, data flows, sequence diagrams, and pipeline execution stages.</p>
+<hr class="docutils" />
+<section id="architectural-principles">
+<h2>1. Architectural Principles<a class="headerlink" href="#architectural-principles" title="Link to this heading"></a></h2>
+<p>Void-Builder is built around four core design principles:</p>
+<ol class="arabic simple">
+<li><p><strong>Separation of Concerns</strong>: Configuration parsing (<code class="docutils literal notranslate"><span class="pre">config_loader</span></code>), host tools (<code class="docutils literal notranslate"><span class="pre">toolchain</span></code>), environment execution (<code class="docutils literal notranslate"><span class="pre">chroot_manager</span></code>), image generation (<code class="docutils literal notranslate"><span class="pre">iso_engine</span></code>), and rootfs configuration (<code class="docutils literal notranslate"><span class="pre">customizer</span></code>) are decoupled into specialized modules.</p></li>
+<li><p><strong>Total Build Isolation</strong>: No host package manager or host package installation is required. <code class="docutils literal notranslate"><span class="pre">ToolchainManager</span></code> automatically downloads static <code class="docutils literal notranslate"><span class="pre">xbps-install.static</span></code> and <code class="docutils literal notranslate"><span class="pre">proot</span></code> binaries into <code class="docutils literal notranslate"><span class="pre">void_builder/tools/</span></code> for zero-host-dependency execution across any Linux distribution.</p></li>
+<li><p><strong>Abstract Engine Registry</strong>: Architecture engines (<code class="docutils literal notranslate"><span class="pre">VoidEngine</span></code>, <code class="docutils literal notranslate"><span class="pre">PlatformEngine</span></code>) register via <code class="docutils literal notranslate"><span class="pre">&#64;ISOEngine.register(&quot;name&quot;)</span></code> decorators, allowing new hardware platforms to be added without modifying existing code.</p></li>
+<li><p><strong>Dual Execution Modes</strong>: High-speed <code class="docutils literal notranslate"><span class="pre">--mode</span> <span class="pre">mock</span></code> non-root simulation alongside production <code class="docutils literal notranslate"><span class="pre">--mode</span> <span class="pre">real</span></code> root operations.</p></li>
+<li><p><strong>Resilient Workdir Fallbacks</strong>: Automated permission testing for workspace directories, falling back to <code class="docutils literal notranslate"><span class="pre">/tmp/void-builder-fallback</span></code> and <code class="docutils literal notranslate"><span class="pre">/tmp/void-builder-cache</span></code> if project root permissions are restricted.</p></li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="complete-execution-sequence-diagram">
+<h2>2. Complete Execution Sequence Diagram<a class="headerlink" href="#complete-execution-sequence-diagram" title="Link to this heading"></a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>User / Terminal
+      |
+      | 1. Execute cli.py [arch] [options]
+      v
+  cli.py
+      |
+      | 2. Instantiate BuildOrchestrator
+      v
+BuildOrchestrator
+      |
+      | 3. ConfigAssembler.assemble()
+      v
+ConfigAssembler  ===&gt; Reads global_build.json + architectures/ + desktops/ + package_rules.json
+      |
+      | 4. Return Config object
+      v
+BuildOrchestrator
+      |
+      | 5. ToolchainManager.setup() -&gt; Ensure static xbps binaries
+      | 6. ChrootManager(chroot_path)
+      | 7. ISOBuilder(arch, config, toolchain)
+      v
+  ISOBuilder
+      |
+      | 8. Select engine: VoidEngine or PlatformEngine
+      v
+Target Engine (VoidEngine / PlatformEngine)
+      |
+      +---&gt; 1. setup_workdir()
+      |
+      +---&gt; 2. setup_chroot()
+      |
+      +---&gt; 3. install_packages() -&gt; ChrootManager.install_packages()
+      |
+      +---&gt; 4. post_install_configure() -&gt; SystemConfigurator.apply()
+      |
+      +---&gt; 5. build_bootloaders() -&gt; SYSLINUX / GRUB / U-Boot
+      |
+      +---&gt; 6. finalize_isofile() / export_tarball() -&gt; mksquashfs / xorriso / sfdisk / tar
+      |
+      +---&gt; 7. _generate_manifest_and_checksums() -&gt; .sha256, .md5, .manifest.json
+      v
+Output Artifacts (.iso / .img / .tar.xz + Manifests)
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="class-hierarchy-responsibilities">
+<h2>3. Class Hierarchy &amp; Responsibilities<a class="headerlink" href="#class-hierarchy-responsibilities" title="Link to this heading"></a></h2>
+<section id="module-void-builder-core-config-loader">
+<h3>Module: <code class="docutils literal notranslate"><span class="pre">void_builder.core.config_loader</span></code><a class="headerlink" href="#module-void-builder-core-config-loader" title="Link to this heading"></a></h3>
+<section id="config">
+<h4><code class="docutils literal notranslate"><span class="pre">Config</span></code><a class="headerlink" href="#config" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p><strong>Role</strong>: Read-only configuration wrapper providing dot-notation access (<code class="docutils literal notranslate"><span class="pre">cfg.get(&quot;system.iso_label&quot;)</span></code>).</p></li>
+</ul>
+</section>
+<section id="configassembler">
+<h4><code class="docutils literal notranslate"><span class="pre">ConfigAssembler</span></code><a class="headerlink" href="#configassembler" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p><strong>Role</strong>: Recursive dictionary merger.</p></li>
+<li><p><strong>Methods</strong>:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">_deep_merge(base,</span> <span class="pre">update)</span></code>: Combines nested dicts and appends list items uniquely.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">assemble(...)</span></code>: Merges global build settings, architecture config, desktop profile, kernel override, package profiles, service profiles, and dynamic package rules.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">validate(...)</span></code>: Validates that all requested profile files exist in <code class="docutils literal notranslate"><span class="pre">configs/</span></code> and produces a structured audit dictionary.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="configloader">
+<h4><code class="docutils literal notranslate"><span class="pre">ConfigLoader</span></code><a class="headerlink" href="#configloader" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p><strong>Role</strong>: Backward-compatible loader helper.</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="module-void-builder-core-toolchain">
+<h3>Module: <code class="docutils literal notranslate"><span class="pre">void_builder.core.toolchain</span></code><a class="headerlink" href="#module-void-builder-core-toolchain" title="Link to this heading"></a></h3>
+<section id="toolchainmanager">
+<h4><code class="docutils literal notranslate"><span class="pre">ToolchainManager</span></code><a class="headerlink" href="#toolchainmanager" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p><strong>Role</strong>: Downloads and validates static <code class="docutils literal notranslate"><span class="pre">xbps-install.static</span></code> and <code class="docutils literal notranslate"><span class="pre">xbps-rindex.static</span></code> binaries.</p></li>
+<li><p><strong>Methods</strong>:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">setup()</span></code>: Verifies host static tools or downloads pre-compiled static binaries into <code class="docutils literal notranslate"><span class="pre">void_builder/tools</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_run_xbps_install(...)</span></code>: Executes static <code class="docutils literal notranslate"><span class="pre">xbps-install.static</span></code> against the target rootfs.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="module-void-builder-core-chroot-manager">
+<h3>Module: <code class="docutils literal notranslate"><span class="pre">void_builder.core.chroot_manager</span></code><a class="headerlink" href="#module-void-builder-core-chroot-manager" title="Link to this heading"></a></h3>
+<section id="chrootmanager">
+<h4><code class="docutils literal notranslate"><span class="pre">ChrootManager</span></code><a class="headerlink" href="#chrootmanager" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p><strong>Role</strong>: Handles pseudo-filesystem mounts (<code class="docutils literal notranslate"><span class="pre">/proc</span></code>, <code class="docutils literal notranslate"><span class="pre">/sys</span></code>, <code class="docutils literal notranslate"><span class="pre">/dev</span></code>, <code class="docutils literal notranslate"><span class="pre">/dev/pts</span></code>, <code class="docutils literal notranslate"><span class="pre">/dev/shm</span></code>), package installations, user creation, and chroot command execution.</p></li>
+<li><p><strong>Methods</strong>:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">mount()</span></code>: Mounts virtual filesystems into target rootfs.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">umount()</span></code>: Safely unmounts all virtual filesystems.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">install_packages(package_plan,</span> <span class="pre">repos)</span></code>: Installs packages into chroot via XBPS.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">run_command(cmd,</span> <span class="pre">check)</span></code>: Executes shell command inside chroot using <code class="docutils literal notranslate"><span class="pre">chroot</span></code> or <code class="docutils literal notranslate"><span class="pre">proot</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">run_reconfigure()</span></code>: Runs Void 3-pass <code class="docutils literal notranslate"><span class="pre">xbps-reconfigure</span> <span class="pre">-f</span> <span class="pre">&lt;pkg&gt;</span></code> for system packages.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="module-void-builder-core-iso-engine">
+<h3>Module: <code class="docutils literal notranslate"><span class="pre">void_builder.core.iso_engine</span></code><a class="headerlink" href="#module-void-builder-core-iso-engine" title="Link to this heading"></a></h3>
+<section id="isoengine">
+<h4><code class="docutils literal notranslate"><span class="pre">ISOEngine</span></code><a class="headerlink" href="#isoengine" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p><strong>Role</strong>: Metaclass and engine registry.</p></li>
+<li><p><strong>Registry</strong>: Maps architecture names to engine implementation classes.</p></li>
+</ul>
+</section>
+<section id="baseengine">
+<h4><code class="docutils literal notranslate"><span class="pre">BaseEngine</span></code><a class="headerlink" href="#baseengine" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p><strong>Role</strong>: Abstract base engine providing workspace resolution, manifest generation, and tarball export.</p></li>
+<li><p><strong>Methods</strong>:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">setup_workdir(workdir)</span></code>: Resolves and creates workspace paths.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_generate_manifest_and_checksums(output_path)</span></code>: Computes SHA256/MD5 hashes and generates <code class="docutils literal notranslate"><span class="pre">manifest.json</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">export_tarball(output_path)</span></code>: Packs rootfs into <code class="docutils literal notranslate"><span class="pre">.tar.xz</span></code> container tarball.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="voidengine-baseengine">
+<h4><code class="docutils literal notranslate"><span class="pre">VoidEngine(BaseEngine)</span></code><a class="headerlink" href="#voidengine-baseengine" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p><strong>Role</strong>: Handles PC ISO 9660 hybrid ISO image building (<code class="docutils literal notranslate"><span class="pre">x86_64</span></code>, <code class="docutils literal notranslate"><span class="pre">i686</span></code>, <code class="docutils literal notranslate"><span class="pre">aarch64</span></code>).</p></li>
+<li><p><strong>Methods</strong>:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">_create_squashfs()</span></code>: Invokes <code class="docutils literal notranslate"><span class="pre">mksquashfs</span></code> with configured compression (<code class="docutils literal notranslate"><span class="pre">xz</span></code>, <code class="docutils literal notranslate"><span class="pre">zstd</span></code>, <code class="docutils literal notranslate"><span class="pre">gzip</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">finalize_isofile(output_path)</span></code>: Assembles ISO using <code class="docutils literal notranslate"><span class="pre">xorriso</span></code> with BIOS El Torito and UEFI GRUB EFI options.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="platformengine-voidengine">
+<h4><code class="docutils literal notranslate"><span class="pre">PlatformEngine(VoidEngine)</span></code><a class="headerlink" href="#platformengine-voidengine" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p><strong>Role</strong>: Handles Single-Board Computer raw disk images (<code class="docutils literal notranslate"><span class="pre">rpi-aarch64</span></code>, <code class="docutils literal notranslate"><span class="pre">pinebookpro</span></code>, <code class="docutils literal notranslate"><span class="pre">asahi</span></code>).</p></li>
+<li><p><strong>Methods</strong>:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">finalize_isofile(output_path)</span></code>: Dynamically calculates required image size, runs <code class="docutils literal notranslate"><span class="pre">sfdisk</span></code> partitioning, sets up loop device via <code class="docutils literal notranslate"><span class="pre">losetup</span></code>, formats VFAT/EXT4 partitions, copies rootfs, writes U-Boot / GRUB EFI bootloaders, and compresses raw <code class="docutils literal notranslate"><span class="pre">.img</span></code> with <code class="docutils literal notranslate"><span class="pre">xz</span></code>.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="module-void-builder-core-customizer">
+<h3>Module: <code class="docutils literal notranslate"><span class="pre">void_builder.core.customizer</span></code><a class="headerlink" href="#module-void-builder-core-customizer" title="Link to this heading"></a></h3>
+<section id="systemconfigurator">
+<h4><code class="docutils literal notranslate"><span class="pre">SystemConfigurator</span></code><a class="headerlink" href="#systemconfigurator" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p><strong>Role</strong>: Performs low-level system configuration inside target rootfs.</p></li>
+<li><p><strong>Methods</strong>:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">load_from_config(config)</span></code>: Reads hostname, locale, timezone, user accounts, runit services, Plymouth theme, and Dracut options.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">apply()</span></code>: Executes individual configurator actions sequentially (<code class="docutils literal notranslate"><span class="pre">apply_locale</span></code>, <code class="docutils literal notranslate"><span class="pre">apply_users</span></code>, <code class="docutils literal notranslate"><span class="pre">apply_services</span></code>, <code class="docutils literal notranslate"><span class="pre">apply_dracut</span></code>, <code class="docutils literal notranslate"><span class="pre">apply_plymouth</span></code>).</p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="step-by-step-pipeline-phases">
+<h2>4. Step-by-Step Pipeline Phases<a class="headerlink" href="#step-by-step-pipeline-phases" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p><strong>Phase 1 - Initialization</strong>: <code class="docutils literal notranslate"><span class="pre">BuildOrchestrator</span></code> parses arguments, instantiates <code class="docutils literal notranslate"><span class="pre">ConfigAssembler</span></code>, and builds master <code class="docutils literal notranslate"><span class="pre">Config</span></code> object.</p></li>
+<li><p><strong>Phase 2 - Workdir Resolution</strong>: Tests write permissions on <code class="docutils literal notranslate"><span class="pre">workdir/&lt;arch&gt;</span></code>, falling back to <code class="docutils literal notranslate"><span class="pre">/tmp/void-builder-fallback/&lt;arch&gt;</span></code> if write permission is denied.</p></li>
+<li><p><strong>Phase 3 - Toolchain Preparation</strong>: Initializes <code class="docutils literal notranslate"><span class="pre">ToolchainManager</span></code> and verifies static <code class="docutils literal notranslate"><span class="pre">xbps</span></code> binaries.</p></li>
+<li><p><strong>Phase 4 - Chroot Provisioning</strong>: Creates <code class="docutils literal notranslate"><span class="pre">airootfs</span></code> directory and mounts virtual filesystems (<code class="docutils literal notranslate"><span class="pre">/proc</span></code>, <code class="docutils literal notranslate"><span class="pre">/sys</span></code>, <code class="docutils literal notranslate"><span class="pre">/dev</span></code>, <code class="docutils literal notranslate"><span class="pre">/dev/pts</span></code>, <code class="docutils literal notranslate"><span class="pre">/dev/shm</span></code>).</p></li>
+<li><p><strong>Phase 5 - Package Installation</strong>: Invokes <code class="docutils literal notranslate"><span class="pre">xbps-install.static</span></code> with target package plan and repository list.</p></li>
+<li><p><strong>Phase 6 - System Customization</strong>: <code class="docutils literal notranslate"><span class="pre">SystemConfigurator</span></code> configures <code class="docutils literal notranslate"><span class="pre">/etc/hostname</span></code>, <code class="docutils literal notranslate"><span class="pre">/etc/locale.conf</span></code>, <code class="docutils literal notranslate"><span class="pre">/etc/rc.conf</span></code>, creates user accounts, symlinks Runit services into <code class="docutils literal notranslate"><span class="pre">/etc/runit/runsvdir/default/</span></code>, and runs Dracut initramfs generator.</p></li>
+<li><p><strong>Phase 7 - 3-Pass Reconfiguration</strong>: Runs <code class="docutils literal notranslate"><span class="pre">xbps-reconfigure</span> <span class="pre">-a</span></code> inside chroot.</p></li>
+<li><p><strong>Phase 8 - Bootloaders &amp; Finalization</strong>:</p>
+<ul class="simple">
+<li><p>For ISO: Generates SYSLINUX/GRUB configs, creates SquashFS, runs <code class="docutils literal notranslate"><span class="pre">xorriso</span></code>.</p></li>
+<li><p>For SBC: Partition image with <code class="docutils literal notranslate"><span class="pre">sfdisk</span></code>, format VFAT/EXT4, write U-Boot, compress image with <code class="docutils literal notranslate"><span class="pre">xz</span></code>.</p></li>
+<li><p>For Tarball: Packs rootfs into <code class="docutils literal notranslate"><span class="pre">.tar.xz</span></code>.</p></li>
+</ul>
+</li>
+<li><p><strong>Phase 9 - Checksums &amp; Manifest</strong>: Calculates SHA256 and MD5 hashes, writes <code class="docutils literal notranslate"><span class="pre">manifest.json</span></code>, unmounts virtual filesystems, and cleans temporary files.</p></li>
+</ol>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="custom_packages.html" class="btn btn-neutral float-left" title="Custom Packages &amp; Local XBPS Repositories" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="bootloaders.html" class="btn btn-neutral float-right" title="Bootloaders &amp; Hardware Boot Manual" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026-2026, Manuel Rosa.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

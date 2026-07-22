@@ -1,0 +1,252 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Void-Builder Comprehensive Manual &mdash; Void-Builder</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=f5127f15" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=75d58705" />
+
+  
+      <script src="_static/jquery.js?v=8dae8fb0"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Getting Started &amp; Total Build Isolation" href="getting_started.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #E31937" >
+
+          
+          
+          <a href="#" class="icon icon-home">
+            Void-Builder
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started &amp; Total Build Isolation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Comprehensive Usage Manual &amp; Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli_reference.html">CLI Complete Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration Guide &amp; JSON Schemas</a></li>
+<li class="toctree-l1"><a class="reference internal" href="package_rules.html">Dynamic Package Rules &amp; Resolution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="custom_packages.html">Custom Packages &amp; Local XBPS Repositories</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Architecture &amp; Bootloaders</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architectural Blueprint &amp; Engine Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bootloaders.html">Bootloaders &amp; Hardware Boot Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="calamares.html">Calamares Installer Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">Python API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting &amp; FAQ</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #E31937" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">Void-Builder</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Void-Builder Comprehensive Manual</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="void-builder-comprehensive-manual">
+<h1>Void-Builder Comprehensive Manual<a class="headerlink" href="#void-builder-comprehensive-manual" title="Link to this heading"></a></h1>
+<p>Welcome to the exhaustive technical documentation for <strong>Void-Builder</strong>, the modular, dynamic, and multi-architecture Void Linux ISO and disk image building toolkit.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>                  _     _                      _  _     _                 
+  _   ___ (_) __| |   |__  _  _  _ | |__| |___  _ __ 
+ | |/ / _ \| |/ _` |  | &#39;_ \| | | | | | / _` / _ \| &#39;__|
+ | &lt; (_) | | (_| |  | |_) | |_| | |_| | (_| | __/ |   
+ |_|\_\___/|_|\__,_|  |_.__/ \__,_|\__,_|\__,_|\___|_|   
+</pre></div>
+</div>
+<hr class="docutils" />
+<section id="technical-documentation-index">
+<h2>Technical Documentation Index<a class="headerlink" href="#technical-documentation-index" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started &amp; Total Build Isolation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#zero-host-dependency-total-isolation-architecture">1. Zero Host Dependency &amp; Total Isolation Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#requirements">2. Requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#automatic-static-toolchain-resolution">3. Automatic Static Toolchain Resolution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#cross-architecture-host-helper-optional">4. Cross-Architecture Host Helper (Optional)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#verification-first-build-walkthrough">5. Verification &amp; First Build Walkthrough</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Comprehensive Usage Manual &amp; Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#supported-architecture-targets-matrix">1. Supported Architecture Targets Matrix</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#output-formats-explained">2. Output Formats Explained</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#compression-algorithms-compared">3. Compression Algorithms Compared</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#complete-usage-examples">4. 10 Complete Usage Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cli_reference.html">CLI Complete Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cli_reference.html#command-syntax">Command Syntax</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli_reference.html#positional-arguments">Positional Arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli_reference.html#core-execution-flags">Core Execution Flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli_reference.html#customization-overrides">Customization Overrides</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli_reference.html#toolchain-advanced-flags">Toolchain &amp; Advanced Flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli_reference.html#exit-codes">Exit Codes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli_reference.html#environment-variables">Environment Variables</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration Guide &amp; JSON Schemas</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#directory-layout-profile-roles">1. Directory Layout &amp; Profile Roles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#master-manifest-global-build-json">2. Master Manifest: <code class="docutils literal notranslate"><span class="pre">global_build.json</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#architecture-profiles-configs-architectures">3. Architecture Profiles (<code class="docutils literal notranslate"><span class="pre">configs/architectures/</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#desktop-profiles-configs-desktops">4. Desktop Profiles (<code class="docutils literal notranslate"><span class="pre">configs/desktops/</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#runit-service-profiles-configs-services">5. Runit Service Profiles (<code class="docutils literal notranslate"><span class="pre">configs/services/</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#how-to-create-a-brand-new-desktop-profile">6. How to Create a Brand New Desktop Profile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#file-overlays-configs-custom-files">7. File Overlays (<code class="docutils literal notranslate"><span class="pre">configs/custom_files/</span></code>)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="package_rules.html">Dynamic Package Rules &amp; Resolution</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="package_rules.html#overview-of-package-rules-engine">Overview of Package Rules Engine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="package_rules.html#file-structure-of-package-rules-json">File Structure of <code class="docutils literal notranslate"><span class="pre">package_rules.json</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="package_rules.html#deduplication-evaluation-order">Deduplication &amp; Evaluation Order</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="custom_packages.html">Custom Packages &amp; Local XBPS Repositories</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="custom_packages.html#the-custom-packages-directory">The <code class="docutils literal notranslate"><span class="pre">custom_packages/</span></code> Directory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="custom_packages.html#automatic-repository-indexing">Automatic Repository Indexing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="custom_packages.html#creating-custom-packages-with-xbps-src">Creating Custom Packages with <code class="docutils literal notranslate"><span class="pre">xbps-src</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Architecture &amp; Bootloaders</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architectural Blueprint &amp; Engine Design</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#architectural-principles">1. Architectural Principles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#complete-execution-sequence-diagram">2. Complete Execution Sequence Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#class-hierarchy-responsibilities">3. Class Hierarchy &amp; Responsibilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#step-by-step-pipeline-phases">4. Step-by-Step Pipeline Phases</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="bootloaders.html">Bootloaders &amp; Hardware Boot Manual</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="bootloaders.html#boot-architecture-overview-matrix">1. Boot Architecture Overview Matrix</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bootloaders.html#pc-hybrid-iso-boot-mechanism-x86-64-i686">2. PC Hybrid ISO Boot Mechanism (x86_64 / i686)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bootloaders.html#raspberry-pi-single-board-computers-rpi">3. Raspberry Pi Single-Board Computers (<code class="docutils literal notranslate"><span class="pre">rpi-*</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bootloaders.html#pinebook-pro-laptop-pinebookpro">4. Pinebook Pro Laptop (<code class="docutils literal notranslate"><span class="pre">pinebookpro</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bootloaders.html#apple-silicon-macs-asahi">5. Apple Silicon Macs (<code class="docutils literal notranslate"><span class="pre">asahi</span></code>)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="calamares.html">Calamares Installer Integration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="calamares.html#architecture-of-calamares-pipeline">Architecture of Calamares Pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="calamares.html#build-commands">Build Commands</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">Python API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#module-void-builder-core-config-loader">Module: <code class="docutils literal notranslate"><span class="pre">void_builder.core.config_loader</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#module-void-builder-core-orchestrator">Module: <code class="docutils literal notranslate"><span class="pre">void_builder.core.orchestrator</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#module-void-builder-core-iso-engine">Module: <code class="docutils literal notranslate"><span class="pre">void_builder.core.iso_engine</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#module-void-builder-core-chroot-manager">Module: <code class="docutils literal notranslate"><span class="pre">void_builder.core.chroot_manager</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#module-void-builder-core-customizer">Module: <code class="docutils literal notranslate"><span class="pre">void_builder.core.customizer</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting &amp; FAQ</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="troubleshooting.html#common-issues-solutions">Common Issues &amp; Solutions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="troubleshooting.html#log-inspection">Log Inspection</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<hr class="docutils" />
+<section id="overview-technical-summary">
+<h2>Overview &amp; Technical Summary<a class="headerlink" href="#overview-technical-summary" title="Link to this heading"></a></h2>
+<p>Void-Builder is a enterprise-grade Python application designed to assemble bootable live ISO images, raw Single-Board Computer (SBC) disk images, and container rootfs archives for <strong>Void Linux</strong>. It provides a fully decoupled architecture separating configuration resolution, host toolchain management, pseudo-filesystem chroot management, system customization, and output finalization.</p>
+<section id="supported-target-architectures-12-total">
+<h3>Supported Target Architectures (12 Total)<a class="headerlink" href="#supported-target-architectures-12-total" title="Link to this heading"></a></h3>
+<ol class="arabic simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">x86_64</span></code></strong>: Standard 64-bit AMD/Intel PC (glibc)</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">x86_64-musl</span></code></strong>: 64-bit AMD/Intel PC with Musl C library</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">i686</span></code></strong>: 32-bit Legacy x86 PC</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">aarch64</span></code></strong>: 64-bit ARM64 Generic (glibc)</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">aarch64-musl</span></code></strong>: 64-bit ARM64 Generic (Musl)</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">armv7l</span></code></strong>: 32-bit ARMv7 Hard Float (glibc)</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">armv7l-musl</span></code></strong>: 32-bit ARMv7 Hard Float (Musl)</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">rpi-aarch64</span></code></strong>: Raspberry Pi 3/4/5 (64-bit)</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">rpi-armv7l</span></code></strong>: Raspberry Pi 2/3 (32-bit v7)</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">rpi-armv6l</span></code></strong>: Raspberry Pi 1/Zero (32-bit v6)</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">pinebookpro</span></code></strong>: Pine64 Pinebook Pro (RK3399 SoC)</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">asahi</span></code></strong>: Apple Silicon (M1/M2/M3) Asahi Linux</p></li>
+</ol>
+</section>
+</section>
+<hr class="docutils" />
+<section id="author-maintainer">
+<h2>Author &amp; Maintainer<a class="headerlink" href="#author-maintainer" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Developer</strong>: Manuel Rosa (<a class="reference external" href="mailto:manuelsilvarosa&#37;&#52;&#48;gmail&#46;com">manuelsilvarosa<span>&#64;</span>gmail<span>&#46;</span>com</a>)</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="getting_started.html" class="btn btn-neutral float-right" title="Getting Started &amp; Total Build Isolation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026-2026, Manuel Rosa.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,347 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bootloaders &amp; Hardware Boot Manual &mdash; Void-Builder</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=f5127f15" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=75d58705" />
+
+  
+      <script src="_static/jquery.js?v=8dae8fb0"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Calamares Installer Integration" href="calamares.html" />
+    <link rel="prev" title="Architectural Blueprint &amp; Engine Design" href="architecture.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #E31937" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Void-Builder
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started &amp; System Preparation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Comprehensive Usage Manual &amp; Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli_reference.html">CLI Complete Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration Guide &amp; JSON Schemas</a></li>
+<li class="toctree-l1"><a class="reference internal" href="package_rules.html">Dynamic Package Rules &amp; Resolution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="custom_packages.html">Custom Packages &amp; Local XBPS Repositories</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Architecture &amp; Bootloaders</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architectural Blueprint &amp; Engine Design</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Bootloaders &amp; Hardware Boot Manual</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#boot-architecture-overview-matrix">1. Boot Architecture Overview Matrix</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pc-hybrid-iso-boot-mechanism-x86-64-i686">2. PC Hybrid ISO Boot Mechanism (x86_64 / i686)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#a-bios-legacy-boot-syslinux">A. BIOS Legacy Boot (SYSLINUX)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#generated-isolinux-cfg-template">Generated <code class="docutils literal notranslate"><span class="pre">isolinux.cfg</span></code> Template:</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#b-uefi-boot-grub2-efi">B. UEFI Boot (GRUB2 EFI)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#raspberry-pi-single-board-computers-rpi">3. Raspberry Pi Single-Board Computers (<code class="docutils literal notranslate"><span class="pre">rpi-*</span></code>)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#disk-partition-map-mbr">Disk Partition Map (MBR)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#critical-boot-firmware-files">Critical <code class="docutils literal notranslate"><span class="pre">/boot</span></code> Firmware Files</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#generated-cmdline-txt-format">Generated <code class="docutils literal notranslate"><span class="pre">cmdline.txt</span></code> Format:</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pinebook-pro-laptop-pinebookpro">4. Pinebook Pro Laptop (<code class="docutils literal notranslate"><span class="pre">pinebookpro</span></code>)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#gpt-sector-map">GPT Sector Map</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#apple-silicon-macs-asahi">5. Apple Silicon Macs (<code class="docutils literal notranslate"><span class="pre">asahi</span></code>)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#asahi-boot-sequence">Asahi Boot Sequence</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="calamares.html">Calamares Installer Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">Python API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting &amp; FAQ</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #E31937" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Void-Builder</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Bootloaders &amp; Hardware Boot Manual</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/bootloaders.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="bootloaders-hardware-boot-manual">
+<h1>Bootloaders &amp; Hardware Boot Manual<a class="headerlink" href="#bootloaders-hardware-boot-manual" title="Link to this heading"></a></h1>
+<p>This document provides a comprehensive technical manual detailing the bootloader generation, partitioning schemes, firmware integration, and kernel boot chains across all 12 supported architecture targets in <strong>Void-Builder</strong>.</p>
+<hr class="docutils" />
+<section id="boot-architecture-overview-matrix">
+<h2>1. Boot Architecture Overview Matrix<a class="headerlink" href="#boot-architecture-overview-matrix" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>Architecture Target</p></th>
+<th class="head text-left"><p>Primary Bootloader</p></th>
+<th class="head text-left"><p>Partitioning Scheme</p></th>
+<th class="head text-left"><p>Firmware / Boot Files</p></th>
+<th class="head text-left"><p>Kernel Image Name</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">x86_64</span></code></p></td>
+<td class="text-left"><p>Hybrid SYSLINUX (BIOS) + GRUB2 (UEFI)</p></td>
+<td class="text-left"><p>ISO 9660 / El Torito</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">isolinux.bin</span></code>, <code class="docutils literal notranslate"><span class="pre">isohdpfx.bin</span></code>, <code class="docutils literal notranslate"><span class="pre">efiboot.img</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">vmlinuz</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">x86_64-musl</span></code></p></td>
+<td class="text-left"><p>Hybrid SYSLINUX (BIOS) + GRUB2 (UEFI)</p></td>
+<td class="text-left"><p>ISO 9660 / El Torito</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">isolinux.bin</span></code>, <code class="docutils literal notranslate"><span class="pre">isohdpfx.bin</span></code>, <code class="docutils literal notranslate"><span class="pre">efiboot.img</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">vmlinuz</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">i686</span></code></p></td>
+<td class="text-left"><p>Hybrid SYSLINUX (BIOS) + GRUB2 (UEFI)</p></td>
+<td class="text-left"><p>ISO 9660 / El Torito</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">isolinux.bin</span></code>, <code class="docutils literal notranslate"><span class="pre">isohdpfx.bin</span></code>, <code class="docutils literal notranslate"><span class="pre">efiboot.img</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">vmlinuz</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">aarch64</span></code></p></td>
+<td class="text-left"><p>GRUB2 ARM64 EFI</p></td>
+<td class="text-left"><p>ISO 9660 / UEFI FAT</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">bootaa64.efi</span></code>, <code class="docutils literal notranslate"><span class="pre">efiboot.img</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">vmlinux</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">aarch64-musl</span></code></p></td>
+<td class="text-left"><p>GRUB2 ARM64 EFI</p></td>
+<td class="text-left"><p>ISO 9660 / UEFI FAT</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">bootaa64.efi</span></code>, <code class="docutils literal notranslate"><span class="pre">efiboot.img</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">vmlinux</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">armv7l</span></code></p></td>
+<td class="text-left"><p>GRUB ARM EFI / U-Boot</p></td>
+<td class="text-left"><p>ISO 9660 / FAT</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">bootarm.efi</span></code>, <code class="docutils literal notranslate"><span class="pre">efiboot.img</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">vmlinux</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">armv7l-musl</span></code></p></td>
+<td class="text-left"><p>GRUB ARM EFI / U-Boot</p></td>
+<td class="text-left"><p>ISO 9660 / FAT</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">bootarm.efi</span></code>, <code class="docutils literal notranslate"><span class="pre">efiboot.img</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">vmlinux</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">rpi-aarch64</span></code></p></td>
+<td class="text-left"><p>Raspberry Pi Native Firmware</p></td>
+<td class="text-left"><p>MBR (VFAT + EXT4)</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">bootcode.bin</span></code>, <code class="docutils literal notranslate"><span class="pre">start.elf</span></code>, <code class="docutils literal notranslate"><span class="pre">cmdline.txt</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">kernel8.img</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">rpi-armv7l</span></code></p></td>
+<td class="text-left"><p>Raspberry Pi Native Firmware</p></td>
+<td class="text-left"><p>MBR (VFAT + EXT4)</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">bootcode.bin</span></code>, <code class="docutils literal notranslate"><span class="pre">start.elf</span></code>, <code class="docutils literal notranslate"><span class="pre">cmdline.txt</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">kernel7.img</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">rpi-armv6l</span></code></p></td>
+<td class="text-left"><p>Raspberry Pi Native Firmware</p></td>
+<td class="text-left"><p>MBR (VFAT + EXT4)</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">bootcode.bin</span></code>, <code class="docutils literal notranslate"><span class="pre">start.elf</span></code>, <code class="docutils literal notranslate"><span class="pre">cmdline.txt</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">kernel.img</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">pinebookpro</span></code></p></td>
+<td class="text-left"><p>Rockchip RK3399 U-Boot</p></td>
+<td class="text-left"><p>GPT (VFAT + EXT4)</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">idbloader.img</span></code>, <code class="docutils literal notranslate"><span class="pre">u-boot.itb</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">vmlinuz</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">asahi</span></code></p></td>
+<td class="text-left"><p>GRUB2 ARM64 EFI</p></td>
+<td class="text-left"><p>MBR/GPT (VFAT + EXT4)</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">bootaa64.efi</span></code>, <code class="docutils literal notranslate"><span class="pre">m1n1</span></code> stage</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">vmlinuz-asahi</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<hr class="docutils" />
+<section id="pc-hybrid-iso-boot-mechanism-x86-64-i686">
+<h2>2. PC Hybrid ISO Boot Mechanism (x86_64 / i686)<a class="headerlink" href="#pc-hybrid-iso-boot-mechanism-x86-64-i686" title="Link to this heading"></a></h2>
+<p>PC live ISO images generated by <code class="docutils literal notranslate"><span class="pre">VoidEngine</span></code> support dual boot capability: booting under legacy BIOS systems and 32/64-bit UEFI systems.</p>
+<section id="a-bios-legacy-boot-syslinux">
+<h3>A. BIOS Legacy Boot (SYSLINUX)<a class="headerlink" href="#a-bios-legacy-boot-syslinux" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Files Location</strong>: <code class="docutils literal notranslate"><span class="pre">boot/isolinux/</span></code> inside the ISO image.</p></li>
+<li><p><strong>Boot Entry Binary</strong>: <code class="docutils literal notranslate"><span class="pre">isolinux.bin</span></code></p></li>
+<li><p><strong>MBR Sector Embedding</strong>: <code class="docutils literal notranslate"><span class="pre">VoidEngine</span></code> extracts <code class="docutils literal notranslate"><span class="pre">isohdpfx.bin</span></code> from <code class="docutils literal notranslate"><span class="pre">usr/lib/syslinux/isohdpfx.bin</span></code> and passes it to <code class="docutils literal notranslate"><span class="pre">xorriso</span></code> via <code class="docutils literal notranslate"><span class="pre">-isohybrid-mbr</span></code>. This enables booting when the ISO is written directly to a USB drive with <code class="docutils literal notranslate"><span class="pre">dd</span></code>.</p></li>
+<li><p><strong>Menu System</strong>: Uses <code class="docutils literal notranslate"><span class="pre">vesamenu.c32</span></code> to render a 800x600 graphical menu using the background splash PNG (<code class="docutils literal notranslate"><span class="pre">configs/assets/data/splash.png</span></code>).</p></li>
+</ul>
+<section id="generated-isolinux-cfg-template">
+<h4>Generated <code class="docutils literal notranslate"><span class="pre">isolinux.cfg</span></code> Template:<a class="headerlink" href="#generated-isolinux-cfg-template" title="Link to this heading"></a></h4>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>DEFAULT vesamenu.c32
+PROMPT 0
+TIMEOUT 100
+
+MENU TITLE Void Modern Live ISO
+MENU BACKGROUND /boot/isolinux/splash.png
+
+LABEL void_live
+  MENU LABEL Boot Void Linux Live (x86_64)
+  LINUX /boot/vmlinuz
+  INITRD /boot/initrd
+  APPEND quiet splash live.user=live live.autologin rd.live.overlay.overlayfs=1
+</pre></div>
+</div>
+</section>
+</section>
+<section id="b-uefi-boot-grub2-efi">
+<h3>B. UEFI Boot (GRUB2 EFI)<a class="headerlink" href="#b-uefi-boot-grub2-efi" title="Link to this heading"></a></h3>
+<ul>
+<li><p><strong>Boot Image</strong>: <code class="docutils literal notranslate"><span class="pre">boot/grub/efiboot.img</span></code> (FAT16 image embedded inside ISO).</p></li>
+<li><p><strong>EFI Binary</strong>: <code class="docutils literal notranslate"><span class="pre">EFI/BOOT/BOOTX64.EFI</span></code> (64-bit) or <code class="docutils literal notranslate"><span class="pre">EFI/BOOT/BOOTIA32.EFI</span></code> (32-bit).</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">xorriso</span></code> Integration</strong>: Linked into the ISO header via:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>-eltorito-alt-boot<span class="w"> </span><span class="se">\</span>
+-e<span class="w"> </span>boot/grub/efiboot.img<span class="w"> </span><span class="se">\</span>
+-no-emul-boot<span class="w"> </span><span class="se">\</span>
+-isohybrid-gpt-basdat<span class="w"> </span><span class="se">\</span>
+-isohybrid-apm-hfsplus
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="raspberry-pi-single-board-computers-rpi">
+<h2>3. Raspberry Pi Single-Board Computers (<code class="docutils literal notranslate"><span class="pre">rpi-*</span></code>)<a class="headerlink" href="#raspberry-pi-single-board-computers-rpi" title="Link to this heading"></a></h2>
+<p>Raspberry Pi computers do not use traditional BIOS or UEFI. Instead, the VideoCore GPU boots first, reads files from the primary VFAT partition, and loads the ARM Linux kernel.</p>
+<section id="disk-partition-map-mbr">
+<h3>Disk Partition Map (MBR)<a class="headerlink" href="#disk-partition-map-mbr" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Sector 2048 to +256MiB</strong>: Partition 1 (Type <code class="docutils literal notranslate"><span class="pre">0x0c</span></code> FAT16, bootable). Mounted as <code class="docutils literal notranslate"><span class="pre">/boot</span></code>.</p></li>
+<li><p><strong>Sector +256MiB to End</strong>: Partition 2 (Type <code class="docutils literal notranslate"><span class="pre">0x83</span></code> Linux EXT4). Mounted as <code class="docutils literal notranslate"><span class="pre">/</span></code>.</p></li>
+</ul>
+</section>
+<section id="critical-boot-firmware-files">
+<h3>Critical <code class="docutils literal notranslate"><span class="pre">/boot</span></code> Firmware Files<a class="headerlink" href="#critical-boot-firmware-files" title="Link to this heading"></a></h3>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">bootcode.bin</span></code>: GPU bootloader stage.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">start.elf</span></code>: VideoCore GPU firmware binary.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fixup.dat</span></code>: GPU memory allocation configuration file.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">config.txt</span></code>: Raspberry Pi hardware configuration options.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cmdline.txt</span></code>: One-line kernel parameters.</p></li>
+</ol>
+<section id="generated-cmdline-txt-format">
+<h4>Generated <code class="docutils literal notranslate"><span class="pre">cmdline.txt</span></code> Format:<a class="headerlink" href="#generated-cmdline-txt-format" title="Link to this heading"></a></h4>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>root=PARTUUID=a1b2c3d4-02 rw rootwait console=ttyAMA0,115200 console=tty1 quiet splash
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="pinebook-pro-laptop-pinebookpro">
+<h2>4. Pinebook Pro Laptop (<code class="docutils literal notranslate"><span class="pre">pinebookpro</span></code>)<a class="headerlink" href="#pinebook-pro-laptop-pinebookpro" title="Link to this heading"></a></h2>
+<p>The Pinebook Pro is powered by the Rockchip RK3399 ARM64 SoC. It boots using U-Boot written to raw disk sectors before the first partition.</p>
+<section id="gpt-sector-map">
+<h3>GPT Sector Map<a class="headerlink" href="#gpt-sector-map" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Sectors 0 to 63</strong>: GPT Header &amp; Partition Table.</p></li>
+<li><p><strong>Sector 64 (32 KiB Offset)</strong>: <code class="docutils literal notranslate"><span class="pre">idbloader.img</span></code> written via <code class="docutils literal notranslate"><span class="pre">dd</span> <span class="pre">if=idbloader.img</span> <span class="pre">of=/dev/sdX</span> <span class="pre">bs=512</span> <span class="pre">seek=64</span> <span class="pre">conv=notrunc,fsync</span></code>.</p></li>
+<li><p><strong>Sector 16384 (8 MiB Offset)</strong>: <code class="docutils literal notranslate"><span class="pre">u-boot.itb</span></code> written via <code class="docutils literal notranslate"><span class="pre">dd</span> <span class="pre">if=u-boot.itb</span> <span class="pre">of=/dev/sdX</span> <span class="pre">bs=512</span> <span class="pre">seek=16384</span> <span class="pre">conv=notrunc,fsync</span></code>.</p></li>
+<li><p><strong>Partition 1 (512MiB, FAT16)</strong>: <code class="docutils literal notranslate"><span class="pre">/boot</span></code> partition containing Linux kernel and initramfs.</p></li>
+<li><p><strong>Partition 2 (Remainder, EXT4)</strong>: Root filesystem.</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="apple-silicon-macs-asahi">
+<h2>5. Apple Silicon Macs (<code class="docutils literal notranslate"><span class="pre">asahi</span></code>)<a class="headerlink" href="#apple-silicon-macs-asahi" title="Link to this heading"></a></h2>
+<p>Apple Silicon Macs (M1/M2/M3 chips) boot via Apple’s proprietary boot chain (<code class="docutils literal notranslate"><span class="pre">m1n1</span></code> stage 1 -&gt; U-Boot stage 2 -&gt; GRUB2 EFI stage 3).</p>
+<section id="asahi-boot-sequence">
+<h3>Asahi Boot Sequence<a class="headerlink" href="#asahi-boot-sequence" title="Link to this heading"></a></h3>
+<ol class="arabic">
+<li><p><code class="docutils literal notranslate"><span class="pre">PlatformEngine</span></code> detects <code class="docutils literal notranslate"><span class="pre">asahi</span></code> target architecture.</p></li>
+<li><p>Partition 1 (256MiB FAT16) is formatted for EFI.</p></li>
+<li><p>GRUB ARM64 EFI is installed inside chroot:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>grub-install<span class="w"> </span>--target<span class="o">=</span>arm64-efi<span class="w"> </span>--efi-directory<span class="o">=</span>/boot<span class="w"> </span>--removable<span class="w"> </span>/dev/loopX
+</pre></div>
+</div>
+</li>
+<li><p>Executes <code class="docutils literal notranslate"><span class="pre">xbps-reconfigure</span> <span class="pre">-f</span> <span class="pre">linux-asahi</span></code> to generate Apple Silicon device trees (<code class="docutils literal notranslate"><span class="pre">.dtb</span></code> files) and kernel modules.</p></li>
+</ol>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="architecture.html" class="btn btn-neutral float-left" title="Architectural Blueprint &amp; Engine Design" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="calamares.html" class="btn btn-neutral float-right" title="Calamares Installer Integration" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026-2026, Manuel Rosa.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

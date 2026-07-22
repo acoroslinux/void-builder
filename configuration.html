@@ -1,0 +1,417 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Configuration Guide &amp; JSON Schemas &mdash; Void-Builder</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=f5127f15" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=75d58705" />
+
+  
+      <script src="_static/jquery.js?v=8dae8fb0"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Dynamic Package Rules &amp; Resolution" href="package_rules.html" />
+    <link rel="prev" title="CLI Complete Reference" href="cli_reference.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #E31937" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Void-Builder
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started &amp; System Preparation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Comprehensive Usage Manual &amp; Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli_reference.html">CLI Complete Reference</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Configuration Guide &amp; JSON Schemas</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#directory-layout-profile-roles">1. Directory Layout &amp; Profile Roles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#master-manifest-global-build-json">2. Master Manifest: <code class="docutils literal notranslate"><span class="pre">global_build.json</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#complete-annotated-schema">Complete Annotated Schema</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#key-field-descriptions">Key Field Descriptions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#architecture-profiles-configs-architectures">3. Architecture Profiles (<code class="docutils literal notranslate"><span class="pre">configs/architectures/</span></code>)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#example-configs-architectures-rpi-aarch64-json">Example: <code class="docutils literal notranslate"><span class="pre">configs/architectures/rpi-aarch64.json</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#desktop-profiles-configs-desktops">4. Desktop Profiles (<code class="docutils literal notranslate"><span class="pre">configs/desktops/</span></code>)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#example-configs-desktops-xfce-json">Example: <code class="docutils literal notranslate"><span class="pre">configs/desktops/xfce.json</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#runit-service-profiles-configs-services">5. Runit Service Profiles (<code class="docutils literal notranslate"><span class="pre">configs/services/</span></code>)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#example-configs-services-ssh-json">Example: <code class="docutils literal notranslate"><span class="pre">configs/services/ssh.json</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#how-to-create-a-brand-new-desktop-profile">6. How to Create a Brand New Desktop Profile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#file-overlays-configs-custom-files">7. File Overlays (<code class="docutils literal notranslate"><span class="pre">configs/custom_files/</span></code>)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="package_rules.html">Dynamic Package Rules &amp; Resolution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="custom_packages.html">Custom Packages &amp; Local XBPS Repositories</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Architecture &amp; Bootloaders</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architectural Blueprint &amp; Engine Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bootloaders.html">Bootloaders &amp; Hardware Boot Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="calamares.html">Calamares Installer Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">Python API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting &amp; FAQ</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #E31937" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Void-Builder</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Configuration Guide &amp; JSON Schemas</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/configuration.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="configuration-guide-json-schemas">
+<h1>Configuration Guide &amp; JSON Schemas<a class="headerlink" href="#configuration-guide-json-schemas" title="Link to this heading"></a></h1>
+<p>This document provides a comprehensive specification of the configuration subdirectories, JSON file formats, schema fields, and customization mechanics in <strong>Void-Builder</strong>.</p>
+<hr class="docutils" />
+<section id="directory-layout-profile-roles">
+<h2>1. Directory Layout &amp; Profile Roles<a class="headerlink" href="#directory-layout-profile-roles" title="Link to this heading"></a></h2>
+<p>All configuration files reside in the <code class="docutils literal notranslate"><span class="pre">configs/</span></code> directory:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>configs/
+├── global_build.json     # Master build manifest (repositories, defaults, services)
+├── package_rules.json    # Dynamic package matching and injection rules
+├── base_customizations.json # System customization baseline (hostname, timezone, locale)
+├── architectures/        # Target architecture profiles (x86_64.json, rpi-aarch64.json)
+├── desktops/             # Desktop environment package bundles (gnome.json, xfce.json)
+├── kernels/              # Kernel package selection profiles (linux-lts.json)
+├── bootloaders/          # Bootloader installation profiles (grub.json)
+├── packages/             # Optional package bundle profiles (dev-tools.json)
+├── services/             # Runit service activation profiles (ssh.json, bluetooth.json)
+├── live-users/           # Live environment account profiles (admin.json, guest.json)
+├── platforms/            # Single-board hardware platform overrides (pinebookpro.json)
+├── assets/               # Artwork, isolinux configuration templates, GRUB fonts
+└── custom_files/         # Overlay file tree copied directly into rootfs at /
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="master-manifest-global-build-json">
+<h2>2. Master Manifest: <code class="docutils literal notranslate"><span class="pre">global_build.json</span></code><a class="headerlink" href="#master-manifest-global-build-json" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">global_build.json</span></code> defines the foundational baseline settings for every build.</p>
+<section id="complete-annotated-schema">
+<h3>Complete Annotated Schema<a class="headerlink" href="#complete-annotated-schema" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;system&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;iso_label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;VOID_MODERN&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;workdir_base&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;workdir&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;xbps_cache&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;workdir/cache/xbps&quot;</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;iso&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;compression_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;xz&quot;</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;initramfs&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;compression&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;xz&quot;</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;boot_title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Void Modern Live&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;boot_cmdline&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;quiet splash live.user=live live.autologin rd.live.overlay.overlayfs=1&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;splash_image&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;configs/assets/data/splash.png&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;repositories&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s2">&quot;https://repo-default.voidlinux.org/current&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;https://repo-default.voidlinux.org/current/musl&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;https://repo-default.voidlinux.org/current/aarch64&quot;</span>
+<span class="w">  </span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;custom_repositories&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">  </span><span class="nt">&quot;customizations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;hostname&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;void-modern&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;timezone&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;UTC&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;locale&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;en_US.UTF-8&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;keymap&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;us&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;users&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;live&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;groups&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">          </span><span class="s2">&quot;wheel&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="s2">&quot;audio&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="s2">&quot;video&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="s2">&quot;storage&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="s2">&quot;network&quot;</span>
+<span class="w">        </span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;password&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;live&quot;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;services&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">&quot;dbus&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;NetworkManager&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;polkitd&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;bluetoothd&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;cupsd&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;avahi-daemon&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;sshd&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;chronyd&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;alsa&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;acpid&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;elogind&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;wpa_supplicant&quot;</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;common_desktop_packages&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s2">&quot;NetworkManager&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;alsa-firmware&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;alsa-pipewire&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;alsa-utils&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;avahi&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;blueman&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;bluez&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;dbus&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;elogind&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;flatpak&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;git&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;nano&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;pipewire&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;plymouth&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;polkit&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;python3&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;sudo&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;vim&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;wpa_supplicant&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;xorg&quot;</span>
+<span class="w">  </span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;package_sources&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;official&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">&quot;base-system&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;vim&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;git&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;curl&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;bash-completion&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;mtools&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;gptfdisk&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;efibootmgr&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;dosfstools&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;binutils&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;xz&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;device-mapper&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;dhclient&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;dracut-network&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;openresolv&quot;</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="key-field-descriptions">
+<h3>Key Field Descriptions<a class="headerlink" href="#key-field-descriptions" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">system.iso_label</span></code></strong>: Volume identifier string for the ISO9660 volume (<code class="docutils literal notranslate"><span class="pre">VOID_MODERN</span></code>).</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">system.workdir_base</span></code></strong>: Base working directory for staging files.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">system.xbps_cache</span></code></strong>: Target directory for cached <code class="docutils literal notranslate"><span class="pre">.xbps</span></code> binary package archives.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">boot_cmdline</span></code></strong>: Linux kernel boot command-line parameters passed by isolinux/GRUB.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">repositories</span></code></strong>: Official Void Linux XBPS mirror URLs evaluated in order.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">customizations.services</span></code></strong>: List of Runit services enabled by symlinking <code class="docutils literal notranslate"><span class="pre">/etc/sv/&lt;service&gt;</span></code> into <code class="docutils literal notranslate"><span class="pre">/etc/runit/runsvdir/default/</span></code>.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">customizations.users</span></code></strong>: Account definitions to create during rootfs provisioning.</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="architecture-profiles-configs-architectures">
+<h2>3. Architecture Profiles (<code class="docutils literal notranslate"><span class="pre">configs/architectures/</span></code>)<a class="headerlink" href="#architecture-profiles-configs-architectures" title="Link to this heading"></a></h2>
+<p>Architecture profiles define specific package lists, repositories, or flags for particular architectures.</p>
+<section id="example-configs-architectures-rpi-aarch64-json">
+<h3>Example: <code class="docutils literal notranslate"><span class="pre">configs/architectures/rpi-aarch64.json</span></code><a class="headerlink" href="#example-configs-architectures-rpi-aarch64-json" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;architecture&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;rpi-aarch64&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;xbps_arch&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;aarch64&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;engine&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;PlatformEngine&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;repositories&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s2">&quot;https://repo-default.voidlinux.org/current/aarch64&quot;</span>
+<span class="w">  </span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;package_sources&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;official&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">&quot;rpi-base&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;rpi-kernel&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;raspberrypi-userland&quot;</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="desktop-profiles-configs-desktops">
+<h2>4. Desktop Profiles (<code class="docutils literal notranslate"><span class="pre">configs/desktops/</span></code>)<a class="headerlink" href="#desktop-profiles-configs-desktops" title="Link to this heading"></a></h2>
+<p>Desktop profiles specify packages required to build a functional graphical desktop environment.</p>
+<section id="example-configs-desktops-xfce-json">
+<h3>Example: <code class="docutils literal notranslate"><span class="pre">configs/desktops/xfce.json</span></code><a class="headerlink" href="#example-configs-desktops-xfce-json" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;desktop_environment&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;xfce&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;display_manager&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;lightdm&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;package_sources&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;official&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">&quot;xfce4&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;xfce4-panel&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;xfce4-settings&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;xfce4-session&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;xfwm4&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;xfdesktop&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;thunar&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;lightdm&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;lightdm-gtk-greeter&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;network-manager-applet&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;pavucontrol&quot;</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;customizations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;services&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">&quot;lightdm&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;dbus&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;NetworkManager&quot;</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="runit-service-profiles-configs-services">
+<h2>5. Runit Service Profiles (<code class="docutils literal notranslate"><span class="pre">configs/services/</span></code>)<a class="headerlink" href="#runit-service-profiles-configs-services" title="Link to this heading"></a></h2>
+<p>Service profiles allow easily toggling background daemons.</p>
+<section id="example-configs-services-ssh-json">
+<h3>Example: <code class="docutils literal notranslate"><span class="pre">configs/services/ssh.json</span></code><a class="headerlink" href="#example-configs-services-ssh-json" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;service_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ssh&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;package_sources&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;official&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">&quot;openssh&quot;</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;customizations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;services&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">&quot;sshd&quot;</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="how-to-create-a-brand-new-desktop-profile">
+<h2>6. How to Create a Brand New Desktop Profile<a class="headerlink" href="#how-to-create-a-brand-new-desktop-profile" title="Link to this heading"></a></h2>
+<p>To add a new desktop environment profile (e.g. <code class="docutils literal notranslate"><span class="pre">configs/desktops/pantheon.json</span></code>):</p>
+<ol class="arabic">
+<li><p>Create <code class="docutils literal notranslate"><span class="pre">configs/desktops/pantheon.json</span></code>:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;desktop_environment&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pantheon&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;package_sources&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;official&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">&quot;pantheon-desktop&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;lightdm&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;lightdm-pantheon-greeter&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;gsettings-desktop-schemas&quot;</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;customizations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;services&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">&quot;lightdm&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">&quot;dbus&quot;</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</li>
+<li><p>Validate the configuration:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>cli.py<span class="w"> </span>x86_64<span class="w"> </span>-d<span class="w"> </span>pantheon<span class="w"> </span>--check
+</pre></div>
+</div>
+</li>
+<li><p>Build ISO:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>x86_64<span class="w"> </span>-d<span class="w"> </span>pantheon<span class="w"> </span>--mode<span class="w"> </span>real
+</pre></div>
+</div>
+</li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="file-overlays-configs-custom-files">
+<h2>7. File Overlays (<code class="docutils literal notranslate"><span class="pre">configs/custom_files/</span></code>)<a class="headerlink" href="#file-overlays-configs-custom-files" title="Link to this heading"></a></h2>
+<p>Any directory or file placed inside <code class="docutils literal notranslate"><span class="pre">configs/custom_files/</span></code> is automatically copied directly into the target rootfs at <code class="docutils literal notranslate"><span class="pre">/</span></code> during system customization.</p>
+<p>Example:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">configs/custom_files/etc/motd</span></code> -&gt; copied to <code class="docutils literal notranslate"><span class="pre">/etc/motd</span></code> in target system.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">configs/custom_files/etc/skel/.config/xfce4/</span></code> -&gt; copied to <code class="docutils literal notranslate"><span class="pre">/etc/skel/.config/xfce4/</span></code> in target system.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="cli_reference.html" class="btn btn-neutral float-left" title="CLI Complete Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="package_rules.html" class="btn btn-neutral float-right" title="Dynamic Package Rules &amp; Resolution" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026-2026, Manuel Rosa.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

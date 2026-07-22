@@ -1,0 +1,230 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Getting Started &amp; Total Build Isolation &mdash; Void-Builder</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=f5127f15" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=75d58705" />
+
+  
+      <script src="_static/jquery.js?v=8dae8fb0"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Comprehensive Usage Manual &amp; Examples" href="usage.html" />
+    <link rel="prev" title="Void-Builder Comprehensive Manual" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #E31937" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Void-Builder
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Getting Started &amp; Total Build Isolation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#zero-host-dependency-total-isolation-architecture">1. Zero Host Dependency &amp; Total Isolation Architecture</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#how-total-isolation-works">How Total Isolation Works:</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#requirements">2. Requirements</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#host-requirements">Host Requirements</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#automatic-static-toolchain-resolution">3. Automatic Static Toolchain Resolution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#cross-architecture-host-helper-optional">4. Cross-Architecture Host Helper (Optional)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#verification-first-build-walkthrough">5. Verification &amp; First Build Walkthrough</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#step-1-configuration-validation">Step 1: Configuration Validation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#step-2-non-root-simulation-mock-mode">Step 2: Non-Root Simulation (Mock Mode)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#step-3-production-real-iso-build">Step 3: Production Real ISO Build</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Comprehensive Usage Manual &amp; Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli_reference.html">CLI Complete Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration Guide &amp; JSON Schemas</a></li>
+<li class="toctree-l1"><a class="reference internal" href="package_rules.html">Dynamic Package Rules &amp; Resolution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="custom_packages.html">Custom Packages &amp; Local XBPS Repositories</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Architecture &amp; Bootloaders</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architectural Blueprint &amp; Engine Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bootloaders.html">Bootloaders &amp; Hardware Boot Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="calamares.html">Calamares Installer Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">Python API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting &amp; FAQ</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #E31937" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Void-Builder</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Getting Started &amp; Total Build Isolation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/getting_started.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="getting-started-total-build-isolation">
+<h1>Getting Started &amp; Total Build Isolation<a class="headerlink" href="#getting-started-total-build-isolation" title="Link to this heading"></a></h1>
+<p>Welcome to the setup and getting started guide for <strong>Void-Builder</strong>. This document details the zero-dependency, self-contained build architecture of Void-Builder, system requirements, and step-by-step build walkthroughs.</p>
+<hr class="docutils" />
+<section id="zero-host-dependency-total-isolation-architecture">
+<h2>1. Zero Host Dependency &amp; Total Isolation Architecture<a class="headerlink" href="#zero-host-dependency-total-isolation-architecture" title="Link to this heading"></a></h2>
+<p>Unlike traditional ISO building tools that require installing numerous host system packages (such as <code class="docutils literal notranslate"><span class="pre">xbps-install</span></code>, <code class="docutils literal notranslate"><span class="pre">qemu-user-static</span></code>, or <code class="docutils literal notranslate"><span class="pre">dracut</span></code> on the host machine), <strong>Void-Builder implements complete build isolation</strong>:</p>
+<section id="how-total-isolation-works">
+<h3>How Total Isolation Works:<a class="headerlink" href="#how-total-isolation-works" title="Link to this heading"></a></h3>
+<ol class="arabic simple">
+<li><p><strong>Self-Contained Static Binaries</strong>: On initial run, <code class="docutils literal notranslate"><span class="pre">ToolchainManager</span></code> automatically downloads isolated static binaries (<code class="docutils literal notranslate"><span class="pre">xbps-install.static</span></code> and <code class="docutils literal notranslate"><span class="pre">proot</span></code>) directly into the local <code class="docutils literal notranslate"><span class="pre">void_builder/tools/</span></code> directory.</p></li>
+<li><p><strong>No Host Package Installation Needed</strong>: You do <strong>NOT</strong> need to install any building tools, package managers, or chroot utilities via <code class="docutils literal notranslate"><span class="pre">apt</span></code>, <code class="docutils literal notranslate"><span class="pre">pacman</span></code>, <code class="docutils literal notranslate"><span class="pre">dnf</span></code>, <code class="docutils literal notranslate"><span class="pre">zypper</span></code>, or <code class="docutils literal notranslate"><span class="pre">xbps-install</span></code> on your host OS.</p></li>
+<li><p><strong>Isolated Chroot Execution (<code class="docutils literal notranslate"><span class="pre">proot</span></code>)</strong>: Chroot management and cross-architecture command executions are handled in user-space via <code class="docutils literal notranslate"><span class="pre">proot</span></code> and isolated pseudo-filesystem mounts.</p></li>
+<li><p><strong>Host Distribution Agnostic</strong>: Void-Builder runs identically on Void Linux, Debian, Ubuntu, Arch Linux, Fedora, openSUSE, Alpine, or any other Linux distribution with Python 3.10+ installed.</p></li>
+</ol>
+</section>
+</section>
+<hr class="docutils" />
+<section id="requirements">
+<h2>2. Requirements<a class="headerlink" href="#requirements" title="Link to this heading"></a></h2>
+<section id="host-requirements">
+<h3>Host Requirements<a class="headerlink" href="#host-requirements" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Python</strong>: Python 3.10 or higher.</p></li>
+<li><p><strong>Disk Space</strong>: 10 GB free space on a local Linux filesystem (EXT4, Btrfs, XFS).</p></li>
+<li><p><strong>RAM</strong>: 4 GB minimum.</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="automatic-static-toolchain-resolution">
+<h2>3. Automatic Static Toolchain Resolution<a class="headerlink" href="#automatic-static-toolchain-resolution" title="Link to this heading"></a></h2>
+<p>When <code class="docutils literal notranslate"><span class="pre">ToolchainManager.setup()</span></code> executes, it automatically manages the toolchain:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>void_builder/tools/
+├── proot                              # User-space chroot/emulation binary
+└── usr/
+    └── bin/
+        ├── xbps-install.static        # Static XBPS installer binary
+        ├── xbps-rindex.static         # Static XBPS repository indexer
+        └── xbps-query.static          # Static XBPS query tool
+</pre></div>
+</div>
+<p>If these static tools are missing or if <code class="docutils literal notranslate"><span class="pre">--update-toolchain</span></code> is specified, Void-Builder fetches the latest verified static releases directly from official mirrors into <code class="docutils literal notranslate"><span class="pre">void_builder/tools/</span></code>.</p>
+</section>
+<hr class="docutils" />
+<section id="cross-architecture-host-helper-optional">
+<h2>4. Cross-Architecture Host Helper (Optional)<a class="headerlink" href="#cross-architecture-host-helper-optional" title="Link to this heading"></a></h2>
+<p>When cross-building for foreign CPU architectures (e.g. building an <code class="docutils literal notranslate"><span class="pre">aarch64</span></code> or <code class="docutils literal notranslate"><span class="pre">rpi</span></code> image on an <code class="docutils literal notranslate"><span class="pre">x86_64</span></code> host), the helper script <code class="docutils literal notranslate"><span class="pre">setup_host_build_env.sh</span></code> can optionally configure kernel <code class="docutils literal notranslate"><span class="pre">binfmt_misc</span></code> user-mode emulators:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>./setup_host_build_env.sh
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="verification-first-build-walkthrough">
+<h2>5. Verification &amp; First Build Walkthrough<a class="headerlink" href="#verification-first-build-walkthrough" title="Link to this heading"></a></h2>
+<section id="step-1-configuration-validation">
+<h3>Step 1: Configuration Validation<a class="headerlink" href="#step-1-configuration-validation" title="Link to this heading"></a></h3>
+<p>Audit all JSON configuration profiles and dynamic package rules without building:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>cli.py<span class="w"> </span>--check
+</pre></div>
+</div>
+<p>Outputs:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>🔍 Validating configuration for target architecture &#39;x86_64&#39;...
+2026-07-22 11:40:00 - ConfigLoader - INFO - Starting configuration assembly for x86_64...
+2026-07-22 11:40:00 - ConfigLoader - INFO - Applied dynamic package rules from package_rules.json successfully.
+2026-07-22 11:40:00 - ConfigLoader - INFO - Configuration assembly completed successfully.
+✅ Configuration is VALID!
+Summary:
+  - Target Architecture: x86_64
+  - Desktop Profile:     base
+  - Total Packages:      136
+  - Enabled Services:    dbus, NetworkManager, polkitd, bluetoothd, cupsd, avahi-daemon, sshd, chronyd, alsa, acpid, elogind, wpa_supplicant
+</pre></div>
+</div>
+</section>
+<section id="step-2-non-root-simulation-mock-mode">
+<h3>Step 2: Non-Root Simulation (Mock Mode)<a class="headerlink" href="#step-2-non-root-simulation-mock-mode" title="Link to this heading"></a></h3>
+<p>Simulate building an x86_64 ISO with XFCE desktop environment:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>cli.py<span class="w"> </span>x86_64<span class="w"> </span>-d<span class="w"> </span>xfce<span class="w"> </span>--mode<span class="w"> </span>mock
+</pre></div>
+</div>
+<p>This verifies the build tree, packages list, and bootloader configuration without needing root privileges.</p>
+</section>
+<section id="step-3-production-real-iso-build">
+<h3>Step 3: Production Real ISO Build<a class="headerlink" href="#step-3-production-real-iso-build" title="Link to this heading"></a></h3>
+<p>Execute a production build:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>x86_64<span class="w"> </span>-d<span class="w"> </span>xfce<span class="w"> </span>--mode<span class="w"> </span>real
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Void-Builder Comprehensive Manual" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="usage.html" class="btn btn-neutral float-right" title="Comprehensive Usage Manual &amp; Examples" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026-2026, Manuel Rosa.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

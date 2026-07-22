@@ -1,0 +1,315 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Python API Reference &mdash; Void-Builder</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=f5127f15" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=72619f87" />
+
+  
+      <script src="_static/jquery.js?v=8dae8fb0"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Troubleshooting &amp; FAQ" href="troubleshooting.html" />
+    <link rel="prev" title="Calamares Installer Integration" href="calamares.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #E31937" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Void-Builder
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage &amp; Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli_reference.html">CLI Complete Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="package_rules.html">Dynamic Package Rules &amp; Resolution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="custom_packages.html">Custom Packages &amp; Local XBPS Repositories</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Architecture &amp; Bootloaders</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture &amp; System Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bootloaders.html">Bootloaders &amp; Boot Process</a></li>
+<li class="toctree-l1"><a class="reference internal" href="calamares.html">Calamares Installer Integration</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Python API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#module-void-builder-core-config-loader">Module: <code class="docutils literal notranslate"><span class="pre">void_builder.core.config_loader</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#class-config-data">Class <code class="docutils literal notranslate"><span class="pre">Config(data)</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#methods">Methods</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#class-configassembler-config-root">Class <code class="docutils literal notranslate"><span class="pre">ConfigAssembler(config_root)</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#parameters">Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id1">Methods</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-void-builder-core-orchestrator">Module: <code class="docutils literal notranslate"><span class="pre">void_builder.core.orchestrator</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#class-buildorchestrator">Class <code class="docutils literal notranslate"><span class="pre">BuildOrchestrator(...)</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id2">Methods</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-void-builder-core-iso-engine">Module: <code class="docutils literal notranslate"><span class="pre">void_builder.core.iso_engine</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#class-isoengine">Class <code class="docutils literal notranslate"><span class="pre">ISOEngine</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#registered-engines">Registered Engines</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#class-baseengine-arch-config-toolchain">Class <code class="docutils literal notranslate"><span class="pre">BaseEngine(arch,</span> <span class="pre">config,</span> <span class="pre">toolchain)</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id3">Methods</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#class-voidengine">Class <code class="docutils literal notranslate"><span class="pre">VoidEngine</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id4">Methods</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#class-platformengine">Class <code class="docutils literal notranslate"><span class="pre">PlatformEngine</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id5">Methods</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-void-builder-core-chroot-manager">Module: <code class="docutils literal notranslate"><span class="pre">void_builder.core.chroot_manager</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#class-chrootmanager-chroot-path-toolchain-mode-arch-config">Class <code class="docutils literal notranslate"><span class="pre">ChrootManager(chroot_path,</span> <span class="pre">toolchain,</span> <span class="pre">mode,</span> <span class="pre">arch,</span> <span class="pre">config)</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id6">Methods</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-void-builder-core-customizer">Module: <code class="docutils literal notranslate"><span class="pre">void_builder.core.customizer</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#class-systemconfigurator-chroot-manager">Class <code class="docutils literal notranslate"><span class="pre">SystemConfigurator(chroot_manager)</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id7">Methods</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting &amp; FAQ</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #E31937" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Void-Builder</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Python API Reference</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/api_reference.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="python-api-reference">
+<h1>Python API Reference<a class="headerlink" href="#python-api-reference" title="Link to this heading"></a></h1>
+<p>This page documents the Python classes, interfaces, methods, and functions in <code class="docutils literal notranslate"><span class="pre">void_builder</span></code>.</p>
+<hr class="docutils" />
+<section id="module-void-builder-core-config-loader">
+<h2>Module: <code class="docutils literal notranslate"><span class="pre">void_builder.core.config_loader</span></code><a class="headerlink" href="#module-void-builder-core-config-loader" title="Link to this heading"></a></h2>
+<section id="class-config-data">
+<h3>Class <code class="docutils literal notranslate"><span class="pre">Config(data)</span></code><a class="headerlink" href="#class-config-data" title="Link to this heading"></a></h3>
+<p>Data wrapper for configuration dictionaries with dot-notation access.</p>
+<section id="methods">
+<h4>Methods<a class="headerlink" href="#methods" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">get(path:</span> <span class="pre">str,</span> <span class="pre">default:</span> <span class="pre">Any</span> <span class="pre">=</span> <span class="pre">None)</span> <span class="pre">-&gt;</span> <span class="pre">Any</span></code>: Retrieves configuration value using dot notation (e.g., <code class="docutils literal notranslate"><span class="pre">system.iso_label</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">to_dict()</span> <span class="pre">-&gt;</span> <span class="pre">Dict[str,</span> <span class="pre">Any]</span></code>: Returns raw dictionary underlying data.</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="class-configassembler-config-root">
+<h3>Class <code class="docutils literal notranslate"><span class="pre">ConfigAssembler(config_root)</span></code><a class="headerlink" href="#class-configassembler-config-root" title="Link to this heading"></a></h3>
+<p>Composition brain that merges global manifests and component profiles.</p>
+<section id="parameters">
+<h4>Parameters<a class="headerlink" href="#parameters" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">config_root</span></code> (<code class="docutils literal notranslate"><span class="pre">str</span></code> or <code class="docutils literal notranslate"><span class="pre">Path</span></code>): Directory containing configuration subfolders.</p></li>
+</ul>
+</section>
+<section id="id1">
+<h4>Methods<a class="headerlink" href="#id1" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">assemble(target_arch:</span> <span class="pre">str,</span> <span class="pre">target_desktop:</span> <span class="pre">Optional[str]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">target_kernel:</span> <span class="pre">Optional[str]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">target_bootloader:</span> <span class="pre">Optional[str]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">package_profiles:</span> <span class="pre">Optional[List[str]]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">service_profiles:</span> <span class="pre">Optional[List[str]]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">target_live_profile:</span> <span class="pre">Optional[str]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">live_user:</span> <span class="pre">Optional[str]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">live_groups:</span> <span class="pre">Optional[List[str]]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">platforms:</span> <span class="pre">Optional[List[str]]</span> <span class="pre">=</span> <span class="pre">None)</span> <span class="pre">-&gt;</span> <span class="pre">Config</span></code>:
+Assembles and merges configuration profiles into a unified <code class="docutils literal notranslate"><span class="pre">Config</span></code> object.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">validate(target_arch:</span> <span class="pre">str,</span> <span class="pre">target_desktop:</span> <span class="pre">Optional[str]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">target_kernel:</span> <span class="pre">Optional[str]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">target_bootloader:</span> <span class="pre">Optional[str]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">package_profiles:</span> <span class="pre">Optional[List[str]]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">service_profiles:</span> <span class="pre">Optional[List[str]]</span> <span class="pre">=</span> <span class="pre">None)</span> <span class="pre">-&gt;</span> <span class="pre">Dict[str,</span> <span class="pre">Any]</span></code>:
+Validates component profile existence and returns structured audit report <code class="docutils literal notranslate"><span class="pre">{&quot;valid&quot;:</span> <span class="pre">bool,</span> <span class="pre">&quot;errors&quot;:</span> <span class="pre">list,</span> <span class="pre">&quot;summary&quot;:</span> <span class="pre">dict}</span></code>.</p></li>
+</ul>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="module-void-builder-core-orchestrator">
+<h2>Module: <code class="docutils literal notranslate"><span class="pre">void_builder.core.orchestrator</span></code><a class="headerlink" href="#module-void-builder-core-orchestrator" title="Link to this heading"></a></h2>
+<section id="class-buildorchestrator">
+<h3>Class <code class="docutils literal notranslate"><span class="pre">BuildOrchestrator(...)</span></code><a class="headerlink" href="#class-buildorchestrator" title="Link to this heading"></a></h3>
+<p>High-level build controller coordinating configuration assembly, toolchain setup, chroot creation, and image generation.</p>
+<section id="id2">
+<h4>Methods<a class="headerlink" href="#id2" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">validate()</span> <span class="pre">-&gt;</span> <span class="pre">Dict[str,</span> <span class="pre">Any]</span></code>: Runs configuration validation without executing build pipeline.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">run_build(output_iso:</span> <span class="pre">str,</span> <span class="pre">output_format:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">&quot;iso&quot;)</span> <span class="pre">-&gt;</span> <span class="pre">Path</span></code>: Executes the complete build workflow and returns output file path.</p></li>
+</ul>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="module-void-builder-core-iso-engine">
+<h2>Module: <code class="docutils literal notranslate"><span class="pre">void_builder.core.iso_engine</span></code><a class="headerlink" href="#module-void-builder-core-iso-engine" title="Link to this heading"></a></h2>
+<section id="class-isoengine">
+<h3>Class <code class="docutils literal notranslate"><span class="pre">ISOEngine</span></code><a class="headerlink" href="#class-isoengine" title="Link to this heading"></a></h3>
+<p>Abstract base class and registry for architecture build engines.</p>
+<section id="registered-engines">
+<h4>Registered Engines<a class="headerlink" href="#registered-engines" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;ISOEngine.register(&quot;x86_64&quot;)</span></code> / <code class="docutils literal notranslate"><span class="pre">&#64;ISOEngine.register(&quot;i686&quot;)</span></code> / <code class="docutils literal notranslate"><span class="pre">&#64;ISOEngine.register(&quot;aarch64&quot;)</span></code>: <code class="docutils literal notranslate"><span class="pre">VoidEngine</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;ISOEngine.register(&quot;rpi-aarch64&quot;)</span></code> / <code class="docutils literal notranslate"><span class="pre">&#64;ISOEngine.register(&quot;pinebookpro&quot;)</span></code> / <code class="docutils literal notranslate"><span class="pre">&#64;ISOEngine.register(&quot;asahi&quot;)</span></code>: <code class="docutils literal notranslate"><span class="pre">PlatformEngine</span></code></p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="class-baseengine-arch-config-toolchain">
+<h3>Class <code class="docutils literal notranslate"><span class="pre">BaseEngine(arch,</span> <span class="pre">config,</span> <span class="pre">toolchain)</span></code><a class="headerlink" href="#class-baseengine-arch-config-toolchain" title="Link to this heading"></a></h3>
+<p>Abstract engine providing core utility functions.</p>
+<section id="id3">
+<h4>Methods<a class="headerlink" href="#id3" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">setup_workdir(workdir:</span> <span class="pre">Optional[Union[str,</span> <span class="pre">Path]]</span> <span class="pre">=</span> <span class="pre">None)</span> <span class="pre">-&gt;</span> <span class="pre">Path</span></code>: Resolves writable workspace directory.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_generate_manifest_and_checksums(output_file_path:</span> <span class="pre">str)</span> <span class="pre">-&gt;</span> <span class="pre">None</span></code>: Calculates SHA256/MD5 hashes and writes <code class="docutils literal notranslate"><span class="pre">manifest.json</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">export_tarball(output_path:</span> <span class="pre">str)</span> <span class="pre">-&gt;</span> <span class="pre">str</span></code>: Compresses rootfs into <code class="docutils literal notranslate"><span class="pre">.tar.xz</span></code> archive.</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="class-voidengine">
+<h3>Class <code class="docutils literal notranslate"><span class="pre">VoidEngine</span></code><a class="headerlink" href="#class-voidengine" title="Link to this heading"></a></h3>
+<p>Engine handling standard PC ISO 9660 hybrid image creation.</p>
+<section id="id4">
+<h4>Methods<a class="headerlink" href="#id4" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">setup_chroot(workdir:</span> <span class="pre">str)</span> <span class="pre">-&gt;</span> <span class="pre">None</span></code>: Prepares <code class="docutils literal notranslate"><span class="pre">airootfs</span></code> and <code class="docutils literal notranslate"><span class="pre">iso-staging</span></code> directories.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">install_packages()</span> <span class="pre">-&gt;</span> <span class="pre">None</span></code>: Invokes <code class="docutils literal notranslate"><span class="pre">ChrootManager</span></code> to install target packages.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">post_install_configure()</span> <span class="pre">-&gt;</span> <span class="pre">None</span></code>: Applies locale, user, service, and Plymouth customizations.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">build_bootloaders(mountpoint:</span> <span class="pre">str)</span> <span class="pre">-&gt;</span> <span class="pre">None</span></code>: Assembles SYSLINUX and GRUB EFI boot files.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">finalize_isofile(output_path:</span> <span class="pre">str)</span> <span class="pre">-&gt;</span> <span class="pre">None</span></code>: Runs <code class="docutils literal notranslate"><span class="pre">mksquashfs</span></code> and <code class="docutils literal notranslate"><span class="pre">xorriso</span></code> to create final <code class="docutils literal notranslate"><span class="pre">.iso</span></code>.</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="class-platformengine">
+<h3>Class <code class="docutils literal notranslate"><span class="pre">PlatformEngine</span></code><a class="headerlink" href="#class-platformengine" title="Link to this heading"></a></h3>
+<p>Engine handling SBC raw disk image generation.</p>
+<section id="id5">
+<h4>Methods<a class="headerlink" href="#id5" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">finalize_isofile(output_path:</span> <span class="pre">str)</span> <span class="pre">-&gt;</span> <span class="pre">None</span></code>: Calculates required rootfs size, formats disk image with <code class="docutils literal notranslate"><span class="pre">sfdisk</span></code>, mounts loop device, copies rootfs, and writes U-Boot/GRUB EFI binaries.</p></li>
+</ul>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="module-void-builder-core-chroot-manager">
+<h2>Module: <code class="docutils literal notranslate"><span class="pre">void_builder.core.chroot_manager</span></code><a class="headerlink" href="#module-void-builder-core-chroot-manager" title="Link to this heading"></a></h2>
+<section id="class-chrootmanager-chroot-path-toolchain-mode-arch-config">
+<h3>Class <code class="docutils literal notranslate"><span class="pre">ChrootManager(chroot_path,</span> <span class="pre">toolchain,</span> <span class="pre">mode,</span> <span class="pre">arch,</span> <span class="pre">config)</span></code><a class="headerlink" href="#class-chrootmanager-chroot-path-toolchain-mode-arch-config" title="Link to this heading"></a></h3>
+<p>Manages virtual filesystem mounting (<code class="docutils literal notranslate"><span class="pre">/proc</span></code>, <code class="docutils literal notranslate"><span class="pre">/sys</span></code>, <code class="docutils literal notranslate"><span class="pre">/dev</span></code>), <code class="docutils literal notranslate"><span class="pre">xbps-install</span></code> commands, and user/service setup inside target chroot.</p>
+<section id="id6">
+<h4>Methods<a class="headerlink" href="#id6" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">mount()</span> <span class="pre">-&gt;</span> <span class="pre">None</span></code>: Mounts pseudo-filesystems.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">umount()</span> <span class="pre">-&gt;</span> <span class="pre">None</span></code>: Safely unmounts pseudo-filesystems.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">install_packages(package_plan:</span> <span class="pre">Dict[str,</span> <span class="pre">List[str]],</span> <span class="pre">repos:</span> <span class="pre">Optional[List[str]]</span> <span class="pre">=</span> <span class="pre">None)</span> <span class="pre">-&gt;</span> <span class="pre">None</span></code>: Executes <code class="docutils literal notranslate"><span class="pre">xbps-install</span></code> for package set.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">run_command(cmd:</span> <span class="pre">str,</span> <span class="pre">check:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True)</span> <span class="pre">-&gt;</span> <span class="pre">subprocess.CompletedProcess</span></code>: Runs command inside chroot environment.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">run_reconfigure()</span> <span class="pre">-&gt;</span> <span class="pre">None</span></code>: Executes Void 3-pass <code class="docutils literal notranslate"><span class="pre">xbps-reconfigure</span> <span class="pre">-a</span></code>.</p></li>
+</ul>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="module-void-builder-core-customizer">
+<h2>Module: <code class="docutils literal notranslate"><span class="pre">void_builder.core.customizer</span></code><a class="headerlink" href="#module-void-builder-core-customizer" title="Link to this heading"></a></h2>
+<section id="class-systemconfigurator-chroot-manager">
+<h3>Class <code class="docutils literal notranslate"><span class="pre">SystemConfigurator(chroot_manager)</span></code><a class="headerlink" href="#class-systemconfigurator-chroot-manager" title="Link to this heading"></a></h3>
+<p>Applies low-level Linux system customizations inside target rootfs.</p>
+<section id="id7">
+<h4>Methods<a class="headerlink" href="#id7" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">load_from_config(config:</span> <span class="pre">Config)</span> <span class="pre">-&gt;</span> <span class="pre">None</span></code>: Loads hostname, locale, timezone, users, services, Plymouth, and Dracut configurations.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">apply()</span> <span class="pre">-&gt;</span> <span class="pre">None</span></code>: Executes customization steps sequentially.</p></li>
+</ul>
+</section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="calamares.html" class="btn btn-neutral float-left" title="Calamares Installer Integration" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="troubleshooting.html" class="btn btn-neutral float-right" title="Troubleshooting &amp; FAQ" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026-2026, Manuel Rosa.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
