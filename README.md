@@ -121,6 +121,12 @@ Then open `docs/_build/html/index.html` in your browser.
 
 ---
 
+## Author & Credits
+
+- **Author & Lead Maintainer**: Manuel Rosa (<manuelsilvarosa@gmail.com>)
+
+---
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE).

@@ -57,3 +57,10 @@ Void-Builder is a enterprise-grade Python application designed to assemble boota
 10. **`rpi-armv6l`**: Raspberry Pi 1/Zero (32-bit v6)
 11. **`pinebookpro`**: Pine64 Pinebook Pro (RK3399 SoC)
 12. **`asahi`**: Apple Silicon (M1/M2/M3) Asahi Linux
+
+---
+
+## Author & Maintainer
+
+- **Developer**: Manuel Rosa ([manuelsilvarosa@gmail.com](mailto:manuelsilvarosa@gmail.com))
+
