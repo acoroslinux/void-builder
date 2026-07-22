@@ -1,21 +1,157 @@
-/* Custom CSS styling for Void-Builder documentation */
+/* Custom CSS styling for Void-Builder HTML Documentation */
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #24292e;
+}
+
+/* Sidebar styling */
 .wy-nav-side {
-    background: #1e1e24;
+    background: #191b1f !important;
+    width: 320px;
+}
+
+.wy-nav-content-wrap {
+    margin-left: 320px;
 }
 
 .wy-side-nav-search {
-    background-color: #E31937 !important;
+    background-color: #478061 !important; /* Void Linux Emerald/Green-Red Brand Accent */
+    padding: 1.5em 1em;
 }
 
-.rst-content .admonition.note, .rst-content .admonition.seealso {
-    background: #eef7fa;
-    border-color: #00838f;
+.wy-side-nav-search a.icon-home {
+    font-weight: 700;
+    font-size: 1.25em;
+    color: #ffffff !important;
+}
+
+.wy-side-nav-search input[type="text"] {
+    border-radius: 6px;
+    border: none;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+    padding: 8px 12px;
+}
+
+.wy-menu-vertical a {
+    color: #c9d1d9 !important;
+    font-size: 0.92em;
+    padding: 0.6em 1em;
+}
+
+.wy-menu-vertical a:hover {
+    background-color: #2d3139 !important;
+    color: #ffffff !important;
+}
+
+.wy-menu-vertical li.current a {
+    border-right: 3px solid #478061;
+}
+
+/* Content Area */
+.wy-nav-content {
+    max-width: 1100px !important;
+    padding: 2.5rem 3rem !important;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    color: #111827;
+}
+
+h1 {
+    font-size: 2.25rem;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+h2 {
+    font-size: 1.65rem;
+    border-bottom: 1px solid #f3f4f6;
+    padding-bottom: 0.3rem;
+    margin-top: 2rem;
+}
+
+h3 {
+    font-size: 1.25rem;
+    margin-top: 1.5rem;
+}
+
+/* Code Blocks */
+pre, code, .rst-content tt.literal, .rst-content code.literal {
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, Monaco, monospace;
 }
 
 code.literal {
-    color: #E31937;
-    background: #f4f4f5;
-    padding: 2px 5px;
-    border-radius: 3px;
+    color: #0969da;
+    background: #f6f8fa;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid #d0d7de;
+    font-size: 0.88em;
+}
+
+.rst-content pre.literal-block, .rst-content div[class^='highlight'] pre {
+    background-color: #0d1117 !important;
+    color: #c9d1d9 !important;
+    border-radius: 8px;
+    padding: 1.25rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border: 1px solid #30363d;
+}
+
+/* Tables */
+.rst-content table.docutils {
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    margin: 1.5em 0;
+}
+
+.rst-content table.docutils th {
+    background-color: #f3f4f6 !important;
+    color: #111827 !important;
+    font-weight: 600;
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 2px solid #e5e7eb !important;
+}
+
+.rst-content table.docutils td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #f3f4f6 !important;
+}
+
+.rst-content table.docutils tr:nth-child(even) td {
+    background-color: #f9fafb;
+}
+
+/* Admonitions / Callouts */
+.rst-content .admonition {
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    padding: 1rem 1.25rem;
+    margin: 1.5rem 0;
+}
+
+.rst-content .admonition.note {
+    background-color: #f0f9ff;
+    border-left: 4px solid #0284c7;
+}
+
+.rst-content .admonition.warning {
+    background-color: #fffbeb;
+    border-left: 4px solid #d97706;
+}
+
+.rst-content .admonition.tip {
+    background-color: #f0fdf4;
+    border-left: 4px solid #16a34a;
 }
