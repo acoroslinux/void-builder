@@ -35,7 +35,8 @@ class CommandRunner:
         
         try:
             if stream:
-                # Stream output in real-time
+                import threading
+                # Stream output in real-time concurrently using threads to avoid pipe buffer deadlock
                 process = subprocess.Popen(
                     command,
                     cwd=cwd,
@@ -50,14 +51,22 @@ class CommandRunner:
                 stdout_lines = []
                 stderr_lines = []
                 
-                if capture_output:
-                    # Read stdout and stderr in real-time
-                    for line in process.stdout:
-                        print(line, end='')
-                        stdout_lines.append(line)
-                    for line in process.stderr:
-                        print(line, end='', file=sys.stderr)
-                        stderr_lines.append(line)
+                def _stream_reader(pipe, out_stream, lines_acc):
+                    if not pipe:
+                        return
+                    for line in iter(pipe.readline, ''):
+                        if out_stream:
+                            print(line, end='', file=out_stream)
+                        lines_acc.append(line)
+                    pipe.close()
+
+                t_out = threading.Thread(target=_stream_reader, args=(process.stdout, sys.stdout if capture_output else None, stdout_lines))
+                t_err = threading.Thread(target=_stream_reader, args=(process.stderr, sys.stderr if capture_output else None, stderr_lines))
+                
+                t_out.start()
+                t_err.start()
+                t_out.join()
+                t_err.join()
                 
                 process.wait()
                 returncode = process.returncode

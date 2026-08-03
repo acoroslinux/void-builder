@@ -1,10 +1,18 @@
 {
-  "package_sources": {
-    "official": [
-      "firefox",
-      "network-manager-applet",
-      "xclip",
-      "xsel"
-    ]
-  }
+  "name": "custom-user",
+  "description": "User-customizable package profile template (add your preferred packages here)",
+  "_comment": "Note: Active user packages are in 'packages'. Move packages from 'optional_packages' to 'packages' to enable them.",
+  "packages": [
+    "fastfetch",
+    "starship",
+    "zsh",
+    "fish",
+    "xclip",
+    "xsel"
+  ],
+  "optional_packages": [
+    "btop",
+    "tmux",
+    "neovim"
+  ]
 }

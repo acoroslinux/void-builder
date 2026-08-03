@@ -411,6 +411,8 @@ def main():
         repositories=args.repository,
         include_dirs=args.include,
         update_toolchain=args.update_toolchain,
+        compression=args.compression,
+        generate_manifest=args.generate_manifest,
     )
 
     # Handle Validation Mode (--check / --validate)
@@ -468,13 +470,7 @@ def main():
     print(f"------------------------------\n")
 
     try:
-        # Pass compression & manifest options into orchestrator configuration
-        orchestrator._setup()
-        orchestrator.config._data["iso"] = orchestrator.config._data.get("iso", {})
-        orchestrator.config._data["iso"]["compression_type"] = args.compression
-        orchestrator.config._data["generate_manifest"] = args.generate_manifest
-
-        result_file = orchestrator.builder.build(output_name, str(orchestrator.workdir), output_format=args.format)
+        result_file = orchestrator.run_build(output_name, output_format=args.format)
         print(f"\n✅ Success! Build artifact created at: {result_file}")
     except BuildOrchestratorError as e:
         print(f"\n❌ Build Orchestration Error: {e}")

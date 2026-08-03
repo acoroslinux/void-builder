@@ -44,6 +44,8 @@ class BuildOrchestrator:
         repositories: Optional[List[str]] = None,
         include_dirs: Optional[List[str]] = None,
         update_toolchain: bool = False,
+        compression: str = "xz",
+        generate_manifest: bool = True,
     ):
         VALID_ARCHS = (
             "x86_64", "x86_64-musl",
@@ -78,6 +80,8 @@ class BuildOrchestrator:
         self.repositories = repositories or []
         self.include_dirs = include_dirs or []
         self.update_toolchain = update_toolchain
+        self.compression = compression
+        self.generate_manifest = generate_manifest
 
         self.config_loader = ConfigLoader()
         self.builder: Optional[ISOBuilder] = None
@@ -159,6 +163,10 @@ class BuildOrchestrator:
 
         if not self.config:
             raise BuildOrchestratorError("The generated configuration is null or invalid.")
+
+        # Apply compression and manifest options to config
+        self.config._data.setdefault("iso", {})["compression_type"] = self.compression
+        self.config._data["generate_manifest"] = self.generate_manifest
 
         # Inject command line custom repositories
         if self.repositories:
@@ -261,11 +269,28 @@ class BuildOrchestrator:
                 self.chroot.umount()
             
             if self.workdir and self.workdir.exists():
-                print(f"\n[ORCHESTRATOR] Performing post-build cleanup: Removing {self.workdir}...")
-                import shutil
+                # Safety check: verify no active mount points remain under self.workdir before running rmtree
+                active_mount = False
                 try:
-                    # In real mode, some files might be owned by root, but since we usually run as root, this is fine
-                    shutil.rmtree(self.workdir, ignore_errors=True)
-                    print("[ORCHESTRATOR] Cleanup complete. Workspace is pristine.")
-                except Exception as e:
-                    print(f"[ORCHESTRATOR] Warning: Could not fully remove workdir: {e}")
+                    resolved_workdir = self.workdir.resolve()
+                    with open("/proc/mounts", "r") as f:
+                        for line in f:
+                            parts = line.split()
+                            if len(parts) >= 2:
+                                mp = Path(parts[1]).resolve()
+                                if mp == resolved_workdir or resolved_workdir in mp.parents:
+                                    active_mount = True
+                                    break
+                except Exception:
+                    pass
+
+                if active_mount:
+                    print(f"\n[ORCHESTRATOR] ⚠️ Safety Warning: Active mounts detected under {self.workdir}. Skipping rmtree to protect host system.")
+                else:
+                    print(f"\n[ORCHESTRATOR] Performing post-build cleanup: Removing {self.workdir}...")
+                    import shutil
+                    try:
+                        shutil.rmtree(self.workdir, ignore_errors=True)
+                        print("[ORCHESTRATOR] Cleanup complete. Workspace is pristine.")
+                    except Exception as e:
+                        print(f"[ORCHESTRATOR] Warning: Could not fully remove workdir: {e}")

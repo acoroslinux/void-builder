@@ -282,13 +282,14 @@ class ConfigAssembler:
             if bootloader_data:
                 self._deep_merge(self.master_config, bootloader_data)
 
-        # Always load the base package profile as it is common to all builds.
-        base_package_data = self._load_optional_profile("packages", "base")
-        if base_package_data:
-            self._deep_merge(self.master_config, base_package_data)
+        # Always load the base and filesystems package profiles as they are common to all builds.
+        for default_profile in ("base", "filesystems"):
+            prof_data = self._load_optional_profile("packages", default_profile)
+            if prof_data:
+                self._deep_merge(self.master_config, prof_data)
 
         for profile_name in package_profiles or []:
-            if profile_name == "base":
+            if profile_name in ("base", "filesystems"):
                 continue
             package_data = self._load_optional_profile("packages", profile_name)
             if package_data:
@@ -499,12 +500,22 @@ class ConfigAssembler:
                 package_profiles=package_profiles,
                 service_profiles=service_profiles,
             )
-            pkgs = config.get("package_sources.official", []) + config.get("common_desktop_packages", [])
+            pkg_list = config.get("packages", []) or []
+            off_pkgs = config.get("package_sources.official", []) or []
+            common_pkgs = config.get("common_desktop_packages", []) or []
+            all_pkgs = []
+            for item in (pkg_list + off_pkgs + common_pkgs):
+                if isinstance(item, dict):
+                    name = item.get("name")
+                    if name:
+                        all_pkgs.append(name)
+                elif isinstance(item, str):
+                    all_pkgs.append(item)
             report["summary"] = {
                 "target_arch": target_arch,
                 "desktop": target_desktop or "base",
                 "kernel": target_kernel or "default",
-                "total_packages": len(set(pkgs)),
+                "total_packages": len(set(all_pkgs)),
                 "services": config.get("customizations.services", []),
                 "repositories": config.get("repositories", []),
             }

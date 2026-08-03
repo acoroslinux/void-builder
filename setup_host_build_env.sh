@@ -89,10 +89,10 @@ if ! mountpoint -q /proc/sys/fs/binfmt_misc; then
     sleep 1
 fi
 
-# Verificar se o diretório está acessível após tentar carregar/montar
+# Check if directory is accessible after loading/mounting
 if [ ! -d "/proc/sys/fs/binfmt_misc" ]; then
-    echo "ERRO FATAL: O diretório /proc/sys/fs/binfmt_misc não existe ou não está acessível."
-    echo "A configuração do binfmt_misc falhou. Não é possível continuar com a emulação."
+    echo "FATAL ERROR: The directory /proc/sys/fs/binfmt_misc does not exist or is not accessible."
+    echo "binfmt_misc configuration failed. Emulation cannot proceed."
     exit 1
 fi
 
@@ -134,16 +134,16 @@ for ENTRY in qemu-aarch64 qemu-arm qemu-ppc64le qemu-riscv64; do
     if [ -f "/proc/sys/fs/binfmt_misc/${ENTRY}" ]; then
         echo "  OK  : ${ENTRY}"
     else
-        echo "  FAIL: ${ENTRY} — não registado!"
+        echo "  FAIL: ${ENTRY} — not registered!"
         HAS_ERROR=1
     fi
 done
 
 if [ "$HAS_ERROR" -eq 0 ]; then
-    echo "SUCCESS: Todos os emuladores estão ativos e registados."
+    echo "SUCCESS: All emulators are active and registered."
 else
-    echo "AVISO: Um ou mais emuladores não foram registados."
-    echo "       Builds para essas arquitecturas podem falhar com 'Exec format error'."
+    echo "WARNING: One or more emulators failed to register."
+    echo "         Builds for these architectures may fail with 'Exec format error'."
 fi
 
 echo "=> Host environment setup complete."

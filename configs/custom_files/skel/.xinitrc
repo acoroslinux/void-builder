@@ -1,6 +1,6 @@
 #!/bin/sh
-# Configuração crítica para Void Linux Live: Inicia a sessão dentro do DBUS
-# para que o Polkit, pkexec e o Elogind funcionem sem ecrãs em branco.
+# Critical configuration for Void Linux Live: Launch the session within DBUS
+# so that Polkit, pkexec, and Elogind work without blank screens.
 
 # Disable screen locking and screensaver for the Live environment
 xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/lock-screen-suspend-hibernate -n -t bool -s false 2>/dev/null || true

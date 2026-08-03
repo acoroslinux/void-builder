@@ -1,11 +1,21 @@
 {
-  "package_sources": {
-    "official": [
-      "xorg-minimal",
-      "xorg-fonts",
-      "xf86-input-libinput",
-      "xorg-video-drivers",
-      "xf86-video-fbdev"
-    ]
-  }
+  "name": "xorg",
+  "description": "X11 display server, input/video drivers, and associated utilities",
+  "_comment": "Note: Core X11 server packages are active defaults in 'packages'. Extra X11 utilities (xsel, xdotool, xcompmgr) are listed in 'optional_packages' for easy enablement.",
+  "packages": [
+    "xorg-minimal",
+    "xorg-fonts",
+    "xf86-input-libinput",
+    "xorg-video-drivers",
+    "xf86-video-fbdev",
+    "xrandr",
+    "xrdb",
+    "arandr",
+    "xclip"
+  ],
+  "optional_packages": [
+    "xsel",
+    "xdotool",
+    "xcompmgr"
+  ]
 }

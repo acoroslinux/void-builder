@@ -1,0 +1,29 @@
+{
+  "name": "networking",
+  "description": "Network administration tools, diagnostics, VPNs, Firewalls, and remote management",
+  "_comment": "Note: Core networking tools are active defaults in 'packages'. Advanced diagnostic tools (Netcat, Socat, Ettercap) are listed in 'optional_packages' for easy enablement.",
+  "packages": [
+    "network-manager-applet",
+    "nmap",
+    "wireshark",
+    "wireguard-tools",
+    "openvpn",
+    "traceroute",
+    "tcpdump",
+    "iperf3",
+    "nfs-utils",
+    "samba",
+    "cifs-utils",
+    "openssh",
+    "filezilla",
+    "ufw",
+    "gufw",
+    "bind-utils",
+    "net-tools"
+  ],
+  "optional_packages": [
+    "netcat",
+    "socat",
+    "ettercap"
+  ]
+}

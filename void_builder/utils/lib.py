@@ -1,6 +1,4 @@
-"""
-lib.py - Central utility library for void_builder.
-"""
+from __future__ import annotations
 
 import os
 import platform
@@ -180,13 +178,36 @@ def cleanup_chroot(rootfs):
 # Static binary helpers (xbps, proot)
 # ---------------------------------------------------------------------------
 
+def _download_file(url: str, dest_path: str, timeout: int = 30) -> None:
+    """Safely download a file via HTTP/HTTPS with custom User-Agent and timeout."""
+    import urllib.request
+    req = urllib.request.Request(
+        url,
+        headers={"User-Agent": "Void-Builder/1.0 (Linux)"}
+    )
+    tmp_path = f"{dest_path}.tmp"
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as response, open(tmp_path, "wb") as out_file:
+            if response.status != 200:
+                raise RuntimeError(f"HTTP Error {response.status}: {response.reason}")
+            import shutil
+            shutil.copyfileobj(response, out_file)
+        os.replace(tmp_path, dest_path)
+    except Exception:
+        if os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
+        raise
+
+
 def ensure_static_xbps(tools_dir: str | None = None, force_update: bool = False) -> str:
     """Make sure the static `xbps-install.static` binary is present.
 
     If missing or if force_update is True, it downloads the latest xbps-static tarball for the host
     architecture from the official mirror, extracts it, and returns the path.
     """
-    import urllib.request
     tools_dir = tools_dir or get_tools_dir()
     ensure_dir(tools_dir)
     helper_path = os.path.join(tools_dir, "usr", "bin", "xbps-install.static")
@@ -199,7 +220,7 @@ def ensure_static_xbps(tools_dir: str | None = None, force_update: bool = False)
     tmp_tar = os.path.join(tools_dir, f"xbps-static-{arch}.tar.xz")
     info_msg(f"Downloading static xbps from {url}...")
     try:
-        urllib.request.urlretrieve(url, tmp_tar)
+        _download_file(url, tmp_tar)
     except Exception as e:
         warn_msg(f"Failed to download static xbps tarball: {e}")
         if os.path.exists(helper_path):
@@ -229,7 +250,6 @@ def ensure_proot(tools_dir: str | None = None, force_update: bool = False) -> st
 
     If missing or if force_update is True, it downloads proot from the official GitHub releases page.
     """
-    import urllib.request
     tools_dir = tools_dir or get_tools_dir()
     ensure_dir(tools_dir)
     proot_bin = os.path.join(tools_dir, "proot")
@@ -240,7 +260,7 @@ def ensure_proot(tools_dir: str | None = None, force_update: bool = False) -> st
     url = "https://github.com/proot-me/proot/releases/latest/download/proot"
     info_msg(f"Downloading proot static binary from {url}...")
     try:
-        urllib.request.urlretrieve(url, proot_bin)
+        _download_file(url, proot_bin)
     except Exception as e:
         warn_msg(f"Failed to download proot: {e}")
         if os.path.exists(proot_bin):
@@ -279,28 +299,28 @@ def map_xbps_arch(arch: str) -> str:
 
 def filter_repositories(repos: list, arch: str) -> list:
     """Filter repositories to only keep those compatible with the target architecture/libc."""
-    canonical_arch = map_xbps_arch(arch)
+    canonical_arch = map_xbps_arch(arch).lower()
     is_musl = "musl" in canonical_arch
-    is_arm = any(x in canonical_arch for x in ("aarch64", "armv7l", "armv6l"))
+    base_arch = canonical_arch.replace("-musl", "")
     
     filtered = []
     for r in repos:
         r_lower = r.lower()
         # If target is musl, repository must contain musl, unless it's a custom/local repo
         if "repo-default.voidlinux.org" in r_lower:
-            if is_arm:
+            if base_arch in ("aarch64", "armv7l", "armv6l"):
                 if is_musl:
-                    if "aarch64/musl" in r_lower or "musl/aarch64" in r_lower:
+                    if f"{base_arch}/musl" in r_lower or f"musl/{base_arch}" in r_lower:
                         filtered.append(r)
                 else:
-                    if "aarch64" in r_lower and "musl" not in r_lower:
+                    if base_arch in r_lower and "musl" not in r_lower:
                         filtered.append(r)
             else:
                 if is_musl:
-                    if "musl" in r_lower and "aarch64" not in r_lower:
+                    if "musl" in r_lower and not any(a in r_lower for a in ("aarch64", "armv7l", "armv6l")):
                         filtered.append(r)
                 else:
-                    if "musl" not in r_lower and "aarch64" not in r_lower:
+                    if "musl" not in r_lower and not any(a in r_lower for a in ("aarch64", "armv7l", "armv6l")):
                         filtered.append(r)
         else:
             # Keep custom/local repositories as-is
@@ -308,11 +328,11 @@ def filter_repositories(repos: list, arch: str) -> list:
             
     # Fallback to official mirror defaults if filtered list is empty
     if not filtered:
-        if is_arm:
+        if base_arch in ("aarch64", "armv7l", "armv6l"):
             if is_musl:
-                filtered.append("https://repo-default.voidlinux.org/current/aarch64/musl")
+                filtered.append(f"https://repo-default.voidlinux.org/current/{base_arch}/musl")
             else:
-                filtered.append("https://repo-default.voidlinux.org/current/aarch64")
+                filtered.append(f"https://repo-default.voidlinux.org/current/{base_arch}")
         else:
             if is_musl:
                 filtered.append("https://repo-default.voidlinux.org/current/musl")

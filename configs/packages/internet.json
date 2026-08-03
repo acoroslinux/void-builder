@@ -1,0 +1,24 @@
+{
+  "name": "internet",
+  "description": "Web browsers, email clients, communication apps, networking, and file transfers (Firefox, Chromium, Thunderbird, Telegram, Torrent, FileZilla)",
+  "_comment": "Note: Primary internet tools are active defaults in 'packages'. Additional tools (Lynx, Irssi, Mosh) are listed in 'optional_packages' for easy enablement.",
+  "packages": [
+    "firefox",
+    "chromium",
+    "epiphany",
+    "thunderbird",
+    "telegram-desktop",
+    "element-desktop",
+    "hexchat",
+    "qbittorrent",
+    "transmission-gtk",
+    "filezilla",
+    "yt-dlp",
+    "tor"
+  ],
+  "optional_packages": [
+    "lynx",
+    "irssi",
+    "mosh"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "name": "gaming",
+  "description": "Gaming and emulation tools for Linux (Steam, Lutris, Wine, MangoHud, GameMode, RetroArch)",
+  "_comment": "Note: Core gaming platforms are active defaults in 'packages'. Extra game dev/emulators (GDevelop, Godot, PCSX2, RPCS3) are listed in 'optional_packages' for easy enablement.",
+  "packages": [
+    "steam",
+    "lutris",
+    "wine",
+    "winetricks",
+    "mangohud",
+    "gamemode",
+    "retroarch"
+  ],
+  "optional_packages": [
+    "gdevelop",
+    "godot",
+    "pcsx2",
+    "rpcs3"
+  ]
+}

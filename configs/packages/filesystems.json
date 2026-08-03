@@ -1,12 +1,24 @@
 {
-  "package_sources": {
-    "official": [
-      "dosfstools",
-      "mtools",
-      "ntfs-3g",
-      "exfat-utils",
-      "xfsprogs",
-      "f2fs-tools"
-    ]
-  }
+  "name": "filesystems",
+  "description": "Support and management utilities for various filesystems (FAT, NTFS, exFAT, XFS, F2FS, Btrfs, ext4, Bcachefs, Parted, GPT)",
+  "_comment": "Note: Core filesystem tools are active defaults in 'packages'. Specialized tools (ZFS, ddrescue, testdisk) are listed in 'optional_packages' for easy enablement.",
+  "packages": [
+    "dosfstools",
+    "mtools",
+    "ntfs-3g",
+    "exfatprogs",
+    "xfsprogs",
+    "f2fs-tools",
+    "btrfs-progs",
+    "e2fsprogs",
+    "squashfs-tools",
+    "bcachefs-tools",
+    "parted",
+    "gptfdisk"
+  ],
+  "optional_packages": [
+    "zfs",
+    "ddrescue",
+    "testdisk"
+  ]
 }

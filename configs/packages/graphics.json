@@ -1,0 +1,23 @@
+{
+  "name": "graphics",
+  "description": "Raster & vector graphic design (GIMP, Inkscape), image viewing (Viewnior) and screenshots (Flameshot)",
+  "_comment": "Note: GIMP, Inkscape, Viewnior, and Flameshot are active defaults. Advanced graphics tools (Krita, Blender, Darktable, RawTherapee, Shotwell, DigiKam, ImageMagick) are listed in 'optional_packages' for easy enablement.",
+  "packages": [
+    "gimp",
+    "inkscape",
+    "viewnior",
+    "flameshot"
+  ],
+  "optional_packages": [
+    "krita",
+    "blender",
+    "darktable",
+    "rawtherapee",
+    "shotwell",
+    "digikam",
+    "imagemagick",
+    "optipng",
+    "pngcrush",
+    "feh"
+  ]
+}

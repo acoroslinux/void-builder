@@ -1,0 +1,22 @@
+{
+  "name": "wayland",
+  "description": "Components and utilities for Wayland display protocol environments",
+  "_comment": "Note: Core Wayland packages are active defaults in 'packages'. Extra Wayland utilities (Wdisplays, Kanshi, Cliphist) are listed in 'optional_packages' for easy enablement.",
+  "packages": [
+    "wayland",
+    "wayland-protocols",
+    "wl-clipboard",
+    "grim",
+    "slurp",
+    "mako",
+    "waybar",
+    "wofi",
+    "swaybg",
+    "xwayland"
+  ],
+  "optional_packages": [
+    "wdisplays",
+    "kanshi",
+    "cliphist"
+  ]
+}

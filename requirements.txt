@@ -1,0 +1,6 @@
+# Runtime / Build dependencies
+pyyaml>=6.0
+
+# Development and testing dependencies
+pytest>=7.0.0
+pytest-cov>=4.0.0

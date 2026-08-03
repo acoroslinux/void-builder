@@ -1,10 +1,31 @@
 {
-  "package_sources": {
-    "official": [
-      "alsa-utils",
-      "pipewire",
-      "pavucontrol",
-      "wireplumber"
-    ]
-  }
+  "name": "multimedia",
+  "description": "Audio/video servers, players, codecs, and media production tools (PipeWire, VLC, MPV, OBS Studio, FFmpeg)",
+  "_comment": "Note: Audio/video defaults are active in 'packages'. Advanced production tools (Handbrake, Audacity, Ardour) are listed in 'optional_packages' for easy enablement.",
+  "packages": [
+    "pipewire",
+    "wireplumber",
+    "alsa-pipewire",
+    "alsa-utils",
+    "pavucontrol",
+    "pulseaudio-utils",
+    "vlc",
+    "mpv",
+    "celluloid",
+    "audacious",
+    "obs-studio",
+    "kdenlive",
+    "ffmpeg",
+    "flac",
+    "gst-plugins-base1",
+    "gst-plugins-good1",
+    "gst-plugins-bad1",
+    "gst-plugins-ugly1",
+    "gst-libav"
+  ],
+  "optional_packages": [
+    "handbrake",
+    "audacity",
+    "ardour"
+  ]
 }

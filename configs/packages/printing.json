@@ -1,9 +1,18 @@
 {
-  "package_sources": {
-    "official": [
-      "cups",
-      "cups-filters",
-      "system-config-printer"
-    ]
-  }
+  "name": "printing",
+  "description": "Printing and scanning support (CUPS, Print Filters, HPLIP, GUI Configuration, Simple-Scan)",
+  "_comment": "Note: CUPS and print stack packages are active defaults in 'packages'. Extra driver databases (Foomatic DB, Gutenprint) are listed in 'optional_packages' for easy enablement.",
+  "packages": [
+    "cups",
+    "cups-filters",
+    "cups-pdf",
+    "cups-pk-helper",
+    "system-config-printer",
+    "hplip",
+    "simple-scan"
+  ],
+  "optional_packages": [
+    "foomatic-db",
+    "gutenprint"
+  ]
 }

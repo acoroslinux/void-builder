@@ -1,0 +1,18 @@
+{
+  "name": "office",
+  "description": "Office and productivity suite (LibreOffice, PDF Reader, Scanning, Dictionaries)",
+  "_comment": "Note: Core office apps are active defaults in 'packages'. Extra productivity apps (GNOME Calculator, XPDF, Scribus) are listed in 'optional_packages' for easy enablement.",
+  "packages": [
+    "libreoffice",
+    "hunspell",
+    "hunspell-en_US",
+    "evince",
+    "simple-scan",
+    "geany"
+  ],
+  "optional_packages": [
+    "gnome-calculator",
+    "xpdf",
+    "scribus"
+  ]
+}

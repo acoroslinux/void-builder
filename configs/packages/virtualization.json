@@ -1,0 +1,20 @@
+{
+  "name": "virtualization",
+  "description": "Virtualization and container engines (QEMU/KVM, Libvirt, Virt-Manager, Docker, Podman)",
+  "_comment": "Note: Core virtualization tools are active defaults in 'packages'. Additional engines (VirtualBox OSE, Vagrant) are listed in 'optional_packages' for easy enablement.",
+  "packages": [
+    "qemu",
+    "libvirt",
+    "virt-manager",
+    "virt-viewer",
+    "bridge-utils",
+    "dnsmasq",
+    "docker",
+    "docker-compose",
+    "podman"
+  ],
+  "optional_packages": [
+    "virtualbox-ose",
+    "vagrant"
+  ]
+}
