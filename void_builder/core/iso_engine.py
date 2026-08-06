@@ -653,14 +653,22 @@ class ISOBuilder:
             final_tarball = self.engine.export_tarball(output_path)
             if self.config.get("create_tarball"):
                 cache_dest = resolve_from_project(f"workdir/cache/tarballs/void-base-{self.arch}.tar.xz")
-                cache_dest.parent.mkdir(parents=True, exist_ok=True)
-                if Path(final_tarball).exists() and Path(final_tarball) != cache_dest:
-                    import shutil
-                    try:
-                        shutil.copy2(final_tarball, cache_dest)
-                        logger.info(f"[tarball] Saved reusable base stage tarball to cache: {cache_dest}")
-                    except Exception as e:
-                        logger.warning(f"[tarball] Could not copy stage tarball to cache: {e}")
+                stage_seed_dest = resolve_from_project(f"output/stage_seeds/void-base-{self.arch}.tar.xz")
+                for dest in (cache_dest, stage_seed_dest):
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    if Path(final_tarball).exists() and Path(final_tarball) != dest:
+                        import shutil
+                        try:
+                            shutil.copy2(final_tarball, dest)
+                            logger.info(f"[tarball] Saved stage seed tarball to: {dest}")
+                            # Also copy checksum files if they exist
+                            src_p = Path(final_tarball)
+                            for ext in (".sha256", ".md5", ".manifest.json"):
+                                src_c = src_p.parent / f"{src_p.name}{ext}"
+                                if src_c.exists():
+                                    shutil.copy2(src_c, dest.parent / f"{dest.name}{ext}")
+                        except Exception as e:
+                            logger.warning(f"[tarball] Could not copy stage tarball to {dest}: {e}")
             if output_format == "tarball":
                 final_file = final_tarball
             else:

@@ -70,6 +70,7 @@ class StageManager:
             candidates = [
                 self.cache_dir / f"void-base-{self.arch}.tar.xz",
                 self.cache_dir / f"void-base-{self.arch}.tar.gz",
+                resolve_from_project(f"output/stage_seeds/void-base-{self.arch}.tar.xz"),
                 resolve_from_project(f"output/void-base-{self.arch}.tar.xz"),
                 resolve_from_project(f"cache/tarballs/void-base-{self.arch}.tar.xz"),
             ]
