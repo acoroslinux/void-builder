@@ -46,6 +46,8 @@ class BuildOrchestrator:
         update_toolchain: bool = False,
         compression: str = "xz",
         generate_manifest: bool = True,
+        use_tarball: Optional[str] = None,
+        create_tarball: bool = False,
     ):
         VALID_ARCHS = (
             "x86_64", "x86_64-musl",
@@ -82,6 +84,8 @@ class BuildOrchestrator:
         self.update_toolchain = update_toolchain
         self.compression = compression
         self.generate_manifest = generate_manifest
+        self.use_tarball = use_tarball
+        self.create_tarball = create_tarball
 
         self.config_loader = ConfigLoader()
         self.builder: Optional[ISOBuilder] = None
@@ -164,9 +168,11 @@ class BuildOrchestrator:
         if not self.config:
             raise BuildOrchestratorError("The generated configuration is null or invalid.")
 
-        # Apply compression and manifest options to config
+        # Apply compression, manifest, and tarball options to config
         self.config._data.setdefault("iso", {})["compression_type"] = self.compression
         self.config._data["generate_manifest"] = self.generate_manifest
+        self.config._data["use_tarball"] = self.use_tarball
+        self.config._data["create_tarball"] = self.create_tarball
 
         # Inject command line custom repositories
         if self.repositories:

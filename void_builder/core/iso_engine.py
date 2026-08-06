@@ -245,8 +245,27 @@ class VoidEngine(BaseEngine):
             self.logger.error("No chroot manager available to install packages.")
             raise ISOBuilderError("ChrootManager missing.")
 
+        # Check for pre-built stage tarball option (--use-tarball / --tarball)
+        use_tarball_arg = self._cfg_get("use_tarball")
+        if use_tarball_arg:
+            from void_builder.core.stage_manager import StageManager
+            stage_manager = StageManager(
+                workdir=self.chroot_path.parent,
+                mode=getattr(self.toolchain, "mode", "mock"),
+                arch=self.arch,
+            )
+            tarball_path = stage_manager.resolve_tarball(use_tarball_arg)
+            stage_manager.extract_tarball(tarball_path, self.chroot_path)
+
         # Mount virtual filesystems BEFORE installing packages so that python compilation hooks have /dev/shm
         chroot_manager.mount()
+
+        if use_tarball_arg and getattr(self.toolchain, "mode", "mock") == "real":
+            self.logger.info("[Tarball] Updating base packages inside extracted chroot via xbps-install -Syu...")
+            try:
+                chroot_manager.run_command("xbps-install -Syu -y", check=False)
+            except Exception as e:
+                self.logger.warning(f"[Tarball] System update in chroot warned: {e}")
 
         repos = self._cfg_get("repositories", []) + self._cfg_get("custom_repositories", [])
         
@@ -630,8 +649,23 @@ class ISOBuilder:
         self.engine.build_bootloaders(str(workdir_path))
 
         # 6. Finalize ISO / IMG / Tarball file
-        if output_format == "tarball":
-            final_file = self.engine.export_tarball(output_path)
+        if output_format == "tarball" or self.config.get("create_tarball"):
+            final_tarball = self.engine.export_tarball(output_path)
+            if self.config.get("create_tarball"):
+                cache_dest = resolve_from_project(f"workdir/cache/tarballs/void-base-{self.arch}.tar.xz")
+                cache_dest.parent.mkdir(parents=True, exist_ok=True)
+                if Path(final_tarball).exists() and Path(final_tarball) != cache_dest:
+                    import shutil
+                    try:
+                        shutil.copy2(final_tarball, cache_dest)
+                        logger.info(f"[tarball] Saved reusable base stage tarball to cache: {cache_dest}")
+                    except Exception as e:
+                        logger.warning(f"[tarball] Could not copy stage tarball to cache: {e}")
+            if output_format == "tarball":
+                final_file = final_tarball
+            else:
+                self.engine.finalize_isofile(output_path)
+                final_file = str(resolve_from_project(output_path))
         else:
             self.engine.finalize_isofile(output_path)
             final_file = str(resolve_from_project(output_path))

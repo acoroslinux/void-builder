@@ -244,6 +244,25 @@ def main():
         help="Disable automatic checksum and manifest generation.",
     )
 
+    # Base System Tarball & Stage Seed Pipeline
+    parser.add_argument(
+        "--use-tarball",
+        "--tarball",
+        dest="use_tarball",
+        type=str,
+        nargs="?",
+        const="y",
+        default=None,
+        help="Use a pre-built base system stage tarball (local path, URL, or 'y'/'auto') to skip downloading base packages.",
+    )
+
+    parser.add_argument(
+        "--create-tarball",
+        dest="create_tarball",
+        action="store_true",
+        help="Save the bootstrapped base rootfs as a stage tarball (.tar.xz) for rapid future builds.",
+    )
+
     # Calamares Pipeline
     parser.add_argument(
         "--build-calamares",
@@ -413,6 +432,8 @@ def main():
         update_toolchain=args.update_toolchain,
         compression=args.compression,
         generate_manifest=args.generate_manifest,
+        use_tarball=args.use_tarball,
+        create_tarball=args.create_tarball,
     )
 
     # Handle Validation Mode (--check / --validate)
@@ -465,6 +486,10 @@ def main():
         print(f"Platforms:  {', '.join(args.platform)}")
     if args.repository:
         print(f"Repos:      {', '.join(args.repository)} (Custom)")
+    if args.use_tarball:
+        print(f"Tarball Src: {args.use_tarball}")
+    if args.create_tarball:
+        print("Save Tarball: enabled")
     if args.include:
         print(f"Includes:   {', '.join(args.include)}")
     print(f"------------------------------\n")
