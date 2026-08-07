@@ -258,7 +258,12 @@ class BuildOrchestrator:
             self._setup()
 
             print(f"\n[STEP 1/1] Running build pipeline (format: {output_format})...")
-            output_path = Path(output_iso)
+            output_p = Path(output_iso)
+            if not output_p.is_absolute() and not output_iso.startswith("output/"):
+                output_path = resolve_from_project("output") / output_p
+            else:
+                output_path = resolve_from_project(output_iso)
+
             result_iso = self.builder.build(output_path, str(self.workdir), output_format=output_format)
 
             print("\n✅ BUILD SUCCEEDED!")
