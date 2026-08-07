@@ -40,9 +40,9 @@
     "noto-fonts-emoji",
     "dejavu-fonts-ttf",
     "liberation-fonts-ttf",
-    "fontawesome-fonts",
+    "font-awesome",
     "cantarell-fonts",
-    "ubuntu-font-family"
+    "ttf-ubuntu-font-family"
   ],
   "optional_packages": [
     "unrar",

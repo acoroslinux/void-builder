@@ -4,7 +4,7 @@
   "_comment": "Note: Core networking tools are active defaults in 'packages'. Advanced diagnostic tools (Netcat, Socat, Ettercap) are listed in 'optional_packages' for easy enablement.",
   "packages": [
     "network-manager-applet",
-    "nmap",
+    "tcpdump",
     "wireshark",
     "wireguard-tools",
     "openvpn",

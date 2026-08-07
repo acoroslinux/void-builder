@@ -9,10 +9,10 @@
     "grim",
     "slurp",
     "mako",
-    "waybar",
+    "Waybar",
     "wofi",
     "swaybg",
-    "xwayland"
+    "xorg-server-xwayland"
   ],
   "optional_packages": [
     "wdisplays",
