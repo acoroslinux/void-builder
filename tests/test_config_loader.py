@@ -44,5 +44,14 @@ class TestConfigLoader(unittest.TestCase):
         self.assertTrue(any("nonexistent_desktop_12345" in err for err in report["errors"]))
 
 
+    def test_config_assembler_comma_separated_profiles(self):
+        assembler = ConfigAssembler("configs")
+        cfg = assembler.assemble("x86_64", package_profiles=["desktop-essentials,internet"])
+        self.assertIsNotNone(cfg)
+        official_pkgs = cfg.get("package_sources.official", [])
+        self.assertIn("octoxbps", official_pkgs)  # from desktop-essentials
+        self.assertIn("firefox", official_pkgs)    # from internet
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -287,15 +287,46 @@ class ConfigAssembler:
             prof_data = self._load_optional_profile("packages", default_profile)
             if prof_data:
                 self._deep_merge(self.master_config, prof_data)
+                if "packages" in prof_data and isinstance(prof_data["packages"], list):
+                    package_sources = self.master_config.setdefault("package_sources", {})
+                    official_pkgs = package_sources.setdefault("official", [])
+                    for pkg in prof_data["packages"]:
+                        pkg_name = pkg.get("name") if isinstance(pkg, dict) else pkg
+                        if pkg_name and pkg_name not in official_pkgs:
+                            official_pkgs.append(pkg_name)
 
-        for profile_name in package_profiles or []:
+        # Helper to flatten and split comma-separated profile strings (e.g. "profile1,profile2")
+        def flatten_profiles(profiles_input: Optional[List[str]]) -> List[str]:
+            if not profiles_input:
+                return []
+            flattened = []
+            for item in profiles_input:
+                if isinstance(item, str):
+                    for sub in item.split(","):
+                        cleaned = sub.strip()
+                        if cleaned and cleaned not in flattened:
+                            flattened.append(cleaned)
+                elif isinstance(item, list):
+                    for sub in flatten_profiles(item):
+                        if sub not in flattened:
+                            flattened.append(sub)
+            return flattened
+
+        for profile_name in flatten_profiles(package_profiles):
             if profile_name in ("base", "filesystems"):
                 continue
             package_data = self._load_optional_profile("packages", profile_name)
             if package_data:
                 self._deep_merge(self.master_config, package_data)
+                if "packages" in package_data and isinstance(package_data["packages"], list):
+                    package_sources = self.master_config.setdefault("package_sources", {})
+                    official_pkgs = package_sources.setdefault("official", [])
+                    for pkg in package_data["packages"]:
+                        pkg_name = pkg.get("name") if isinstance(pkg, dict) else pkg
+                        if pkg_name and pkg_name not in official_pkgs:
+                            official_pkgs.append(pkg_name)
 
-        for profile_name in service_profiles or []:
+        for profile_name in flatten_profiles(service_profiles):
             services_data = self._load_optional_profile("services", profile_name)
             if services_data:
                 self._deep_merge(self.master_config, services_data)
@@ -475,9 +506,26 @@ class ConfigAssembler:
                 report["valid"] = False
                 report["errors"].append(f"Bootloader profile '{target_bootloader}' missing at {bl_path}")
 
+        # Helper to flatten and split comma-separated profile strings
+        def flatten_names(names_input: Optional[List[str]]) -> List[str]:
+            if not names_input:
+                return []
+            res = []
+            for item in names_input:
+                if isinstance(item, str):
+                    for sub in item.split(","):
+                        c = sub.strip()
+                        if c and c not in res:
+                            res.append(c)
+                elif isinstance(item, list):
+                    for sub in flatten_names(item):
+                        if sub not in res:
+                            res.append(sub)
+            return res
+
         # Check package profiles
         if package_profiles:
-            for pkg_prof in package_profiles:
+            for pkg_prof in flatten_names(package_profiles):
                 p_path = self.config_root / "packages" / f"{pkg_prof}.json"
                 if not p_path.exists():
                     report["valid"] = False
@@ -485,7 +533,7 @@ class ConfigAssembler:
 
         # Check service profiles
         if service_profiles:
-            for srv_prof in service_profiles:
+            for srv_prof in flatten_names(service_profiles):
                 s_path = self.config_root / "services" / f"{srv_prof}.json"
                 if not s_path.exists():
                     report["valid"] = False
