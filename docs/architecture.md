@@ -108,6 +108,17 @@ Output Artifacts (.iso / .img / .tar.xz + Manifests)
 
 ---
 
+### Module: `void_builder.core.stage_manager`
+
+#### `StageManager`
+- **Role**: Manages base system stage tarballs (`void-base-<arch>.tar.xz`) for rapid ISO builds.
+- **Methods**:
+  - `resolve_tarball(tarball_arg)`: Resolves file path, URI (`file://`), HTTP/HTTPS URL, or automatic candidate lookup (`y`/`auto`).
+  - `extract_tarball(tarball_path, target_root)`: Unpacks stage seed into target rootfs preserving permissions (`tar xpf ... --numeric-owner --xattrs-include='*.*'`).
+  - `create_stage_tarball(source_root, output_tarball)`: Packages clean rootfs into compressed stage tarball (`.tar.xz`, `.tar.gz`, `.tar.zst`).
+
+---
+
 ### Module: `void_builder.core.iso_engine`
 
 #### `ISOEngine`
@@ -125,7 +136,7 @@ Output Artifacts (.iso / .img / .tar.xz + Manifests)
 - **Role**: Handles PC ISO 9660 hybrid ISO image building (`x86_64`, `i686`, `aarch64`).
 - **Methods**:
   - `_create_squashfs()`: Invokes `mksquashfs` with configured compression (`xz`, `zstd`, `gzip`).
-  - `finalize_isofile(output_path)`: Assembles ISO using `xorriso` with BIOS El Torito and UEFI GRUB EFI options.
+  - `finalize_isofile(output_path)`: Assembles ISO using `xorriso` with BIOS El Torito and UEFI GRUB EFI options. Strictly validates xorriso return codes and output media space to prevent corrupted image output.
 
 #### `PlatformEngine(VoidEngine)`
 - **Role**: Handles Single-Board Computer raw disk images (`rpi-aarch64`, `pinebookpro`, `asahi`).

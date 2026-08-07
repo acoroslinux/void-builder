@@ -206,6 +206,64 @@ Desktop profiles specify packages required to build a functional graphical deskt
 
 ---
 
+## 4. Package Bundle Profiles (`configs/packages/`)
+
+Package profiles allow modular bundle composition across 16 categories (`desktop-essentials`, `dev-tools`, `filesystems`, `multimedia`, `office`, `gaming`, `networking`, `virtualization`, `graphics`, `printing`, `xorg`, `wayland`, `internet`, `custom-user`, `base`, `installer`).
+
+### Automatic Profile Defaults
+- Both **`base.json`** and **`filesystems.json`** are loaded automatically by default for **all** builds to guarantee base system utilities and filesystem driver compatibility (`btrfs-progs`, `xfsprogs`, `f2fs-tools`, `ext4`, `ntfs-3g`, `exfatprogs`, `dosfstools`, `parted`, `gptfdisk`, etc.).
+
+### Package Profile JSON Schema (`packages` + `optional_packages`)
+
+All 16 package profile JSON files follow a clean, standardized schema:
+
+```json
+{
+  "name": "desktop-essentials",
+  "description": "Essential desktop GUI utilities, CLI networking tools, media codecs, archive tools, and rich typography",
+  "_comment": "Note: Core desktop utilities are active defaults in 'packages'. Additional desktop helpers (Picom, Feh, Dmenu, Rofi) are listed in 'optional_packages' for easy enablement.",
+  "packages": [
+    "git",
+    "curl",
+    "wget",
+    "octoxbps",
+    "gparted",
+    "keepassxc",
+    "file-roller",
+    "zip",
+    "unzip",
+    "p7zip",
+    "unar",
+    "tar",
+    "zstd",
+    "ffmpeg",
+    "gst-plugins-base1",
+    "gst-plugins-good1",
+    "gst-plugins-bad1",
+    "gst-plugins-ugly1",
+    "gst-libav",
+    "font-inter",
+    "noto-fonts-ttf",
+    "noto-fonts-cjk",
+    "noto-fonts-emoji",
+    "dejavu-fonts-ttf",
+    "liberation-fonts-ttf",
+    "font-awesome",
+    "cantarell-fonts",
+    "ttf-ubuntu-font-family"
+  ],
+  "optional_packages": [
+    "unrar",
+    "picom",
+    "feh",
+    "dmenu",
+    "rofi"
+  ]
+}
+```
+
+---
+
 ## 5. Runit Service Profiles (`configs/services/`)
 
 Service profiles allow easily toggling background daemons.

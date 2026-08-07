@@ -602,14 +602,30 @@ class VoidEngine(BaseEngine):
         import subprocess
         res = subprocess.run(command, capture_output=True, text=True)
         if res.returncode != 0:
+            err_msg = res.stderr or res.stdout
+            if "exceeds free space" in err_msg or "Image write cancelled" in err_msg:
+                if Path(output_abs).exists():
+                    Path(output_abs).unlink(missing_ok=True)
+                self.logger.error("xorriso failed: Insufficient disk space on destination storage media.")
+                raise ISOBuilderError("xorriso failed: Insufficient disk space on destination storage media.")
+
+            # Only ignore harmless xorriso warnings (like exit code 1 with non-critical notes) if no failure occurred
+            if "FAILURE :" in err_msg or "MISHAP :" in err_msg:
+                if Path(output_abs).exists():
+                    Path(output_abs).unlink(missing_ok=True)
+                self.logger.error(f"xorriso build failed: {err_msg}")
+                raise ISOBuilderError(f"xorriso build failed: {err_msg}")
+
             if Path(output_abs).exists() and Path(output_abs).stat().st_size > 1000000:
                 self.logger.warning(
-                    f"xorriso reported an exit error/crash ({res.stderr}), "
-                    f"but the ISO file was successfully generated at {output_abs}."
+                    f"xorriso reported minor non-fatal exit warning ({err_msg}), "
+                    f"proceeding with generated ISO at {output_abs}."
                 )
             else:
-                self.logger.error(f"xorriso failed: {res.stderr}")
-                raise ISOBuilderError(f"xorriso failed: {res.stderr}")
+                if Path(output_abs).exists():
+                    Path(output_abs).unlink(missing_ok=True)
+                self.logger.error(f"xorriso failed: {err_msg}")
+                raise ISOBuilderError(f"xorriso failed: {err_msg}")
 
         self.logger.info(f"[finalize] Bootable ISO created: {output_abs}")
         self._generate_manifest_and_checksums(output_abs)

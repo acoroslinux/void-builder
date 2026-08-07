@@ -65,6 +65,16 @@ python3 cli.py [ARCHITECTURE] [OPTIONS]
 - **Description**: Compression algorithm for SquashFS container and Dracut initramfs image.
 - **Default**: `xz`
 
+### `--use-tarball [SOURCE]`, `--tarball [SOURCE]`
+- **Description**: Rapidly builds target ISO/image by unpacking a pre-built base system stage seed (`.tar.xz`), running `xbps-install -Syu` inside the chroot, and layering requested desktop/delta package profiles.
+- **Accepted Inputs**:
+  - `y` / `auto` / `true`: Automatically locates cached tarballs in `output/stage_seeds/` or `workdir/cache/tarballs/`.
+  - Local path: `/caminho/para/stage.tar.xz` or `file:///...`
+  - Remote URL: `https://...` (downloads and caches tarball automatically).
+
+### `--create-tarball`
+- **Description**: Saves the bootstrapped base rootfs as a reusable stage seed tarball in `output/stage_seeds/void-base-<arch>.tar.xz` and `workdir/cache/tarballs/void-base-<arch>.tar.xz`.
+
 ### `--generate-manifest` / `--no-manifest`
 - **Description**: Enables/disables creation of `.sha256`, `.md5`, and `.manifest.json` files alongside the output image. Enabled by default.
 
