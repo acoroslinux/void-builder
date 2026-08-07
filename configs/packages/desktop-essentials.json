@@ -19,7 +19,7 @@
     "zip",
     "unzip",
     "p7zip",
-    "unrar",
+    "unar",
     "tar",
     "zstd",
     "ffmpeg",
@@ -45,6 +45,7 @@
     "ubuntu-font-family"
   ],
   "optional_packages": [
+    "unrar",
     "picom",
     "feh",
     "dmenu",
