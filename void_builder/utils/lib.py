@@ -257,10 +257,10 @@ def ensure_static_xbps(tools_dir: str | None = None, force_update: bool = False)
     return helper_path
 
 
-def ensure_proot(tools_dir: str | None = None, force_update: bool = False) -> str:
+def ensure_proot(tools_dir: str | None = None, force_update: bool = False) -> str | None:
     """Ensure the presence of a static `proot` binary.
 
-    If missing or if force_update is True, it downloads proot from the official GitHub releases page.
+    If running as root (euid == 0), native chroot is used instead of proot.
     """
     tools_dir = tools_dir or get_tools_dir()
     ensure_dir(tools_dir)
@@ -269,19 +269,21 @@ def ensure_proot(tools_dir: str | None = None, force_update: bool = False) -> st
     if not force_update and os.path.exists(proot_bin):
         return proot_bin
         
+    if os.geteuid() == 0:
+        info_msg("Running with root privileges (sudo) — native chroot will be used.")
+        return proot_bin
+
     url = "https://github.com/proot-me/proot/releases/latest/download/proot"
     info_msg(f"Downloading proot static binary from {url}...")
     try:
         _download_file(url, proot_bin)
+        os.chmod(proot_bin, 0o755)
+        return proot_bin
     except Exception as e:
-        warn_msg(f"Failed to download proot: {e}")
+        warn_msg(f"Failed to download proot ({e}). Native chroot will be used for root builds.")
         if os.path.exists(proot_bin):
-            warn_msg("Using existing proot as fallback.")
             return proot_bin
-        raise
-        
-    os.chmod(proot_bin, 0o755)
-    return proot_bin
+        return None
 
 
 def get_mklive_dir():
