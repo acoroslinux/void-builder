@@ -216,17 +216,29 @@ def ensure_static_xbps(tools_dir: str | None = None, force_update: bool = False)
         return helper_path
 
     arch = get_host_arch()
-    url = f"https://download.rootls.de/xbps-static/{arch}/xbps-static-latest.{arch}.tar.xz"
+    arch_key = f"{arch}-musl" if not arch.endswith("-musl") else arch
+    primary_url = f"https://repo-default.voidlinux.org/static/xbps-static-latest.{arch_key}.tar.xz"
+    fallback_url = f"https://repo-default.voidlinux.org/static/xbps-static-latest.{arch}.tar.xz"
+
     tmp_tar = os.path.join(tools_dir, f"xbps-static-{arch}.tar.xz")
-    info_msg(f"Downloading static xbps from {url}...")
+    info_msg(f"Downloading static xbps from {primary_url}...")
     try:
-        _download_file(url, tmp_tar)
-    except Exception as e:
-        warn_msg(f"Failed to download static xbps tarball: {e}")
-        if os.path.exists(helper_path):
-            warn_msg("Using existing xbps-install.static as fallback.")
-            return helper_path
+        _download_file(primary_url, tmp_tar)
+    except PermissionError:
         raise
+    except Exception as e:
+        if os.path.exists(helper_path):
+            warn_msg(f"Download failed ({e}), using existing xbps-install.static as fallback.")
+            return helper_path
+        warn_msg(f"Failed primary static xbps download ({e}), trying fallback URL {fallback_url}...")
+        try:
+            _download_file(fallback_url, tmp_tar)
+        except Exception as err:
+            warn_msg(f"Failed to download static xbps tarball: {err}")
+            if os.path.exists(helper_path):
+                warn_msg("Using existing xbps-install.static as fallback.")
+                return helper_path
+            raise
     
     # Extract into tools_dir preserving directory layout
     rc, _, stderr = CommandRunner.run(["tar", "-xJf", tmp_tar, "-C", tools_dir], check=False, stream=True)

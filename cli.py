@@ -313,8 +313,10 @@ def main():
         env = os.environ.copy()
         env["PATH"] = f"{bin_dir}:{env.get('PATH', '')}"
             
-        if not workdir.exists():
+        if not workdir.exists() or not (workdir / "xbps-src").exists():
             print("[Calamares] Cloning void-packages repository (depth=1)...")
+            if workdir.exists():
+                shutil.rmtree(workdir)
             workdir.parent.mkdir(parents=True, exist_ok=True)
             subprocess.run(["git", "clone", "--depth", "1", "https://github.com/void-linux/void-packages.git", str(workdir)], check=True)
         else:
