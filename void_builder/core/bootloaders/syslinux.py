@@ -70,29 +70,43 @@ class SyslinuxBootloader:
         isolinux_dir.mkdir(parents=True, exist_ok=True)
 
         mklive_dir = resolve_from_project("configs/assets")
-        template_path = mklive_dir / "isolinux" / "isolinux.cfg.in"
+        template_path = resolve_from_project("configs/bootloaders/templates/isolinux.cfg.in")
+        if not template_path.exists():
+            template_path = mklive_dir / "isolinux" / "isolinux.cfg.in"
         if not template_path.exists():
             logger.error(f"[SYSLINUX] isolinux.cfg.in template not found at {template_path}")
             return False
 
         # Gather config variables
         boot_title = self._cfg_get("boot_title", "Void Linux")
+        desktop = str(self._cfg_get("desktop", "")).upper()
         keymap = self._cfg_get("keymap", "us")
         locale = self._cfg_get("locale", "en_US.UTF-8")
         boot_cmdline = self._cfg_get("boot_cmdline", "")
         arch = self._cfg_get("platform_specific.architecture", "x86_64")
         iso_label = self._cfg_get("system.iso_label", "VOID_LIVE")
+        live_user = self._cfg_get("live_user", "liveuser")
 
         # Read template
         cfg = template_path.read_text(encoding="utf-8")
-        cfg = cfg.replace("@@SPLASHIMAGE@@", "splash.png")
-        cfg = cfg.replace("@@BOOT_TITLE@@", boot_title)
-        cfg = cfg.replace("@@KERNVER@@", self.kernel_version)
-        cfg = cfg.replace("@@ARCH@@", arch)
-        cfg = cfg.replace("@@KEYMAP@@", keymap)
-        cfg = cfg.replace("@@LOCALE@@", locale)
-        cfg = cfg.replace("@@BOOT_CMDLINE@@", boot_cmdline)
-        cfg = cfg.replace("@@CDLABEL@@", iso_label)
+        replacements = {
+            "@@SPLASHIMAGE@@": "splash.png",
+            "@@BOOT_TITLE@@": boot_title,
+            "@@DISTRO_NAME@@": boot_title,
+            "@@DESKTOP@@": desktop,
+            "@@KERNVER@@": self.kernel_version,
+            "@@ARCH@@": arch,
+            "@@KEYMAP@@": keymap,
+            "@@LOCALE@@": locale,
+            "@@LIVE_USER@@": live_user,
+            "@@BOOT_CMDLINE@@": boot_cmdline,
+            "@@KERNEL_PARAMS@@": boot_cmdline,
+            "@@CDLABEL@@": iso_label,
+            "@@VOL_ID@@": iso_label,
+            "@@ISO_LABEL@@": iso_label,
+        }
+        for k, v in replacements.items():
+            cfg = cfg.replace(k, str(v))
 
         (isolinux_dir / "isolinux.cfg").write_text(cfg, encoding="utf-8")
         logger.info("[SYSLINUX] Generated isolinux.cfg")

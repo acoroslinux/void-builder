@@ -66,6 +66,31 @@ class Grub2Bootloader:
         except Exception:
             return default
 
+    def _get_template_placeholders(self) -> Dict[str, str]:
+        keymap = self._cfg_get("keymap", "us")
+        locale = self._cfg_get("locale", "en_US.UTF-8")
+        boot_cmdline = self._cfg_get("boot_cmdline", "")
+        boot_title = self._cfg_get("boot_title", "Void Linux")
+        desktop = str(self._cfg_get("desktop", "")).upper()
+        arch = self._cfg_get("platform_specific.architecture", "x86_64")
+        iso_label = self._cfg_get("system.iso_label", "VOID_LIVE")
+        live_user = self._cfg_get("live_user", "liveuser")
+
+        return {
+            "@@VOL_ID@@": iso_label,
+            "@@ISO_LABEL@@": iso_label,
+            "@@BOOT_TITLE@@": boot_title,
+            "@@DISTRO_NAME@@": boot_title,
+            "@@DESKTOP@@": desktop,
+            "@@ARCH@@": arch,
+            "@@KERNEL_PARAMS@@": boot_cmdline,
+            "@@BOOT_CMDLINE@@": boot_cmdline,
+            "@@KEYMAP@@": keymap,
+            "@@LOCALE@@": locale,
+            "@@LIVE_USER@@": live_user,
+            "@@SPLASHIMAGE@@": "splash.png"
+        }
+
     def _generate_grub_entries(self) -> str:
         keymap = self._cfg_get("keymap", "us")
         locale = self._cfg_get("locale", "en_US.UTF-8")
@@ -210,6 +235,23 @@ class Grub2Bootloader:
             dest_themes = grub_dir / "themes"
             dest_themes.mkdir(parents=True, exist_ok=True)
             shutil.copytree(custom_theme_src, dest_themes, dirs_exist_ok=True)
+
+        # Check and render templates from configs/bootloaders/templates
+        config_template = resolve_from_project("configs/bootloaders/templates/config.cfg.in")
+        loopback_template = resolve_from_project("configs/bootloaders/templates/loopback.cfg.in")
+        placeholders = self._get_template_placeholders()
+
+        if config_template.exists():
+            config_text = config_template.read_text(encoding="utf-8")
+            for k, v in placeholders.items():
+                config_text = config_text.replace(k, str(v))
+            (grub_dir / "config.cfg").write_text(config_text, encoding="utf-8")
+
+        if loopback_template.exists():
+            loopback_text = loopback_template.read_text(encoding="utf-8")
+            for k, v in placeholders.items():
+                loopback_text = loopback_text.replace(k, str(v))
+            (grub_dir / "loopback.cfg").write_text(loopback_text, encoding="utf-8")
 
         logger.info("[GRUB2] GRUB EFI configured")
         return True
