@@ -558,6 +558,8 @@ class VoidEngine(BaseEngine):
             "-omit-period", "-omit-version-number",
             "-relaxed-filenames", "-allow-lowercase",
             "-volid", iso_label,
+            "-pad", "-padding", "300k",
+            "-partition_offset", "16",
         ]
 
         # Add BIOS boot options if ISOLINUX is present
