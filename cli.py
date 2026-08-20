@@ -309,6 +309,11 @@ def main():
             if not link_name.exists():
                 os.symlink(f.name, link_name)
                 
+        # Fix permissions so the non-root user can traverse and execute the static tools
+        if os.geteuid() == 0:
+            subprocess.run(["chown", "-R", f"{real_user}:{real_user}", str(tools_dir)], check=True)
+            subprocess.run(["chmod", "-R", "a+rx", str(tools_dir)], check=True)
+                
         # Inject our portable tools into PATH
         env = os.environ.copy()
         env["PATH"] = f"{bin_dir}:{env.get('PATH', '')}"
