@@ -590,6 +590,8 @@ def main():
             report = ImageVerifier.verify_platform(args.verify_platform, target_path)
         elif target_path.name.endswith(".iso"):
             report = ImageVerifier.verify_iso(target_path, args.architecture)
+        elif target_path.name.endswith((".img", ".img.xz", ".img.gz", ".raw")):
+            report = ImageVerifier.verify_disk_image(target_path, args.architecture)
         elif target_path.name.endswith((".tar.xz", ".tar.gz", ".tar")):
             report = ImageVerifier.verify_tarball(target_path, args.architecture)
         else:
