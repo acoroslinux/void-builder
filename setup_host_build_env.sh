@@ -2,141 +2,108 @@
 
 # ==============================================================================
 # SCRIPT: setup_host_build_env.sh
-# PURPOSE: Prepares host environment (Gentoo, Void, Arch, Debian, Fedora, openSUSE)
-#          for multi-architecture and cross-architecture ISO/Image builds.
+# PURPOSE: Configures the host system strictly for cross-architecture ISO and
+#          image building (QEMU user-static emulators and binfmt_misc support).
 # ==============================================================================
 
 set -e
 
-# Check if running as root
+# Require root privileges
 if [ "$EUID" -ne 0 ]; then
     echo "Error: Please run this script with sudo."
     exit 1
 fi
 
-echo "=> Detecting host distribution and package manager..."
+echo "========================================================"
+echo " 🌐 Setting up Host for Cross-Architecture Builds"
+echo "========================================================"
 
+# 1. Install QEMU User Static Emulators and binfmt support based on distro
 if command -v emerge &> /dev/null; then
     echo "=> Gentoo Linux (Portage) detected."
     
-    # 1. Safely configure QEMU_USER_TARGETS for Gentoo without damaging make.conf
-    PORTAGE_DIR="/etc/portage"
-    MAKE_CONF="${PORTAGE_DIR}/make.conf"
-    
-    mkdir -p "${PORTAGE_DIR}/package.use"
-    
-    # Configure QEMU user targets safely
-    QEMU_TARGETS='QEMU_USER_TARGETS="aarch64 arm riscv64 x86_64 i386"'
-    if [ -f "$MAKE_CONF" ]; then
-        if ! grep -q "QEMU_USER_TARGETS" "$MAKE_CONF"; then
-            echo "=> Safely appending QEMU_USER_TARGETS to ${MAKE_CONF} (preserving existing config)..."
-            cp -a "$MAKE_CONF" "${MAKE_CONF}.bak.$(date +%s)"
-            echo "" >> "$MAKE_CONF"
-            echo "# Added by void-builder setup script for cross-compilation" >> "$MAKE_CONF"
-            echo "$QEMU_TARGETS" >> "$MAKE_CONF"
-        else
-            echo "=> QEMU_USER_TARGETS already configured in ${MAKE_CONF}."
-        fi
+    # Configure QEMU user targets modularly in /etc/portage/package.use without touching make.conf
+    mkdir -p /etc/portage/package.use
+    QEMU_USE="/etc/portage/package.use/qemu-cross-build"
+    if [ ! -f "$QEMU_USE" ]; then
+        echo "=> Creating ${QEMU_USE} (app-emulation/qemu static-user QEMU_USER_TARGETS: aarch64 arm riscv64)..."
+        echo "app-emulation/qemu static-user" > "$QEMU_USE"
+        echo "app-emulation/qemu QEMU_USER_TARGETS: aarch64 arm riscv64" >> "$QEMU_USE"
     fi
     
-    # Ensure static-user flag is enabled for QEMU in package.use
-    QEMU_USE_FILE="${PORTAGE_DIR}/package.use/void-builder-qemu"
-    if [ ! -f "$QEMU_USE_FILE" ] || ! grep -q "app-emulation/qemu" "$QEMU_USE_FILE" 2>/dev/null; then
-        echo "=> Enabling static-user flag for app-emulation/qemu in ${QEMU_USE_FILE}..."
-        echo "app-emulation/qemu static-user" > "$QEMU_USE_FILE"
-    fi
-
-    echo "=> Installing / verifying required host build tools via emerge..."
-    emerge -uDN --noreplace \
-        app-emulation/qemu \
-        app-cdr/xorriso \
-        sys-fs/squashfs-tools \
-        sys-fs/dosfstools \
-        sys-fs/mtools \
-        app-arch/tar \
-        app-arch/xz-utils \
-        app-arch/zstd \
-        dev-lang/python || echo "=> Emerge finished or packages already satisfied."
+    echo "=> Ensuring app-emulation/qemu is installed..."
+    emerge -uDN --noreplace app-emulation/qemu || true
 
 elif command -v xbps-install &> /dev/null; then
     echo "=> Void Linux (XBPS) detected."
     xbps-install -S -y
-    xbps-install -y qemu-user qemu-user-aarch64 qemu-user-arm qemu-user-ppc64le qemu-user-riscv64 binfmt-support xorriso squashfs-tools dosfstools mtools tar xz zstd python3
+    xbps-install -y qemu-user qemu-user-aarch64 qemu-user-arm qemu-user-riscv64 binfmt-support
 
 elif command -v apt-get &> /dev/null; then
     echo "=> Debian/Ubuntu (APT) detected."
     apt-get update
-    apt-get install -y qemu-user-static binfmt-support xorriso squashfs-tools dosfstools mtools tar xz-utils zstd python3
+    apt-get install -y qemu-user-static binfmt-support
 
 elif command -v pacman &> /dev/null; then
     echo "=> Arch Linux (Pacman) detected."
-    pacman -Syu --noconfirm qemu-user-static binfmt-support xorriso squashfs-tools dosfstools mtools tar xz zstd python
+    pacman -Syu --noconfirm qemu-user-static binfmt-support
 
 elif command -v dnf &> /dev/null; then
     echo "=> Fedora/RHEL (DNF) detected."
-    dnf install -y qemu-user-static binfmt-support xorriso squashfs-tools dosfstools mtools tar xz zstd python3
+    dnf install -y qemu-user-static
 
 elif command -v zypper &> /dev/null; then
     echo "=> openSUSE (Zypper) detected."
-    zypper install -y qemu-linux-user binfmt-support xorriso squashfs dosfstools mtools tar xz zstd python3
-
-else
-    echo "Warning: Package manager not recognized. Ensuring binfmt_misc kernel module..."
+    zypper install -y qemu-linux-user binfmt-support
 fi
 
-echo "=> Ensuring binfmt_misc kernel module is loaded and filesystem is mounted..."
-# Load module if not loaded
+# 2. Ensure binfmt_misc kernel module is loaded
+echo "=> Ensuring binfmt_misc kernel module is active..."
 if ! lsmod | grep -q binfmt_misc; then
-    echo "Loading binfmt_misc kernel module..."
     modprobe binfmt_misc || true
-    sleep 1
 fi
 
-# Mount filesystem if not mounted
+# 3. Mount /proc/sys/fs/binfmt_misc if needed
 if ! mountpoint -q /proc/sys/fs/binfmt_misc; then
-    echo "Mounting binfmt_misc filesystem..."
-    mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc || mount -t binfmt_misc none /proc/sys/fs/binfmt_misc || true
-    sleep 1
+    echo "=> Mounting /proc/sys/fs/binfmt_misc..."
+    mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc 2>/dev/null || \
+    mount -t binfmt_misc none /proc/sys/fs/binfmt_misc 2>/dev/null || true
 fi
 
-# Init service activation
-echo "=> Enabling and starting binfmt services..."
-if command -v rc-service &> /dev/null; then
-    echo "=> OpenRC detected."
-    if [ -f "/etc/init.d/qemu-binfmt" ]; then
-        rc-service qemu-binfmt start || true
-        rc-update add qemu-binfmt default 2>/dev/null || true
-    fi
+# 4. Enable binfmt service for current init system
+echo "=> Activating binfmt services..."
+if command -v rc-service &> /dev/null && [ -f "/etc/init.d/qemu-binfmt" ]; then
+    rc-service qemu-binfmt start 2>/dev/null || true
+    rc-update add qemu-binfmt default 2>/dev/null || true
 elif command -v systemctl &> /dev/null; then
-    echo "=> Systemd detected."
     systemctl enable --now systemd-binfmt.service 2>/dev/null || true
 elif command -v sv &> /dev/null && [ -d "/etc/sv/binfmt-support" ]; then
-    echo "=> Runit detected."
     ln -sf /etc/sv/binfmt-support /var/service/ 2>/dev/null || true
     sv restart binfmt-support 2>/dev/null || true
 fi
 
-# Try update-binfmts if present
+# 5. Import binfmts if update-binfmts exists
 if command -v update-binfmts &> /dev/null; then
-    echo "=> Importing binfmt configurations..."
     update-binfmts --import 2>/dev/null || true
 fi
 
-echo "=> Verifying binfmt registration in /proc/sys/fs/binfmt_misc/..."
-HAS_AARCH64=0
+# 6. Verify cross-architecture emulation readiness
+echo "--------------------------------------------------------"
+echo "🔍 Cross-Architecture Emulation Status:"
 if [ -f "/proc/sys/fs/binfmt_misc/qemu-aarch64" ] || [ -f "/proc/sys/fs/binfmt_misc/aarch64" ]; then
-    echo "  ✅  aarch64 emulation is ACTIVE and registered."
-    HAS_AARCH64=1
+    echo "  ✅ AArch64 / ARM64 (Raspberry Pi, Pinebook Pro, X13s): READY"
 else
-    echo "  ⚠️   aarch64 not yet in /proc/sys/fs/binfmt_misc/ (will be registered dynamically when QEMU is present)."
+    echo "  ⚠️  AArch64 binfmt registration pending (active once QEMU binaries are in path)."
 fi
 
-for ENTRY in qemu-arm qemu-riscv64 qemu-ppc64le; do
-    if [ -f "/proc/sys/fs/binfmt_misc/${ENTRY}" ]; then
-        echo "  ✅  ${ENTRY} is active."
-    fi
-done
+if [ -f "/proc/sys/fs/binfmt_misc/qemu-arm" ] || [ -f "/proc/sys/fs/binfmt_misc/arm" ]; then
+    echo "  ✅ ARM 32-bit (armv7l, armv6l): READY"
+fi
 
-echo ""
-echo "🎉 Host environment configuration completed successfully!"
-echo "You can now run builds for Raspberry Pi, Pinebook Pro, and x86_64 targets."
+if [ -f "/proc/sys/fs/binfmt_misc/qemu-riscv64" ] || [ -f "/proc/sys/fs/binfmt_misc/riscv64" ]; then
+    echo "  ✅ RISC-V 64-bit: READY"
+fi
+
+echo "========================================================"
+echo "🎉 Host cross-build environment configured successfully!"
+echo "========================================================"
