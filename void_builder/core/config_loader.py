@@ -508,7 +508,37 @@ class ConfigAssembler:
             except Exception as e:
                 logger.error(f"Failed to load or apply package rules: {e}")
 
-        # 4e. Apply direct customization overrides
+        # 4e. Architecture Compatibility Sanitizer: filter out foreign arch packages
+        is_arm = target_arch.startswith(("aarch64", "arm", "rpi", "pinebook", "asahi"))
+        is_x86 = target_arch.startswith(("x86_64", "i686"))
+
+        X86_EXCLUSIVE_PACKAGES = {
+            "intel-ucode", "amd-ucode", "sof-firmware", "alsa-firmware",
+            "intel-media-driver", "libva-intel-driver", "mesa-vulkan-intel",
+            "xf86-video-intel", "xf86-video-vmware", "xf86-video-vesa", "xf86-video-ati",
+            "open-vm-tools", "thermald", "crda", "syslinux",
+            "grub-i386-efi", "grub-x86_64-efi", "memtest86+", "virtualbox-ose-guest-dkms"
+        }
+
+        ARM_EXCLUSIVE_PACKAGES = {
+            "rpi-base", "rpi-kernel", "rpi-firmware", "rpi-userland",
+            "pinebookpro-base", "x13s-base", "asahi-base", "grub-arm64-efi"
+        }
+
+        package_sources = self.master_config.get("package_sources", {})
+        if "official" in package_sources and isinstance(package_sources["official"], list):
+            if is_arm:
+                package_sources["official"] = [
+                    p for p in package_sources["official"]
+                    if str(p) not in X86_EXCLUSIVE_PACKAGES
+                ]
+            elif is_x86:
+                package_sources["official"] = [
+                    p for p in package_sources["official"]
+                    if str(p) not in ARM_EXCLUSIVE_PACKAGES
+                ]
+
+        # 4f. Apply direct customization overrides
         cust = self.master_config.setdefault("customizations", {})
         if hostname:
             cust["hostname"] = hostname
