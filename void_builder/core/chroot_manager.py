@@ -170,13 +170,13 @@ class ChrootManager:
         for repo in internal_repos:
             cmd.extend(["-R", repo])
         cmd.extend(["-y"])
-        from void_builder.utils.lib import map_xbps_arch, is_target_native, setup_qemu_binfmt
+        from void_builder.utils.lib import map_xbps_arch, is_target_native, setup_qemu_binfmt, copy_qemu_user_binary
         xbps_arch = map_xbps_arch(self.arch)
         is_native = is_target_native(self.arch)
         if not is_native:
-            binfmt_ok = setup_qemu_binfmt(self.arch)
-            if not binfmt_ok:
-                cmd.append("-U")
+            setup_qemu_binfmt(self.arch)
+            copy_qemu_user_binary(self.arch, self.chroot_path)
+            cmd.append("-U")
         cmd.extend(packages)
 
         cmd_env = os.environ.copy()
@@ -197,6 +197,11 @@ class ChrootManager:
             return
 
         logger.info("[Chroot] Starting 3-pass package reconfiguration...")
+
+        # Ensure QEMU user binary is in chroot for foreign arch
+        from void_builder.utils.lib import is_target_native, copy_qemu_user_binary
+        if not is_target_native(self.arch):
+            copy_qemu_user_binary(self.arch, self.chroot_path)
         
         # Pass 1: Reconfigure base-files from host (if native)
         from void_builder.utils.lib import is_target_native

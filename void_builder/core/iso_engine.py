@@ -343,6 +343,8 @@ class VoidEngine(BaseEngine):
         chroot_manager.run_command("rm -rf /var/cache/xbps/*", check=False)
         chroot_manager.run_command("rm -rf /var/tmp/* /tmp/* /run/*", check=False)
         chroot_manager.run_command("rm -rf /usr/lib/dracut/modules.d/01vmklive", check=False)
+        from void_builder.utils.lib import clean_qemu_user_binary
+        clean_qemu_user_binary(self.arch, self.chroot_path)
 
         # 5. Unmount virtual systems
         chroot_manager.umount()

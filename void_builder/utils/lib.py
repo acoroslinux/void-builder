@@ -86,9 +86,76 @@ def setup_qemu_binfmt(target_arch):
     if not os.path.exists(rf):
         rc, _, _ = CommandRunner.run(['update-binfmts', '--import', f'qemu-{cpu}'], check=False)
         if rc != 0:
-            warn_msg(f"Could not register binfmt for qemu-{cpu}")
-            return False
+            pass
     return True
+
+
+def copy_qemu_user_binary(target_arch, rootfs):
+    """Copies the host QEMU user static binary into target rootfs /usr/bin/ for chroot emulation."""
+    if is_target_native(target_arch):
+        return None
+    cpu = _qemu_cpu_name(target_arch)
+    if not cpu:
+        return None
+
+    import shutil
+    from pathlib import Path
+    qemu_candidates = [
+        f"qemu-{cpu}-static",
+        f"qemu-{cpu}",
+        f"/usr/bin/qemu-{cpu}-static",
+        f"/usr/bin/qemu-{cpu}",
+    ]
+    host_bin = None
+    for cand in qemu_candidates:
+        p = shutil.which(cand) or (Path(cand) if Path(cand).exists() else None)
+        if p and Path(p).exists():
+            host_bin = Path(p)
+            break
+
+    if not host_bin:
+        return None
+
+    target_bin_dir = Path(rootfs) / "usr" / "bin"
+    target_bin_dir.mkdir(parents=True, exist_ok=True)
+
+    dest_path = target_bin_dir / host_bin.name
+    try:
+        shutil.copy2(host_bin, dest_path)
+        os.chmod(dest_path, 0o755)
+
+        # Create aliases for both named variants
+        alt_names = [f"qemu-{cpu}-static", f"qemu-{cpu}"]
+        for alt in alt_names:
+            alt_path = target_bin_dir / alt
+            if not alt_path.exists():
+                try:
+                    shutil.copy2(host_bin, alt_path)
+                    os.chmod(alt_path, 0o755)
+                except Exception:
+                    pass
+        return dest_path
+    except Exception:
+        return None
+
+
+def clean_qemu_user_binary(target_arch, rootfs):
+    """Removes temporary QEMU user binaries from rootfs before final image creation."""
+    if is_target_native(target_arch):
+        return
+    cpu = _qemu_cpu_name(target_arch)
+    if not cpu:
+        return
+
+    from pathlib import Path
+    target_bin_dir = Path(rootfs) / "usr" / "bin"
+    for name in [f"qemu-{cpu}-static", f"qemu-{cpu}"]:
+        p = target_bin_dir / name
+        if p.exists():
+            try:
+                p.unlink()
+            except Exception:
+                pass
 
 
 def mount_pseudofs(rootfs):
