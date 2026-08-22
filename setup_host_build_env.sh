@@ -55,22 +55,22 @@ echo "=> Detecting package manager and installing QEMU emulators..."
 if command -v apt-get &> /dev/null; then
     echo "=> Debian/Ubuntu (APT) detected."
     apt-get update
-    apt-get install -y qemu-user-static binfmt-support
+    apt-get install -y qemu-user-static binfmt-support xorriso squashfs-tools dosfstools mtools tar xz-utils zstd python3
 elif command -v pacman &> /dev/null; then
     echo "=> Arch Linux (Pacman) detected."
-    pacman -Syu --noconfirm qemu-user-static binfmt-support
+    pacman -Syu --noconfirm qemu-user-static binfmt-support xorriso squashfs-tools dosfstools mtools tar xz zstd python
 elif command -v dnf &> /dev/null; then
     echo "=> Fedora/RHEL (DNF) detected."
-    dnf install -y qemu-user-static binfmt-support
+    dnf install -y qemu-user-static binfmt-support xorriso squashfs-tools dosfstools mtools tar xz zstd python3
 elif command -v zypper &> /dev/null; then
     echo "=> openSUSE (Zypper) detected."
-    zypper install -y qemu-linux-user binfmt-support
+    zypper install -y qemu-linux-user binfmt-support xorriso squashfs dosfstools mtools tar xz zstd python3
 elif command -v xbps-install &> /dev/null; then
     echo "=> Void Linux (XBPS) detected."
     xbps-install -S -y
-    xbps-install -y qemu-user qemu-user-aarch64 qemu-user-arm qemu-user-ppc64le qemu-user-riscv64 binfmt-support
+    xbps-install -y qemu-user qemu-user-aarch64 qemu-user-arm qemu-user-ppc64le qemu-user-riscv64 binfmt-support xorriso squashfs-tools dosfstools mtools tar xz zstd python3
 else
-    echo "Error: Supported package manager not found. Please install qemu-user-static and binfmt-support manually."
+    echo "Error: Supported package manager not found. Please install build utilities manually."
     exit 1
 fi
 

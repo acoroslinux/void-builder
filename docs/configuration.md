@@ -10,19 +10,21 @@ All configuration files reside in the `configs/` directory:
 
 ```text
 configs/
-├── global_build.json     # Master build manifest (repositories, defaults, services)
-├── package_rules.json    # Dynamic package matching and injection rules
+├── global_build.json        # Master build manifest (repositories, defaults, services)
+├── package_rules.json       # Dynamic package matching and injection rules
 ├── base_customizations.json # System customization baseline (hostname, timezone, locale)
-├── architectures/        # Target architecture profiles (x86_64.json, rpi-aarch64.json)
-├── desktops/             # Desktop environment package bundles (gnome.json, xfce.json)
-├── kernels/              # Kernel package selection profiles (linux-lts.json)
-├── bootloaders/          # Bootloader installation profiles (grub.json)
-├── packages/             # Optional package bundle profiles (dev-tools.json)
-├── services/             # Runit service activation profiles (ssh.json, bluetooth.json)
-├── live-users/           # Live environment account profiles (admin.json, guest.json)
-├── platforms/            # Single-board hardware platform overrides (pinebookpro.json)
-├── assets/               # Artwork, isolinux configuration templates, GRUB fonts
-└── custom_files/         # Overlay file tree copied directly into rootfs at /
+├── presets/                 # Unified build presets (minimal.json, gaming.json, developer.json)
+├── hooks/                   # Lifecycle hook script templates (pre-install, post-install, pre-iso)
+├── architectures/           # Target architecture profiles (x86_64.json, rpi-aarch64.json)
+├── desktops/                # Desktop environment package bundles (gnome.json, xfce.json)
+├── kernels/                 # Kernel package selection profiles (linux-lts.json)
+├── bootloaders/             # Bootloader installation profiles (grub.json)
+├── packages/                # Modular package bundle profiles (dev-tools.json, gaming.json)
+├── services/                # Runit service activation profiles (ssh.json, bluetooth.json)
+├── live-users/              # Live environment account profiles (admin.json, guest.json)
+├── platforms/               # Single-board hardware platform overrides (pinebookpro.json)
+├── assets/                  # Artwork, isolinux configuration templates, GRUB fonts
+└── custom_files/            # Overlay file tree copied directly into rootfs at /
 ```
 
 ---
@@ -332,3 +334,78 @@ Any directory or file placed inside `configs/custom_files/` is automatically cop
 Example:
 - `configs/custom_files/etc/motd` -> copied to `/etc/motd` in target system.
 - `configs/custom_files/etc/skel/.config/xfce4/` -> copied to `/etc/skel/.config/xfce4/` in target system.
+
+---
+
+## 8. Presets & Edition Profiles (`configs/presets/`)
+
+Presets define unified, all-in-one edition specifications that configure desktop environments, package bundle combinations, system defaults, services, and repositories simultaneously.
+
+### Example: `configs/presets/rescue-sysadmin.json`
+
+```json
+{
+  "name": "rescue-sysadmin",
+  "description": "System Rescue, Forensics, Network Troubleshooting, and Disk Partitioning Environment",
+  "boot_title": "Void Linux Rescue & SysAdmin",
+  "desktop": "xfce",
+  "package_profiles": [
+    "desktop-essentials",
+    "filesystems",
+    "networking"
+  ],
+  "additional_packages": [
+    "gparted",
+    "testdisk",
+    "ddrescue",
+    "smartmontools",
+    "wireshark",
+    "nmap",
+    "tcpdump",
+    "iperf3",
+    "chntpw",
+    "htop",
+    "glances",
+    "tmux",
+    "rsync"
+  ],
+  "customizations": {
+    "hostname": "void-rescue",
+    "services": [
+      "sshd",
+      "NetworkManager"
+    ]
+  }
+}
+```
+
+---
+
+## 9. Lifecycle Hooks Engine (`configs/hooks/`)
+
+Lifecycle hooks allow executing custom shell scripts at four deterministic points during the build:
+
+1. **`pre-install`**: Executed outside the chroot before XBPS installs packages.
+2. **`post-install`**: Executed directly inside the chroot environment after package installation and service configuration. Ideal for generating custom version tags, modifying `/etc/os-release`, or cloning custom dotfiles.
+3. **`pre-iso`**: Executed outside the chroot before SquashFS or disk image compression.
+4. **`post-iso`**: Executed after the final image, tarball, and checksums are generated.
+
+### Hook Example (`configs/hooks/post-install.example.sh`):
+
+```bash
+#!/bin/sh
+# Hook executed inside the chroot
+echo "=> Branding custom Void build..."
+echo "Void-Builder Custom Workstation v1.0" > /etc/void-custom-release
+chmod 0644 /etc/void-custom-release
+```
+
+---
+
+## 10. Security Actions & Service Conflict Resolution
+
+The system configurator (`SystemConfigurator`) automatically manages:
+- **`RootPasswordAction`**: Ingests `--root-password <pass>` or `--lock-root` to secure administrative accounts.
+- **`SSHKeyAction`**: Provisions authorized keys into `/root/.ssh/authorized_keys` and `/home/<live_user>/.ssh/authorized_keys` with strict permissions (`0700` directory, `0600` file).
+- **Service Conflict Engine**: Automatically detects if `NetworkManager` is enabled and suppresses conflicting standalone services like `dhcpcd` to prevent race conditions during boot.
+

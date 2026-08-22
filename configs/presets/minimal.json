@@ -1,0 +1,33 @@
+{
+  "_comment": "Void-Builder Preset: Minimal (Console / Headless / Server)",
+  "preset_name": "minimal",
+  "desktop": null,
+  "kernel": "linux",
+  "bootloader": "grub",
+  "boot_title": "Void Linux Minimal",
+  "customizations": {
+    "hostname": "void-minimal",
+    "services": [
+      "sshd",
+      "chronyd",
+      "dhcpcd",
+      "acpid"
+    ]
+  },
+  "package_sources": {
+    "official": [
+      "base-system",
+      "curl",
+      "wget",
+      "tmux",
+      "htop",
+      "pciutils",
+      "usbutils",
+      "iproute2",
+      "ethtool",
+      "tar",
+      "xz",
+      "zstd"
+    ]
+  }
+}

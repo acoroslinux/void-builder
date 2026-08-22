@@ -114,8 +114,8 @@ Output Artifacts (.iso / .img / .tar.xz + Manifests)
 - **Role**: Manages base system stage tarballs (`void-base-<arch>.tar.xz`) for rapid ISO builds.
 - **Methods**:
   - `resolve_tarball(tarball_arg)`: Resolves file path, URI (`file://`), HTTP/HTTPS URL, or automatic candidate lookup (`y`/`auto`).
-  - `extract_tarball(tarball_path, target_root)`: Unpacks stage seed into target rootfs preserving permissions (`tar xpf ... --numeric-owner --xattrs-include='*.*'`).
-  - `create_stage_tarball(source_root, output_tarball)`: Packages clean rootfs into compressed stage tarball (`.tar.xz`, `.tar.gz`, `.tar.zst`).
+  - `extract_tarball(tarball_path, target_root)`: Unpacks stage seed into target rootfs preserving permissions (`tar xpf ... --numeric-owner --xattrs-include='*.*'`). Automatically leverages multi-core parallel decompressors (`pixz`, `zstd -T0`, `pigz`) when available.
+  - `create_stage_tarball(source_root, output_tarball, compression)`: Packages clean rootfs into compressed stage tarball (`.tar.xz`, `.tar.gz`, `.tar.zst`). Automatically applies multi-threaded compressors (`zstd -T0 -3`, `pixz`, `pigz`).
 
 ---
 
@@ -129,43 +129,50 @@ Output Artifacts (.iso / .img / .tar.xz + Manifests)
 - **Role**: Abstract base engine providing workspace resolution, manifest generation, and tarball export.
 - **Methods**:
   - `setup_workdir(workdir)`: Resolves and creates workspace paths.
-  - `_generate_manifest_and_checksums(output_path)`: Computes SHA256/MD5 hashes and generates `manifest.json`.
+  - `_generate_manifest_and_checksums(output_path)`: Computes SHA256, SHA512, MD5 hashes and generates `manifest.json`.
   - `export_tarball(output_path)`: Packs rootfs into `.tar.xz` container tarball.
 
 #### `VoidEngine(BaseEngine)`
 - **Role**: Handles PC ISO 9660 hybrid ISO image building (`x86_64`, `i686`, `aarch64`).
 - **Methods**:
-  - `_create_squashfs()`: Invokes `mksquashfs` with configured compression (`xz`, `zstd`, `gzip`).
+  - `_create_squashfs()`: Invokes `mksquashfs` with configured compression (`xz`, `zstd`, `gzip`), multi-threaded processor allocation (`-processors <N>`), and fast block sizing.
   - `finalize_isofile(output_path)`: Assembles ISO using `xorriso` with BIOS El Torito and UEFI GRUB EFI options. Strictly validates xorriso return codes and output media space to prevent corrupted image output.
 
 #### `PlatformEngine(VoidEngine)`
 - **Role**: Handles Single-Board Computer raw disk images (`rpi-aarch64`, `pinebookpro`, `asahi`).
 - **Methods**:
-  - `finalize_isofile(output_path)`: Dynamically calculates required image size, runs `sfdisk` partitioning, sets up loop device via `losetup`, formats VFAT/EXT4 partitions, copies rootfs, writes U-Boot / GRUB EFI bootloaders, and compresses raw `.img` with `xz`.
+  - `finalize_isofile(output_path)`: Dynamically calculates required image size, runs `sfdisk` partitioning, sets up loop device via `losetup`, formats VFAT/EXT4 partitions with lazy table initialization, copies rootfs, writes U-Boot / GRUB EFI bootloaders, and compresses raw `.img` with `xz`.
 
 ---
 
 ### Module: `void_builder.core.customizer`
 
 #### `SystemConfigurator`
-- **Role**: Performs low-level system configuration inside target rootfs.
-- **Methods**:
-  - `load_from_config(config)`: Reads hostname, locale, timezone, user accounts, runit services, Plymouth theme, and Dracut options.
-  - `apply()`: Executes individual configurator actions sequentially (`apply_locale`, `apply_users`, `apply_services`, `apply_dracut`, `apply_plymouth`).
+- **Role**: Executes modular, decoupled `SystemAction` objects inside target rootfs.
+- **Action Sequence**:
+  - `RootPasswordAction`: Sets root password or locks root account.
+  - `SSHKeyAction`: Injects authorized public SSH keys into `/root/.ssh/authorized_keys` and `/home/<user>/.ssh/authorized_keys` with strict permissions.
+  - `LocaleAction`: Applies hostname, timezone, locale, and keymap.
+  - `UserAction`: Creates live user accounts and assigns groups.
+  - `ServiceAction`: Enables Runit services with conflict suppression (e.g. omits `dhcpcd` if `NetworkManager` is enabled).
+  - `HookAction`: Executes user-defined shell scripts at lifecycle milestones (`pre-install`, `post-install`, `pre-iso`).
+  - `DracutAction`: Generates initramfs with optimized compression.
+  - `StructuredCopyAction`: Copies overlay file trees from `configs/custom_files/`.
 
 ---
 
 ## 4. Step-by-Step Pipeline Phases
 
-1. **Phase 1 - Initialization**: `BuildOrchestrator` parses arguments, instantiates `ConfigAssembler`, and builds master `Config` object.
-2. **Phase 2 - Workdir Resolution**: Tests write permissions on `workdir/<arch>`, falling back to `/tmp/void-builder-fallback/<arch>` if write permission is denied.
+1. **Phase 1 - Initialization & Presets**: `BuildOrchestrator` parses arguments, applies preset profiles (`minimal`, `developer`, `gaming`, etc.), instantiates `ConfigAssembler`, and builds master `Config` object.
+2. **Phase 2 - Workdir & TmpFS Staging**: Tests write permissions on `workdir/<arch>`, optionally mounting in-memory `tmpfs` if `--tmpfs` is active for maximum I/O throughput.
 3. **Phase 3 - Toolchain Preparation**: Initializes `ToolchainManager` and verifies static `xbps` binaries.
 4. **Phase 4 - Chroot Provisioning**: Creates `airootfs` directory and mounts virtual filesystems (`/proc`, `/sys`, `/dev`, `/dev/pts`, `/dev/shm`).
-5. **Phase 5 - Package Installation**: Invokes `xbps-install.static` with target package plan and repository list.
-6. **Phase 6 - System Customization**: `SystemConfigurator` configures `/etc/hostname`, `/etc/locale.conf`, `/etc/rc.conf`, creates user accounts, symlinks Runit services into `/etc/runit/runsvdir/default/`, and runs Dracut initramfs generator.
+5. **Phase 5 - Package Installation**: Invokes `xbps-install.static` with target package plan and repository list (or extracts pre-built base stage tarball via `StageManager`).
+6. **Phase 6 - System Customization & Actions**: `SystemConfigurator` executes `SystemAction` chain (locale, users, services, SSH keys, root password, hooks, Dracut initramfs).
 7. **Phase 7 - 3-Pass Reconfiguration**: Runs `xbps-reconfigure -a` inside chroot.
 8. **Phase 8 - Bootloaders & Finalization**:
-   - For ISO: Generates SYSLINUX/GRUB configs, creates SquashFS, runs `xorriso`.
-   - For SBC: Partition image with `sfdisk`, format VFAT/EXT4, write U-Boot, compress image with `xz`.
+   - For ISO: Generates SYSLINUX/GRUB configs, creates SquashFS (`zstd` / `xz`), runs `xorriso`.
+   - For SBC: Partition image with `sfdisk`, format VFAT/EXT4, write U-Boot, compress image.
    - For Tarball: Packs rootfs into `.tar.xz`.
-9. **Phase 9 - Checksums & Manifest**: Calculates SHA256 and MD5 hashes, writes `manifest.json`, unmounts virtual filesystems, and cleans temporary files.
+9. **Phase 9 - Checksums, Manifests & Benchmarking**: Computes SHA256, SHA512, MD5, generates `.manifest.json`, safely unmounts filesystems, and prints `--benchmark` timing breakdown.
+

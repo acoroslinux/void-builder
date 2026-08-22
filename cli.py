@@ -107,6 +107,14 @@ def main():
         help="Force redownloading and updating the static xbps and proot toolchain binaries.",
     )
 
+    # Presets & Flavours
+    parser.add_argument(
+        "-P",
+        "--preset",
+        type=str,
+        help="Pre-defined unified profile preset from configs/presets (e.g. minimal, desktop-xfce, desktop-kde, desktop-gnome, rescue-sysadmin, developer, gaming).",
+    )
+
     # Customization Overrides
     parser.add_argument(
         "-k",
@@ -152,6 +160,12 @@ def main():
     )
 
     parser.add_argument(
+        "--live-password",
+        type=str,
+        help="Set custom password for the live user (default: live).",
+    )
+
+    parser.add_argument(
         "--live-profile",
         type=str,
         help="Live user profile name from configs/live-users.",
@@ -161,6 +175,109 @@ def main():
         "--live-groups",
         type=str,
         help="Comma-separated group list for live user (e.g. wheel,audio,video).",
+    )
+
+    # Security & User Management
+    parser.add_argument(
+        "--root-password",
+        type=str,
+        help="Set password for root user account.",
+    )
+
+    parser.add_argument(
+        "--lock-root",
+        action="store_true",
+        help="Lock root user account password for security.",
+    )
+
+    parser.add_argument(
+        "--ssh-key",
+        action="append",
+        default=[],
+        help="Path to an SSH public key file to inject into authorized_keys. Can be specified multiple times.",
+    )
+
+    parser.add_argument(
+        "--ssh-pubkey",
+        type=str,
+        help="Direct SSH public key string to inject into authorized_keys.",
+    )
+
+    # System & Locale Overrides
+    parser.add_argument(
+        "--hostname",
+        type=str,
+        help="Override system hostname (e.g. void-custom).",
+    )
+
+    parser.add_argument(
+        "--locale",
+        type=str,
+        help="Override system locale (e.g. pt_PT.UTF-8, en_US.UTF-8).",
+    )
+
+    parser.add_argument(
+        "--timezone",
+        type=str,
+        help="Override system timezone (e.g. Europe/Lisbon, UTC).",
+    )
+
+    parser.add_argument(
+        "--keymap",
+        type=str,
+        help="Override console keymap (e.g. pt-latin1, br-abnt2, us).",
+    )
+
+    # Boot & Kernel Options
+    parser.add_argument(
+        "--boot-title",
+        type=str,
+        help="Custom bootloader menu title (e.g. 'Void Linux Custom').",
+    )
+
+    parser.add_argument(
+        "--iso-label",
+        type=str,
+        help="Custom ISO volume label (default: VOID_MODERN).",
+    )
+
+    parser.add_argument(
+        "--extra-kernel-args",
+        type=str,
+        help="Extra kernel parameters appended to bootloader command line (e.g. 'nomodeset quiet').",
+    )
+
+    # Lifecycle Hooks
+    parser.add_argument(
+        "--hook",
+        action="append",
+        default=[],
+        help="Lifecycle hook in format phase:script_path (e.g. 'post-install:configs/hooks/custom.sh').",
+    )
+
+    parser.add_argument(
+        "--save-config",
+        type=str,
+        help="Export assembled build configuration JSON to specified file path and continue.",
+    )
+
+    parser.add_argument(
+        "--clean-cache",
+        action="store_true",
+        help="Clean downloaded XBPS packages and stage seed tarball caches, then exit.",
+    )
+
+    parser.add_argument(
+        "-i",
+        "--interactive",
+        action="store_true",
+        help="Launch interactive terminal wizard for step-by-step ISO/image configuration.",
+    )
+
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Simulate the build without root privileges (alias for --mode mock).",
     )
 
     parser.add_argument(
@@ -189,7 +306,7 @@ def main():
     parser.add_argument(
         "--list-options",
         action="store_true",
-        help="List available desktops, kernels, bootloaders, and package profiles.",
+        help="List available presets, desktops, kernels, bootloaders, and package profiles.",
     )
 
     # Output
@@ -228,6 +345,35 @@ def main():
         choices=["xz", "zstd", "gzip"],
         default="xz",
         help="SquashFS and Initramfs compression algorithm. Default: xz",
+    )
+
+    # Performance & Speed Optimization
+    parser.add_argument(
+        "--fast",
+        "--quick",
+        dest="fast_mode",
+        action="store_true",
+        help="Enable ultra-fast build mode (multi-threaded zstd level 3, fast block sizes, and optimized staging).",
+    )
+
+    parser.add_argument(
+        "--tmpfs",
+        action="store_true",
+        help="Build entirely inside RAM (tmpfs) to maximize I/O throughput and avoid SSD wear.",
+    )
+
+    parser.add_argument(
+        "--benchmark",
+        action="store_true",
+        help="Record and display a detailed execution timing benchmark report for each build stage.",
+    )
+
+    parser.add_argument(
+        "-j",
+        "--jobs",
+        type=int,
+        default=None,
+        help="Number of CPU cores/threads for compression and packaging (default: all available cores).",
     )
 
     parser.add_argument(
@@ -277,6 +423,63 @@ def main():
     )
 
     args = parser.parse_args()
+
+    if args.dry_run:
+        args.mode = "mock"
+
+    if args.clean_cache:
+        import shutil
+        cache_dirs = [
+            resolve_from_project("workdir/cache/xbps"),
+            resolve_from_project("workdir/cache/tarballs"),
+            resolve_from_project("workdir/cache"),
+        ]
+        print("🧹 Cleaning local package and stage seed caches...")
+        for cd in cache_dirs:
+            if cd.exists():
+                shutil.rmtree(cd, ignore_errors=True)
+                print(f"  - Cleaned: {cd}")
+        print("✅ Cache cleaning complete.")
+        sys.exit(0)
+
+    if args.interactive:
+        print("\n" + "=" * 60)
+        print(" 🚀 Void-Builder Interactive Build Wizard")
+        print("=" * 60)
+        print("\nSelect target architecture:")
+        print("  1) x86_64 (Default PC 64-bit)")
+        print("  2) x86_64-musl (Musl libc)")
+        print("  3) aarch64 (ARM 64-bit)")
+        print("  4) rpi-aarch64 (Raspberry Pi 3/4/5 64-bit)")
+        print("  5) pinebookpro (Pinebook Pro ARM)")
+        print("  6) asahi (Apple Silicon)")
+        arch_choice = input("Enter choice [1-6, default 1]: ").strip()
+        arch_map = {
+            "1": "x86_64", "2": "x86_64-musl", "3": "aarch64",
+            "4": "rpi-aarch64", "5": "pinebookpro", "6": "asahi"
+        }
+        args.architecture = arch_map.get(arch_choice, "x86_64")
+
+        print("\nSelect build preset/edition:")
+        print("  1) minimal (Minimal / Server / Headless)")
+        print("  2) desktop-xfce (XFCE Lightweight Workstation)")
+        print("  3) desktop-kde (KDE Plasma Workstation)")
+        print("  4) desktop-gnome (GNOME Workstation)")
+        print("  5) rescue-sysadmin (System Rescue & Disk Partitioning)")
+        print("  6) developer (Developer & Engineering Tools)")
+        print("  7) gaming (Steam & Vulkan Gaming Edition)")
+        preset_choice = input("Enter choice [1-7, default 2]: ").strip()
+        preset_map = {
+            "1": "minimal", "2": "desktop-xfce", "3": "desktop-kde",
+            "4": "desktop-gnome", "5": "rescue-sysadmin", "6": "developer", "7": "gaming"
+        }
+        args.preset = preset_map.get(preset_choice, "desktop-xfce")
+
+        mode_choice = input("\nRun mode ('mock' simulation or 'real' root build) [mock/real, default mock]: ").strip()
+        if mode_choice in ("real", "r"):
+            args.mode = "real"
+        else:
+            args.mode = "mock"
 
     def build_calamares_package(target_arch):
         import os
@@ -389,13 +592,14 @@ def main():
     args.architecture = arch_lower
     output_name = _resolve_output_name(
         architecture=args.architecture,
-        desktop=args.desktop,
+        desktop=args.desktop or args.preset,
         output=args.output,
     )
 
     config_root = resolve_from_project("configs")
     if args.list_options:
         print("Available build selections:")
+        print(f"- presets:       {', '.join(_available_profiles(config_root, 'presets')) or '(none)'}")
         print(f"- architectures: {', '.join(_available_profiles(config_root, 'architectures')) or '(none)'}")
         print(f"- desktops:      {', '.join(_available_profiles(config_root, 'desktops')) or '(none)'}")
         print(f"- kernels:       {', '.join(_available_profiles(config_root, 'kernels')) or '(none)'}")
@@ -410,6 +614,29 @@ def main():
     if not config_path.exists():
         print(f"Error: Configuration file '{config_path}' not found.")
         sys.exit(1)
+
+    # Parse SSH keys and Hooks
+    ssh_keys_list = []
+    if args.ssh_key:
+        for kpath in args.ssh_key:
+            kp = Path(kpath)
+            if kp.exists():
+                ssh_keys_list.append(kp.read_text(encoding="utf-8").strip())
+            else:
+                print(f"Warning: SSH key file not found: {kpath}")
+    if args.ssh_pubkey:
+        ssh_keys_list.append(args.ssh_pubkey.strip())
+
+    hooks_dict = {}
+    if args.hook:
+        for h in args.hook:
+            if ":" in h:
+                phase, hpath = h.split(":", 1)
+                phase = phase.strip()
+                hpath = hpath.strip()
+                hooks_dict.setdefault(phase, []).append(hpath)
+            else:
+                hooks_dict.setdefault("post-install", []).append(h.strip())
 
     # Initialize Orchestrator
     parsed_live_groups = None
@@ -441,6 +668,24 @@ def main():
         generate_manifest=args.generate_manifest,
         use_tarball=args.use_tarball,
         create_tarball=args.create_tarball,
+        preset=args.preset,
+        hostname=args.hostname,
+        timezone=args.timezone,
+        locale=args.locale,
+        keymap=args.keymap,
+        root_password=args.root_password,
+        lock_root=args.lock_root,
+        live_password=args.live_password,
+        boot_title=args.boot_title,
+        iso_label=args.iso_label,
+        extra_kernel_args=args.extra_kernel_args,
+        ssh_keys=ssh_keys_list,
+        hooks=hooks_dict,
+        save_config_path=args.save_config,
+        fast_mode=args.fast_mode,
+        use_tmpfs=args.tmpfs,
+        benchmark=args.benchmark,
+        jobs=args.jobs,
     )
 
     # Handle Validation Mode (--check / --validate)
@@ -466,9 +711,19 @@ def main():
     print(f"Target Arch: {args.architecture}")
     print(f"Mode:        {args.mode}")
     print(f"Format:      {args.format}")
-    print(f"Compression: {args.compression}")
+    print(f"Compression: {orchestrator.compression}")
+    if args.fast_mode:
+        print("Fast Mode:   enabled (zstd level 3, fast blocks, optimal staging)")
+    if args.tmpfs:
+        print("TmpFS (RAM): enabled (zero disk wear, max I/O throughput)")
+    if args.benchmark:
+        print("Benchmark:   enabled (stage timing metrics active)")
+    if args.jobs:
+        print(f"CPU Threads: {args.jobs}")
     print(f"Manifest:    {'enabled' if args.generate_manifest else 'disabled'}")
     print(f"Clean:       {'yes' if args.clean else 'no'}")
+    if args.preset:
+        print(f"Preset:      {args.preset}")
     if args.force_isolated_toolchain:
         print("Toolchain:   forced isolated bootstrap")
     print(f"Config:      {config_path}")
@@ -479,6 +734,14 @@ def main():
         print(f"Desktop:    {args.desktop} (Override)")
     if args.bootloader:
         print(f"Bootloader: {args.bootloader} (Override)")
+    if args.hostname:
+        print(f"Hostname:   {args.hostname} (Override)")
+    if args.locale:
+        print(f"Locale:     {args.locale} (Override)")
+    if args.timezone:
+        print(f"Timezone:   {args.timezone} (Override)")
+    if args.keymap:
+        print(f"Keymap:     {args.keymap} (Override)")
     if args.package_profile:
         print(f"Profiles:   {', '.join(args.package_profile)}")
     if args.service_profile:
@@ -489,6 +752,10 @@ def main():
         print(f"Live User:  {args.live_user} (Override)")
     if parsed_live_groups:
         print(f"Live Group: {', '.join(parsed_live_groups)}")
+    if ssh_keys_list:
+        print(f"SSH Keys:   {len(ssh_keys_list)} key(s) configured")
+    if hooks_dict:
+        print(f"Hooks:      {sum(len(v) for v in hooks_dict.values())} hook(s) configured")
     if args.platform:
         print(f"Platforms:  {', '.join(args.platform)}")
     if args.repository:
@@ -514,3 +781,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

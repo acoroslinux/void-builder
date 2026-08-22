@@ -154,20 +154,25 @@ class BaseEngine(ISOEngine):
         self.logger.info(f"[manifest] Generating checksums and manifest for {output_file.name}...")
 
         sha256_hash = hashlib.sha256()
+        sha512_hash = hashlib.sha512()
         md5_hash = hashlib.md5()
 
         with open(output_file, "rb") as f:
             for byte_block in iter(lambda: f.read(65536), b""):
                 sha256_hash.update(byte_block)
+                sha512_hash.update(byte_block)
                 md5_hash.update(byte_block)
 
         sha256_val = sha256_hash.hexdigest()
+        sha512_val = sha512_hash.hexdigest()
         md5_val = md5_hash.hexdigest()
 
         sha256_file = output_file.with_suffix(output_file.suffix + ".sha256")
+        sha512_file = output_file.with_suffix(output_file.suffix + ".sha512")
         md5_file = output_file.with_suffix(output_file.suffix + ".md5")
 
         sha256_file.write_text(f"{sha256_val}  {output_file.name}\n")
+        sha512_file.write_text(f"{sha512_val}  {output_file.name}\n")
         md5_file.write_text(f"{md5_val}  {output_file.name}\n")
 
         packages = self._package_plan().get("official", [])
@@ -181,6 +186,7 @@ class BaseEngine(ISOEngine):
             "file_size_bytes": output_file.stat().st_size if output_file.exists() else 0,
             "checksums": {
                 "sha256": sha256_val,
+                "sha512": sha512_val,
                 "md5": md5_val,
             },
             "packages_count": len(packages),
@@ -192,6 +198,7 @@ class BaseEngine(ISOEngine):
             json.dump(manifest_data, mf, indent=2)
 
         self.logger.info(f"[manifest] Generated SHA256: {sha256_file.name}")
+        self.logger.info(f"[manifest] Generated SHA512: {sha512_file.name}")
         self.logger.info(f"[manifest] Generated MD5: {md5_file.name}")
         self.logger.info(f"[manifest] Generated Manifest: {manifest_file.name}")
 
@@ -460,8 +467,9 @@ class VoidEngine(BaseEngine):
             self.logger.info("SquashFS already exists, skipping compression.")
             return
 
+        comp_type = self.config.get("squashfs_compression", "xz")
         if getattr(self.toolchain, "mode", "mock") == "mock":
-            self.logger.info(f"[MOCK] mksquashfs {self.chroot_path} {squashfs_img} -comp xz")
+            self.logger.info(f"[MOCK] mksquashfs {self.chroot_path} {squashfs_img} -comp {comp_type}")
             squashfs_img.write_text("mock squashfs content")
             return
 
@@ -491,8 +499,13 @@ class VoidEngine(BaseEngine):
             # 2. Truncate image file
             subprocess.run(["truncate", "-s", f"{img_size_mb}M", str(ext3_img)], check=True)
             
-            # 3. Run mkfs.ext3
-            subprocess.run(["mkfs.ext3", "-F", "-m1", str(ext3_img)], check=True)
+            # 3. Run mkfs.ext3 with fast lazy init options
+            subprocess.run([
+                "mkfs.ext3", "-F", "-m", "0",
+                "-O", "has_journal,fast_commit",
+                "-E", "lazy_itable_init=1,lazy_journal_init=1",
+                str(ext3_img)
+            ], check=True)
             
             # 4. Mount and copy
             mount_point = tmp_path / "mnt"
@@ -527,6 +540,13 @@ class VoidEngine(BaseEngine):
                 str(mksquashfs_bin), str(tmp_dir), str(squashfs_img),
                 "-comp", comp_type, "-processors", str(cpu_count)
             ]
+            if comp_type == "zstd":
+                comp_level = str(self.config.get("zstd_level", "3"))
+                block_size = "256K" if self.config.get("fast_mode") else "1048576"
+                cmd.extend(["-Xcompression-level", comp_level, "-b", block_size])
+            elif comp_type == "xz":
+                cmd.extend(["-b", "1048576"])
+
             self.logger.info(f"[squashfs] Command: {' '.join(cmd)}")
             subprocess.run(cmd, check=True, capture_output=False)
 
@@ -640,6 +660,7 @@ class ISOBuilder:
         self.arch = arch
         self.config = config
         self.toolchain = toolchain
+        self.timings: Dict[str, float] = {}
         
         # Instantiate the correct engine based on target architecture
         engine_cls = _ENGINE_REGISTRY.get(arch)
@@ -648,25 +669,36 @@ class ISOBuilder:
         self.engine = engine_cls(arch, config, toolchain)
 
     def build(self, output_path: str, workdir: Optional[str] = None, output_format: str = "iso") -> str:
-        """Execute the full build pipeline."""
+        """Execute the full build pipeline with per-stage timing metrics."""
+        import time
+        t_start = time.perf_counter()
+        self.timings = {}
+
         logger.info(f"=== Starting build pipeline for architecture {self.arch} ===")
 
-        # 1. Setup workdir
+        # 1. Setup workdir & chroot
+        t_step = time.perf_counter()
         workdir_path = self.engine.setup_workdir(workdir)
-
-        # 2. Setup chroot environment
         self.engine.setup_chroot(str(workdir_path))
+        self.timings["setup_chroot"] = time.perf_counter() - t_step
 
-        # 3. Install packages
+        # 2. Install packages
+        t_step = time.perf_counter()
         self.engine.install_packages()
+        self.timings["install_packages"] = time.perf_counter() - t_step
 
-        # 4. Run post-install configuration & customizations
+        # 3. Run post-install configuration & customizations
+        t_step = time.perf_counter()
         self.engine.post_install_configure()
+        self.timings["post_install"] = time.perf_counter() - t_step
 
-        # 5. Build bootloaders
+        # 4. Build bootloaders
+        t_step = time.perf_counter()
         self.engine.build_bootloaders(str(workdir_path))
+        self.timings["build_bootloaders"] = time.perf_counter() - t_step
 
-        # 6. Finalize ISO / IMG / Tarball file
+        # 5. Finalize ISO / IMG / Tarball file
+        t_step = time.perf_counter()
         if output_format == "tarball" or self.config.get("create_tarball"):
             final_tarball = self.engine.export_tarball(output_path)
             if self.config.get("create_tarball"):
@@ -681,7 +713,7 @@ class ISOBuilder:
                             logger.info(f"[tarball] Saved stage seed tarball to: {dest}")
                             # Also copy checksum files if they exist
                             src_p = Path(final_tarball)
-                            for ext in (".sha256", ".md5", ".manifest.json"):
+                            for ext in (".sha256", ".sha512", ".md5", ".manifest.json"):
                                 src_c = src_p.parent / f"{src_p.name}{ext}"
                                 if src_c.exists():
                                     shutil.copy2(src_c, dest.parent / f"{dest.name}{ext}")
@@ -696,7 +728,10 @@ class ISOBuilder:
             self.engine.finalize_isofile(output_path)
             final_file = str(resolve_from_project(output_path))
 
-        logger.info("=== Build completed successfully! ===")
+        self.timings["finalize_artifact"] = time.perf_counter() - t_step
+        self.timings["total"] = time.perf_counter() - t_start
+
+        logger.info(f"=== Build completed in {self.timings['total']:.2f}s ===")
         return final_file
 
 @ISOEngine.register("rpi-aarch64")

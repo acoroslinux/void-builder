@@ -120,7 +120,20 @@ class StageManager:
                 "Please run with sudo: sudo python3 cli.py ..."
             )
 
-        cmd = ["tar", "xpf", str(tarball_path), "-C", str(target_root), "--numeric-owner", "--xattrs-include=*.*"]
+        # Detect fastest available parallel decompressor
+        decompressor_opt = []
+        tb_name = tarball_path.name.lower()
+        if tb_name.endswith((".tar.xz", ".txz")):
+            if shutil.which("pixz"):
+                decompressor_opt = ["-I", "pixz"]
+        elif tb_name.endswith((".tar.zst", ".tzst")):
+            if shutil.which("zstd"):
+                decompressor_opt = ["-I", "zstd -T0 -d"]
+        elif tb_name.endswith((".tar.gz", ".tgz")):
+            if shutil.which("pigz"):
+                decompressor_opt = ["-I", "pigz -d"]
+
+        cmd = ["tar"] + decompressor_opt + ["-xpf", str(tarball_path), "-C", str(target_root), "--numeric-owner", "--xattrs-include=*.*"]
         res = subprocess.run(cmd, capture_output=True, text=True)
         if res.returncode != 0:
             logger.error(f"Tarball extraction failed: {res.stderr}")
@@ -132,7 +145,8 @@ class StageManager:
         self, source_root: Path, output_tarball: Path, compression: str = "xz"
     ) -> Path:
         """
-        Packages a clean rootfs directory into a stage tarball (.tar.xz, .tar.gz, etc.).
+        Packages a clean rootfs directory into a stage tarball (.tar.xz, .tar.gz, .tar.zst).
+        Automatically leverages multi-core parallel compressors (zstd, pixz, pigz) when present.
         """
         source_root = Path(source_root).resolve()
         output_tarball = Path(output_tarball).resolve()
@@ -145,13 +159,26 @@ class StageManager:
             output_tarball.touch()
             return output_tarball
 
-        comp_flag = "-J"
-        if compression == "gzip" or output_tarball.name.endswith(".gz"):
-            comp_flag = "-z"
-        elif compression == "zstd" or output_tarball.name.endswith(".zst"):
-            comp_flag = "--zstd"
+        # Select fastest compressor
+        compressor_opt = []
+        if compression == "zstd" or output_tarball.name.endswith((".tar.zst", ".zst")):
+            if shutil.which("zstd"):
+                compressor_opt = ["-I", "zstd -T0 -3"]
+            else:
+                compressor_opt = ["--zstd"]
+        elif compression == "gzip" or output_tarball.name.endswith((".tar.gz", ".gz")):
+            if shutil.which("pigz"):
+                compressor_opt = ["-I", "pigz"]
+            else:
+                compressor_opt = ["-z"]
+        else:
+            # xz default
+            if shutil.which("pixz"):
+                compressor_opt = ["-I", "pixz"]
+            else:
+                compressor_opt = ["-J"]
 
-        cmd = ["tar", f"-c{comp_flag}f", str(output_tarball), "-C", str(source_root), "."]
+        cmd = ["tar"] + compressor_opt + ["-cpf", str(output_tarball), "-C", str(source_root), "."]
         res = subprocess.run(cmd, capture_output=True, text=True)
         if res.returncode != 0:
             logger.error(f"Stage tarball creation failed: {res.stderr}")

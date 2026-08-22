@@ -48,6 +48,25 @@ class BuildOrchestrator:
         generate_manifest: bool = True,
         use_tarball: Optional[str] = None,
         create_tarball: bool = False,
+        preset: Optional[str] = None,
+        hostname: Optional[str] = None,
+        timezone: Optional[str] = None,
+        locale: Optional[str] = None,
+        keymap: Optional[str] = None,
+        root_password: Optional[str] = None,
+        lock_root: bool = False,
+        live_password: Optional[str] = None,
+        boot_title: Optional[str] = None,
+        iso_label: Optional[str] = None,
+        boot_cmdline: Optional[str] = None,
+        extra_kernel_args: Optional[str] = None,
+        ssh_keys: Optional[List[str]] = None,
+        hooks: Optional[Dict[str, Any]] = None,
+        save_config_path: Optional[str] = None,
+        use_tmpfs: bool = False,
+        fast_mode: bool = False,
+        benchmark: bool = False,
+        jobs: Optional[int] = None,
     ):
         VALID_ARCHS = (
             "x86_64", "x86_64-musl",
@@ -82,10 +101,30 @@ class BuildOrchestrator:
         self.repositories = repositories or []
         self.include_dirs = include_dirs or []
         self.update_toolchain = update_toolchain
-        self.compression = compression
+        self.fast_mode = fast_mode
+        self.use_tmpfs = use_tmpfs
+        self.benchmark = benchmark
+        self.jobs = jobs
+        self.compression = "zstd" if fast_mode else compression
         self.generate_manifest = generate_manifest
         self.use_tarball = use_tarball
         self.create_tarball = create_tarball
+        self.preset = preset
+        self.hostname = hostname
+        self.timezone = timezone
+        self.locale = locale
+        self.keymap = keymap
+        self.root_password = root_password
+        self.lock_root = lock_root
+        self.live_password = live_password
+        self.boot_title = boot_title
+        self.iso_label = iso_label
+        self.boot_cmdline = boot_cmdline
+        self.extra_kernel_args = extra_kernel_args
+        self.ssh_keys = ssh_keys or []
+        self.hooks = hooks or {}
+        self.save_config_path = save_config_path
+        self._tmpfs_mounted = False
 
         self.config_loader = ConfigLoader()
         self.builder: Optional[ISOBuilder] = None
@@ -161,12 +200,35 @@ class BuildOrchestrator:
                 live_user=self.live_user,
                 live_groups=self.live_groups,
                 platforms=self.platforms,
+                preset=self.preset,
+                hostname=self.hostname,
+                timezone=self.timezone,
+                locale=self.locale,
+                keymap=self.keymap,
+                root_password=self.root_password,
+                lock_root=self.lock_root,
+                live_password=self.live_password,
+                boot_title=self.boot_title,
+                iso_label=self.iso_label,
+                boot_cmdline=self.boot_cmdline,
+                extra_kernel_args=self.extra_kernel_args,
+                ssh_keys=self.ssh_keys,
+                hooks=self.hooks,
             )
         except Exception as e:
             raise BuildOrchestratorError(f"Failed to load configuration: {e}")
 
         if not self.config:
             raise BuildOrchestratorError("The generated configuration is null or invalid.")
+
+        # Save config snapshot if requested
+        if self.save_config_path:
+            save_p = resolve_from_project(self.save_config_path)
+            save_p.parent.mkdir(parents=True, exist_ok=True)
+            import json
+            with open(save_p, "w", encoding="utf-8") as sf:
+                json.dump(self.config.to_dict(), sf, indent=2)
+            print(f"[ORCHESTRATOR] Saved assembled configuration to: {save_p}")
 
         # Apply compression, manifest, and tarball options to config
         self.config._data.setdefault("iso", {})["compression_type"] = self.compression
@@ -188,10 +250,30 @@ class BuildOrchestrator:
                 if d not in inc_dirs:
                     inc_dirs.append(d)
 
+        if self.fast_mode:
+            self.config._data["fast_mode"] = True
+            self.config._data["squashfs_compression"] = "zstd"
+            self.config._data["zstd_level"] = "3"
+
+        if self.compression:
+            self.config._data["squashfs_compression"] = self.compression
+
+        if self.jobs:
+            self.config._data["jobs"] = self.jobs
+
         # 2. Workdir resolution
         configured_base = self.config.get("system.workdir_base", "workdir")
         base_workdir = resolve_from_project(str(configured_base))
         workdir = self._resolve_writable_workdir(base_workdir)
+
+        if self.use_tmpfs:
+            if self.mode == "real" and os.geteuid() == 0:
+                print(f"[ORCHESTRATOR] 🚀 Mounting tmpfs (RAM disk) on {workdir}...")
+                import subprocess
+                subprocess.run(["mount", "-t", "tmpfs", "-o", "size=6G,mode=0755", "tmpfs", str(workdir)], check=True)
+                self._tmpfs_mounted = True
+            else:
+                print(f"[ORCHESTRATOR] 🚀 [MOCK/SIM] Fast RAM staging enabled for {workdir}")
 
         if self.clean:
             stale_paths = [
@@ -251,6 +333,7 @@ class BuildOrchestrator:
             target_bootloader=self.bootloader,
             package_profiles=self.package_profiles,
             service_profiles=self.service_profiles,
+            preset=self.preset,
         )
 
     def run_build(self, output_iso: str, output_format: str = "iso") -> Path:
@@ -269,6 +352,20 @@ class BuildOrchestrator:
             print("\n✅ BUILD SUCCEEDED!")
             print(f"Artifact generated at: {result_iso}")
 
+            # Display benchmark report if requested
+            if self.benchmark and hasattr(self.builder, "timings") and self.builder.timings:
+                t = self.builder.timings
+                print("\n" + "=" * 58)
+                print(" ⏱️  BUILD BENCHMARK & EXECUTION TIMINGS REPORT")
+                print("=" * 58)
+                print(f"  ├── [1/5] Setup & Chroot:        {t.get('setup_chroot', 0):6.2f}s")
+                print(f"  ├── [2/5] Package Installation:  {t.get('install_packages', 0):6.2f}s")
+                print(f"  ├── [3/5] Customizations/Dracut: {t.get('post_install', 0):6.2f}s")
+                print(f"  ├── [4/5] Bootloader Generation: {t.get('build_bootloaders', 0):6.2f}s")
+                print(f"  ├── [5/5] Finalize & Compression:{t.get('finalize_artifact', 0):6.2f}s")
+                print(f"  └── 🏁 TOTAL BUILD TIME:         {t.get('total', 0):6.2f}s")
+                print("=" * 58 + "\n")
+
             return result_iso
 
         except Exception as e:
@@ -278,6 +375,14 @@ class BuildOrchestrator:
         finally:
             if self.chroot:
                 self.chroot.umount()
+
+            if self._tmpfs_mounted and self.workdir:
+                try:
+                    import subprocess
+                    subprocess.run(["umount", "-f", str(self.workdir)], check=True)
+                    self._tmpfs_mounted = False
+                except Exception as e:
+                    print(f"[ORCHESTRATOR] Warning: Could not unmount tmpfs: {e}")
             
             if self.workdir and self.workdir.exists():
                 # Safety check: verify no active mount points remain under self.workdir before running rmtree

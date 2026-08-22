@@ -32,8 +32,10 @@ ENV/
 *.tgz
 *.squashfs
 *.sha256
+*.sha512
 *.md5
 *.manifest.json
+*.zst
 .pytest_cache/
 
 # ===========================
@@ -77,6 +79,6 @@ docs/_build/
 # ===========================
 void-builder/
 output/
-/workdir/
+workdir/
 custom_files/*
 !custom_files/.gitkeep

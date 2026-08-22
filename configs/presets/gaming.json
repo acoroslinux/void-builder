@@ -1,0 +1,33 @@
+{
+  "_comment": "Void-Builder Preset: Gaming Edition with Steam & Vulkan Support",
+  "preset_name": "gaming",
+  "desktop": "xfce",
+  "kernel": "linux",
+  "bootloader": "grub",
+  "boot_title": "Void Linux Gaming Edition",
+  "customizations": {
+    "hostname": "void-gaming"
+  },
+  "package_profiles": [
+    "desktop-essentials",
+    "gaming",
+    "multimedia",
+    "internet"
+  ],
+  "package_sources": {
+    "official": [
+      "void-repo-nonfree",
+      "void-repo-multilib",
+      "void-repo-multilib-nonfree",
+      "steam",
+      "gamemode",
+      "mangohud",
+      "vulkan-loader",
+      "mesa-dri",
+      "mesa-vulkan-radeon",
+      "mesa-vulkan-intel",
+      "vkBasalt",
+      "wine"
+    ]
+  }
+}

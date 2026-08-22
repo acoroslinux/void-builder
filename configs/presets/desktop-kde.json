@@ -1,0 +1,17 @@
+{
+  "_comment": "Void-Builder Preset: Modern KDE Plasma Workstation",
+  "preset_name": "desktop-kde",
+  "desktop": "kde",
+  "kernel": "linux",
+  "bootloader": "grub",
+  "boot_title": "Void Linux KDE Edition",
+  "customizations": {
+    "hostname": "void-plasma"
+  },
+  "package_profiles": [
+    "desktop-essentials",
+    "internet",
+    "multimedia",
+    "office"
+  ]
+}

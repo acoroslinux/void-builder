@@ -351,6 +351,89 @@ class LocaleAction(SystemAction):
             logger.info("    [Mock] Apply locale/timezone/hostname/keymap")
 
 
+class RootPasswordAction(SystemAction):
+    """Configures or locks the root account password."""
+
+    def __init__(self, password: Optional[str] = None, lock: bool = False):
+        self.password = password
+        self.lock = lock
+
+    def execute(self, chroot: ChrootManager, source_base: Path):
+        if self.lock:
+            logger.info("  [Security] Locking root account...")
+            if chroot.mode == "real":
+                chroot.run_command("passwd -l root || usermod -L root", check=False)
+            else:
+                logger.info("    [Mock] Lock root account password")
+        elif self.password is not None:
+            logger.info("  [Security] Setting root account password...")
+            if chroot.mode == "real":
+                chroot.run_command(f"sh -c \"echo 'root:{self.password}' | chpasswd\"")
+            else:
+                logger.info("    [Mock] Set root account password")
+
+
+class SSHKeyAction(SystemAction):
+    """Injects authorized SSH public keys for root and live users."""
+
+    def __init__(self, ssh_keys: List[str], target_users: Optional[List[str]] = None):
+        self.ssh_keys = [k.strip() for k in ssh_keys if k and k.strip()]
+        self.target_users = target_users or ["root", "live"]
+
+    def execute(self, chroot: ChrootManager, source_base: Path):
+        if not self.ssh_keys:
+            return
+        logger.info(f"  [SSH] Injecting {len(self.ssh_keys)} SSH public keys for users: {', '.join(self.target_users)}")
+        if chroot.mode == "real":
+            key_content = "\n".join(self.ssh_keys).strip() + "\n"
+            for user in self.target_users:
+                user_home = Path("/root") if user == "root" else Path(f"/home/{user}")
+                ssh_dir = user_home / ".ssh"
+                auth_keys = ssh_dir / "authorized_keys"
+
+                chroot.run_command(f"mkdir -p {ssh_dir}")
+                chroot.run_command(f"chmod 700 {ssh_dir}")
+                if user != "root":
+                    chroot.run_command(f"chown -R {user}:{user} {ssh_dir}")
+
+                chroot.run_command(f"sh -c \"cat >> {auth_keys} << 'EOF'\n{key_content}EOF\"")
+                chroot.run_command(f"chmod 600 {auth_keys}")
+                if user != "root":
+                    chroot.run_command(f"chown {user}:{user} {auth_keys}")
+        else:
+            logger.info(f"    [Mock] Injected SSH keys for {', '.join(self.target_users)}")
+
+
+class HookAction(SystemAction):
+    """Executes arbitrary hook scripts at specific build lifecycle stages."""
+
+    def __init__(self, stage: str, script_path: str, in_chroot: bool = True):
+        self.stage = stage
+        self.script_path = script_path
+        self.in_chroot = in_chroot
+
+    def execute(self, chroot: ChrootManager, source_base: Path):
+        hook_file = resolve_from_base(source_base, self.script_path)
+        if not hook_file.exists():
+            logger.warning(f"  [Hook:{self.stage}] Hook script not found: {hook_file}")
+            return
+
+        logger.info(f"  [Hook:{self.stage}] Executing hook script: {hook_file.name}")
+        if chroot.mode == "real":
+            if self.in_chroot:
+                dest_script = chroot.chroot_path / "tmp" / f"hook_{hook_file.name}"
+                dest_script.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(hook_file, dest_script)
+                dest_script.chmod(0o755)
+                try:
+                    chroot.run_command(f"/tmp/{dest_script.name}")
+                finally:
+                    dest_script.unlink(missing_ok=True)
+            else:
+                import subprocess
+                subprocess.run(["sh", str(hook_file)], check=True)
+        else:
+            logger.info(f"    [Mock] Executed {self.stage} hook: {hook_file}")
 
 
 class PipewireAction(SystemAction):
@@ -659,6 +742,19 @@ class SystemConfigurator:
         if cust_config:
             self.actions.append(LocaleAction(cust_config))
 
+        # 3b. Root password / security
+        root_pwd = cust_config.get("root_password") or _safe_get(config, "root_password")
+        lock_root = cust_config.get("lock_root") or _safe_get(config, "lock_root", False)
+        if root_pwd or lock_root:
+            self.actions.append(RootPasswordAction(password=root_pwd, lock=bool(lock_root)))
+
+        # 3c. SSH authorized keys
+        ssh_keys = cust_config.get("ssh_keys") or _safe_get(config, "ssh_keys", [])
+        if ssh_keys:
+            if isinstance(ssh_keys, str):
+                ssh_keys = [ssh_keys]
+            self.actions.append(SSHKeyAction(ssh_keys=ssh_keys))
+
         # 4. Users
         users = cust_config.get("users", [])
         for u in users:
@@ -666,12 +762,16 @@ class SystemConfigurator:
                 u = u._data
             self.actions.append(UserAction(u))
 
-        # 5. Services
+        # 5. Services (with conflict resolution)
         services = cust_config.get("services", [])
         if not services:
             services = _safe_get(config, "platform_specific.services", [])
         if services:
             srv_list = [str(s) for s in services]
+            # Conflict resolution: if NetworkManager is enabled, omit standalone conflicting dhcpcd
+            if "NetworkManager" in srv_list and "dhcpcd" in srv_list:
+                logger.info("  [Conflict Resolver] Omitted conflicting 'dhcpcd' service because 'NetworkManager' is enabled.")
+                srv_list = [s for s in srv_list if s != "dhcpcd"]
             self.actions.append(ServiceAction(srv_list))
 
         # 6. Commands
@@ -792,6 +892,16 @@ class SystemConfigurator:
         
         # 13. Plymouth Configuration (sets bgrt theme)
         self.actions.append(PlymouthAction())
+
+        # 14. Lifecycle Hooks (post-install phase)
+        hooks_dict = cust_config.get("hooks", {}) or _safe_get(config, "hooks", {})
+        if hooks_dict and isinstance(hooks_dict, dict):
+            post_hooks = hooks_dict.get("post-install", [])
+            if isinstance(post_hooks, str):
+                post_hooks = [post_hooks]
+            for hk in post_hooks:
+                if hk:
+                    self.actions.append(HookAction(stage="post-install", script_path=str(hk), in_chroot=True))
 
     def apply(self, source_base_dir: Optional[Path] = None):
         if not self.chroot:

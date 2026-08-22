@@ -211,13 +211,28 @@ class ConfigAssembler:
         live_user: Optional[str] = None,
         live_groups: Optional[List[str]] = None,
         platforms: Optional[List[str]] = None,
+        preset: Optional[str] = None,
+        hostname: Optional[str] = None,
+        timezone: Optional[str] = None,
+        locale: Optional[str] = None,
+        keymap: Optional[str] = None,
+        root_password: Optional[str] = None,
+        lock_root: bool = False,
+        live_password: Optional[str] = None,
+        boot_title: Optional[str] = None,
+        iso_label: Optional[str] = None,
+        boot_cmdline: Optional[str] = None,
+        extra_kernel_args: Optional[str] = None,
+        ssh_keys: Optional[List[str]] = None,
+        hooks: Optional[Dict[str, Any]] = None,
     ) -> Config:
         """
         Configuration assembly process:
         1. Load the global manifest (global_build.json).
-        2. Load the architecture-specific configuration.
-        3. Load the requested desktop profile.
-        4. Merge everything together.
+        2. Load optional preset profile if specified.
+        3. Load the architecture-specific configuration.
+        4. Load the requested desktop profile.
+        5. Merge everything together and apply dynamic overrides.
         """
         logger.info(f"Starting configuration assembly for {target_arch}...")
 
@@ -229,6 +244,30 @@ class ConfigAssembler:
             )
 
         self.master_config = self._load_json_file(global_path)
+
+        # 1b. Load Preset (if provided)
+        if preset:
+            preset_name = preset.replace(".json", "")
+            preset_data = self._load_optional_profile("presets", preset_name)
+            if preset_data:
+                logger.info(f"Applying preset profile '{preset_name}'...")
+                if not target_desktop and preset_data.get("desktop"):
+                    target_desktop = preset_data.get("desktop")
+                if not target_kernel and preset_data.get("kernel"):
+                    target_kernel = preset_data.get("kernel")
+                if not target_bootloader and preset_data.get("bootloader"):
+                    target_bootloader = preset_data.get("bootloader")
+                if not boot_title and preset_data.get("boot_title"):
+                    boot_title = preset_data.get("boot_title")
+                
+                preset_pkgs = preset_data.get("package_profiles", [])
+                if preset_pkgs:
+                    package_profiles = (package_profiles or []) + list(preset_pkgs)
+                preset_srvs = preset_data.get("service_profiles", [])
+                if preset_srvs:
+                    service_profiles = (service_profiles or []) + list(preset_srvs)
+
+                self._deep_merge(self.master_config, preset_data)
 
         # 2. Architecture (for example: configs/architectures/x86_64.json)
         arch_config_path = self.config_root / "architectures" / f"{target_arch}.json"
@@ -465,6 +504,51 @@ class ConfigAssembler:
             except Exception as e:
                 logger.error(f"Failed to load or apply package rules: {e}")
 
+        # 4e. Apply direct customization overrides
+        cust = self.master_config.setdefault("customizations", {})
+        if hostname:
+            cust["hostname"] = hostname
+        if timezone:
+            cust["timezone"] = timezone
+        if locale:
+            cust["locale"] = locale
+        if keymap:
+            cust["keymap"] = keymap
+        if root_password or lock_root:
+            cust["root_password"] = root_password
+            cust["lock_root"] = bool(lock_root)
+        if live_password:
+            users = cust.setdefault("users", [])
+            for u in users:
+                if isinstance(u, dict) and u.get("name") in ("live", live_user or "live"):
+                    u["password"] = live_password
+        if boot_title:
+            self.master_config["boot_title"] = boot_title
+        if iso_label:
+            self.master_config.setdefault("system", {})["iso_label"] = iso_label
+        if boot_cmdline:
+            self.master_config["boot_cmdline"] = boot_cmdline
+        if extra_kernel_args:
+            current_cmdline = self.master_config.get("boot_cmdline", "")
+            self.master_config["boot_cmdline"] = f"{current_cmdline} {extra_kernel_args}".strip()
+        if ssh_keys:
+            cust["ssh_keys"] = ssh_keys
+        if hooks:
+            cust["hooks"] = hooks
+
+        # 4f. Multilib & Nonfree repository auto-detection for x86_64
+        official_pkgs = self.master_config.get("package_sources", {}).get("official", [])
+        repos = self.master_config.setdefault("repositories", [])
+        if target_arch == "x86_64":
+            if any("multilib" in str(p) or p in ("steam", "wine") for p in official_pkgs):
+                multilib_repo = "https://repo-default.voidlinux.org/current/multilib"
+                if multilib_repo not in repos:
+                    repos.append(multilib_repo)
+                if any("multilib-nonfree" in str(p) or p == "steam" for p in official_pkgs):
+                    ml_nonfree = "https://repo-default.voidlinux.org/current/multilib/nonfree"
+                    if ml_nonfree not in repos:
+                        repos.append(ml_nonfree)
+
         logger.info("Configuration assembly completed successfully.")
         return Config(self.master_config)
 
@@ -476,9 +560,18 @@ class ConfigAssembler:
         target_bootloader: Optional[str] = None,
         package_profiles: Optional[List[str]] = None,
         service_profiles: Optional[List[str]] = None,
+        preset: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Validate configuration files and profile references before starting build."""
         report: Dict[str, Any] = {"valid": True, "errors": [], "warnings": [], "summary": {}}
+
+        # Check preset profile if specified
+        if preset:
+            preset_name = preset.replace(".json", "")
+            preset_path = self.config_root / "presets" / f"{preset_name}.json"
+            if not preset_path.exists():
+                report["valid"] = False
+                report["errors"].append(f"Preset profile '{preset_name}' missing at {preset_path}")
 
         # Check global build file
         global_path = self.config_root / "global_build.json"
@@ -547,6 +640,7 @@ class ConfigAssembler:
                 target_bootloader=target_bootloader,
                 package_profiles=package_profiles,
                 service_profiles=service_profiles,
+                preset=preset,
             )
             pkg_list = config.get("packages", []) or []
             off_pkgs = config.get("package_sources.official", []) or []
@@ -559,10 +653,21 @@ class ConfigAssembler:
                         all_pkgs.append(name)
                 elif isinstance(item, str):
                     all_pkgs.append(item)
+            desktop_val = target_desktop
+            if not desktop_val:
+                raw_desk = config.get("desktop_environment")
+                if isinstance(raw_desk, dict):
+                    desktop_val = raw_desk.get("name", "custom")
+                elif hasattr(raw_desk, "get"):
+                    desktop_val = raw_desk.get("name", "custom")
+                else:
+                    desktop_val = raw_desk or "base"
+
             report["summary"] = {
                 "target_arch": target_arch,
-                "desktop": target_desktop or "base",
-                "kernel": target_kernel or "default",
+                "preset": preset or "(none)",
+                "desktop": desktop_val,
+                "kernel": target_kernel or config.get("kernel", "default"),
                 "total_packages": len(set(all_pkgs)),
                 "services": config.get("customizations.services", []),
                 "repositories": config.get("repositories", []),

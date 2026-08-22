@@ -1,0 +1,47 @@
+{
+  "_comment": "Void-Builder Preset: System Rescue, Forensics & Disk Partitioning",
+  "preset_name": "rescue-sysadmin",
+  "desktop": "xfce",
+  "kernel": "linux",
+  "bootloader": "grub",
+  "boot_title": "Void Linux Rescue & SysAdmin",
+  "customizations": {
+    "hostname": "void-rescue"
+  },
+  "package_profiles": [
+    "filesystems",
+    "networking",
+    "dev-tools"
+  ],
+  "package_sources": {
+    "official": [
+      "gparted",
+      "testdisk",
+      "ddrescue",
+      "smartmontools",
+      "nvme-cli",
+      "hdparm",
+      "wipefs",
+      "nmap",
+      "tcpdump",
+      "wireshark-qt",
+      "iperf3",
+      "rsync",
+      "btrfs-progs",
+      "xfsprogs",
+      "f2fs-tools",
+      "e2fsprogs",
+      "dosfstools",
+      "ntfs-3g",
+      "cryptsetup",
+      "lvm2",
+      "mdadm",
+      "chntpw",
+      "memtest86+",
+      "lsof",
+      "strace",
+      "inxi",
+      "dmidecode"
+    ]
+  }
+}

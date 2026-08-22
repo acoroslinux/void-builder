@@ -1,0 +1,50 @@
+name: CI / Build & Test Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    name: Unit & Integration Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install -e .
+
+      - name: Run Configuration Validation (--check)
+        run: |
+          python cli.py --check
+          python cli.py x86_64 --preset minimal --check
+          python cli.py x86_64 --preset desktop-xfce --check
+          python cli.py x86_64 --preset rescue-sysadmin --check
+          python cli.py x86_64 --preset developer --check
+          python cli.py x86_64 --preset gaming --check
+
+      - name: Run Test Suite (Unittest)
+        run: |
+          python -m unittest discover tests/ -v
+
+      - name: Test Mock ISO Build Pipeline
+        run: |
+          python cli.py x86_64 --preset desktop-xfce --mode mock
+          python cli.py rpi-aarch64 --mode mock
+          python cli.py x86_64 --format tarball --mode mock

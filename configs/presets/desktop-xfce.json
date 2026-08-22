@@ -1,0 +1,17 @@
+{
+  "_comment": "Void-Builder Preset: Lightweight XFCE Desktop Workstation",
+  "preset_name": "desktop-xfce",
+  "desktop": "xfce",
+  "kernel": "linux",
+  "bootloader": "grub",
+  "boot_title": "Void Linux XFCE Edition",
+  "customizations": {
+    "hostname": "void-xfce"
+  },
+  "package_profiles": [
+    "desktop-essentials",
+    "internet",
+    "multimedia",
+    "office"
+  ]
+}

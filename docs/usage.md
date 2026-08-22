@@ -76,7 +76,7 @@ Select the compression algorithm via `--compression`:
 
 ---
 
-## 4. 10 Complete Usage Examples
+## 4. Complete Usage Examples
 
 ### Example 1: Standard Non-Root Simulation (Mock Build)
 Simulate an x86_64 ISO build with XFCE desktop environment without root privileges:
@@ -85,34 +85,70 @@ Simulate an x86_64 ISO build with XFCE desktop environment without root privileg
 python3 cli.py x86_64 -d xfce --mode mock
 ```
 
-Expected Output Files:
+Expected Output Files in `output/`:
 - `void-builder-xfce-x86_64.iso`
 - `void-builder-xfce-x86_64.iso.sha256`
+- `void-builder-xfce-x86_64.iso.sha512`
 - `void-builder-xfce-x86_64.iso.md5`
 - `void-builder-xfce-x86_64.iso.manifest.json`
 
 ---
 
-### Example 2: Production Real ISO Build (GNOME Desktop)
-Build a real production ISO containing the GNOME desktop environment for 64-bit PCs:
+### Example 2: Ultra-Fast RAM Build with Benchmark Timings
+Build a live ISO entirely inside RAM (`tmpfs`) with `zstd` level 3 compression and per-stage timing breakdown:
 
 ```bash
-sudo python3 cli.py x86_64 -d gnome --mode real
+sudo python3 cli.py x86_64 --preset desktop-xfce --fast --tmpfs --benchmark --mode real
 ```
 
 ---
 
-### Example 3: Ultra-Fast Boot ISO with ZSTD Compression
-Build a KDE Plasma desktop ISO compressed with `zstd` for maximum boot speed:
+### Example 3: Specialized Flavour Build (Rescue & SysAdmin Edition)
+Build an all-in-one system rescue, forensics, and partition recovery ISO:
 
 ```bash
-sudo python3 cli.py x86_64 -d kde --mode real --compression zstd
+sudo python3 cli.py x86_64 --preset rescue-sysadmin --mode real
 ```
 
 ---
 
-### Example 4: Raspberry Pi 4 64-Bit Disk Image
-Generate a bootable SD Card image for Raspberry Pi 4:
+### Example 4: Full Localization & System Configuration
+Build an ISO customized with Portuguese localization, custom hostname, and root credentials:
+
+```bash
+sudo python3 cli.py x86_64 -P desktop-xfce \
+    --hostname void-portugal \
+    --locale pt_PT.UTF-8 \
+    --timezone Europe/Lisbon \
+    --keymap pt-latin1 \
+    --root-password "SecretPass123" \
+    --mode real
+```
+
+---
+
+### Example 5: Developer Workstation with SSH Key Ingestion
+Build a developer environment with Rust, Go, Python, Podman, and inject your host SSH public key:
+
+```bash
+sudo python3 cli.py x86_64 --preset developer \
+    --ssh-key ~/.ssh/id_ed25519.pub \
+    --mode real
+```
+
+---
+
+### Example 6: Gaming Edition with Steam & Multilib
+Build a gaming-ready ISO with Steam, Vulkan drivers, Wine, and automated multilib/nonfree repo configuration:
+
+```bash
+sudo python3 cli.py x86_64 --preset gaming --mode real
+```
+
+---
+
+### Example 7: Raspberry Pi 4 64-Bit Disk Image
+Generate a bootable SD Card image for Raspberry Pi 4/5:
 
 ```bash
 # Setup host cross-emulation once
@@ -122,66 +158,32 @@ sudo ./setup_host_build_env.sh
 sudo python3 cli.py rpi-aarch64 --mode real
 ```
 
-Generated Artifact:
-- `void-builder-base-rpi-aarch64.img.xz`
+---
+
+### Example 8: Lifecycle Hooks Execution
+Execute customized shell scripts during build phases:
+
+```bash
+sudo python3 cli.py x86_64 -P minimal \
+    --hook post-install:configs/hooks/post-install.example.sh \
+    --mode real
+```
 
 ---
 
-### Example 5: Container Base Tarball Export
+### Example 9: Container RootFS Export
 Export a customized Void Linux rootfs tarball for LXC, Docker, or Podman:
 
 ```bash
-sudo python3 cli.py x86_64 -d base --mode real --format tarball
-```
-
-Generated Artifact:
-- `void-builder-base-x86_64.tar.xz`
-
----
-
-### Example 6: Pinebook Pro Laptop Image
-Build a raw disk image for the Pine64 Pinebook Pro laptop featuring Rockchip RK3399 U-Boot loader:
-
-```bash
-sudo python3 cli.py pinebookpro -d sway --mode real
+sudo python3 cli.py x86_64 -P minimal --format tarball --mode real
 ```
 
 ---
 
-### Example 7: Apple Silicon Mac Image (Asahi Linux)
-Build an Apple Silicon ARM64 disk image formatted with Asahi Linux kernel and GRUB EFI:
-
-```bash
-sudo python3 cli.py asahi -d gnome --mode real
-```
-
----
-
-### Example 8: Lightweight Musl C Library ISO
-Build an `x86_64-musl` lightweight ISO for server deployments:
-
-```bash
-sudo python3 cli.py x86_64-musl -d base -s ssh --mode real
-```
-
----
-
-### Example 9: Offline Graphical Installer ISO with Calamares
-Compile the Calamares graphical installer from source templates and inject it into an XFCE live ISO:
+### Example 10: Calamares Graphical Installer Live ISO
+Compile the Calamares graphical installer and inject it into an XFCE live ISO:
 
 ```bash
 sudo python3 cli.py x86_64 -d xfce --with-calamares --mode real
 ```
 
----
-
-### Example 10: Custom Repository & Included Directory Overlay
-Build an ISO with custom XBPS packages from an external repository and overlay local configuration files:
-
-```bash
-sudo python3 cli.py x86_64 -d awesome \
-  -R https://my-custom-repo.org/voidlinux \
-  -I /home/user/custom_skel:/etc/skel \
-  -p dev-tools \
-  --mode real
-```

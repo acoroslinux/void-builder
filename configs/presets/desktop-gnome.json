@@ -1,0 +1,17 @@
+{
+  "_comment": "Void-Builder Preset: GNOME 4x Workstation",
+  "preset_name": "desktop-gnome",
+  "desktop": "gnome",
+  "kernel": "linux",
+  "bootloader": "grub",
+  "boot_title": "Void Linux GNOME Edition",
+  "customizations": {
+    "hostname": "void-gnome"
+  },
+  "package_profiles": [
+    "desktop-essentials",
+    "internet",
+    "multimedia",
+    "office"
+  ]
+}
