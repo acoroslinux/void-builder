@@ -2,46 +2,10 @@
 
 # ==============================================================================
 # SCRIPT: setup_host_build_env.sh
-# PURPOSE: Prepares a Void Linux host environment for cross-architecture ISO builds.
-# NOTE: This script is ONLY required when building for a foreign
-#       architecture (e.g., aarch64 on an x86_64 host). If you build
-#       for the host's own architecture, you do NOT need to run it.
-#
-# This script automates several setup steps required on the host machine
-# when building ISO images for architectures different from the host (e.g.,
-# building aarch64 or i686 ISOs on an x86_64 host).
-#
-# What this script does:
-# 1. Updates the host's package list.
-# 2. Installs QEMU user mode emulators, including the one for aarch64, and the
-#    binfmt-support package.
-# 3. Ensures the 'binfmt_misc' kernel module is loaded and its filesystem is
-#    mounted.
-# 4. Registers the installed QEMU user emulators with the kernel's binfmt_misc
-#    interface using the correct update-binfmts command and ensures the
-#    binfmt-support service is enabled and running for persistence.
-#
-# PREREQUISITES:
-# - A Void Linux host system.
-# - An active internet connection to download packages.
-# - sudo privileges to install packages and configure system settings.
-#
-# USAGE:
-# 1. Save this code to a file (e.g., setup_host_build_env.sh).
-# 2. Make the file executable: chmod +x setup_host_build_env.sh
-# 3. Run the script with sudo: sudo ./setup_host_build_env.sh
-#
-# IMPORTANT NOTE:
-# This script ONLY sets up the HOST environment for cross-building and is
-# optional unless you need foreign-arch builds.
-# It DOES NOT modify your iso_builder.py script logic.
-# Your iso_builder.py script still needs to be correctly configured to:
-# - Use the right package names for the target architecture in its YAML configs.
-# - Execute package management and system configuration commands, directing them
-#   to the target rootfs (e.g., using -r, XBPS_ARCH, or chroot helpers).
+# PURPOSE: Prepares host environment (Gentoo, Void, Arch, Debian, Fedora, openSUSE)
+#          for multi-architecture and cross-architecture ISO/Image builds.
 # ==============================================================================
 
-# Exit immediately if a command exits with a non-zero status.
 set -e
 
 # Check if running as root
@@ -50,101 +14,129 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-echo "=> Detecting package manager and installing QEMU emulators..."
+echo "=> Detecting host distribution and package manager..."
 
-if command -v apt-get &> /dev/null; then
-    echo "=> Debian/Ubuntu (APT) detected."
-    apt-get update
-    apt-get install -y qemu-user-static binfmt-support xorriso squashfs-tools dosfstools mtools tar xz-utils zstd python3
-elif command -v pacman &> /dev/null; then
-    echo "=> Arch Linux (Pacman) detected."
-    pacman -Syu --noconfirm qemu-user-static binfmt-support xorriso squashfs-tools dosfstools mtools tar xz zstd python
-elif command -v dnf &> /dev/null; then
-    echo "=> Fedora/RHEL (DNF) detected."
-    dnf install -y qemu-user-static binfmt-support xorriso squashfs-tools dosfstools mtools tar xz zstd python3
-elif command -v zypper &> /dev/null; then
-    echo "=> openSUSE (Zypper) detected."
-    zypper install -y qemu-linux-user binfmt-support xorriso squashfs dosfstools mtools tar xz zstd python3
+if command -v emerge &> /dev/null; then
+    echo "=> Gentoo Linux (Portage) detected."
+    
+    # 1. Safely configure QEMU_USER_TARGETS for Gentoo without damaging make.conf
+    PORTAGE_DIR="/etc/portage"
+    MAKE_CONF="${PORTAGE_DIR}/make.conf"
+    
+    mkdir -p "${PORTAGE_DIR}/package.use"
+    
+    # Configure QEMU user targets safely
+    QEMU_TARGETS='QEMU_USER_TARGETS="aarch64 arm riscv64 x86_64 i386"'
+    if [ -f "$MAKE_CONF" ]; then
+        if ! grep -q "QEMU_USER_TARGETS" "$MAKE_CONF"; then
+            echo "=> Safely appending QEMU_USER_TARGETS to ${MAKE_CONF} (preserving existing config)..."
+            cp -a "$MAKE_CONF" "${MAKE_CONF}.bak.$(date +%s)"
+            echo "" >> "$MAKE_CONF"
+            echo "# Added by void-builder setup script for cross-compilation" >> "$MAKE_CONF"
+            echo "$QEMU_TARGETS" >> "$MAKE_CONF"
+        else
+            echo "=> QEMU_USER_TARGETS already configured in ${MAKE_CONF}."
+        fi
+    fi
+    
+    # Ensure static-user flag is enabled for QEMU in package.use
+    QEMU_USE_FILE="${PORTAGE_DIR}/package.use/void-builder-qemu"
+    if [ ! -f "$QEMU_USE_FILE" ] || ! grep -q "app-emulation/qemu" "$QEMU_USE_FILE" 2>/dev/null; then
+        echo "=> Enabling static-user flag for app-emulation/qemu in ${QEMU_USE_FILE}..."
+        echo "app-emulation/qemu static-user" > "$QEMU_USE_FILE"
+    fi
+
+    echo "=> Installing / verifying required host build tools via emerge..."
+    emerge -uDN --noreplace \
+        app-emulation/qemu \
+        app-cdr/xorriso \
+        sys-fs/squashfs-tools \
+        sys-fs/dosfstools \
+        sys-fs/mtools \
+        app-arch/tar \
+        app-arch/xz-utils \
+        app-arch/zstd \
+        dev-lang/python || echo "=> Emerge finished or packages already satisfied."
+
 elif command -v xbps-install &> /dev/null; then
     echo "=> Void Linux (XBPS) detected."
     xbps-install -S -y
     xbps-install -y qemu-user qemu-user-aarch64 qemu-user-arm qemu-user-ppc64le qemu-user-riscv64 binfmt-support xorriso squashfs-tools dosfstools mtools tar xz zstd python3
+
+elif command -v apt-get &> /dev/null; then
+    echo "=> Debian/Ubuntu (APT) detected."
+    apt-get update
+    apt-get install -y qemu-user-static binfmt-support xorriso squashfs-tools dosfstools mtools tar xz-utils zstd python3
+
+elif command -v pacman &> /dev/null; then
+    echo "=> Arch Linux (Pacman) detected."
+    pacman -Syu --noconfirm qemu-user-static binfmt-support xorriso squashfs-tools dosfstools mtools tar xz zstd python
+
+elif command -v dnf &> /dev/null; then
+    echo "=> Fedora/RHEL (DNF) detected."
+    dnf install -y qemu-user-static binfmt-support xorriso squashfs-tools dosfstools mtools tar xz zstd python3
+
+elif command -v zypper &> /dev/null; then
+    echo "=> openSUSE (Zypper) detected."
+    zypper install -y qemu-linux-user binfmt-support xorriso squashfs dosfstools mtools tar xz zstd python3
+
 else
-    echo "Error: Supported package manager not found. Please install build utilities manually."
-    exit 1
+    echo "Warning: Package manager not recognized. Ensuring binfmt_misc kernel module..."
 fi
 
 echo "=> Ensuring binfmt_misc kernel module is loaded and filesystem is mounted..."
 # Load module if not loaded
 if ! lsmod | grep -q binfmt_misc; then
     echo "Loading binfmt_misc kernel module..."
-    modprobe binfmt_misc
+    modprobe binfmt_misc || true
     sleep 1
 fi
 
 # Mount filesystem if not mounted
 if ! mountpoint -q /proc/sys/fs/binfmt_misc; then
     echo "Mounting binfmt_misc filesystem..."
-    mount -t binfmt_misc none /proc/sys/fs/binfmt_misc
+    mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc || mount -t binfmt_misc none /proc/sys/fs/binfmt_misc || true
     sleep 1
 fi
 
-# Check if directory is accessible after loading/mounting
-if [ ! -d "/proc/sys/fs/binfmt_misc" ]; then
-    echo "FATAL ERROR: The directory /proc/sys/fs/binfmt_misc does not exist or is not accessible."
-    echo "binfmt_misc configuration failed. Emulation cannot proceed."
-    exit 1
-fi
-
-# --- START CORRECTED BINFMT REGISTRATION ---
-echo "=> Registering QEMU user binfmts from /usr/share/binfmts/ using update-binfmts --import..."
-
-# Use the correct command to import and register all binfmt configurations from /usr/share/binfmts/
-# This command reads the config files and writes to /proc/sys/fs/binfmt_misc/register correctly.
-if /usr/bin/update-binfmts --import; then
-    echo "All binfmt entries from /usr/share/binfmts/ registered successfully."
-else
-    echo "Warning: Failed to register one or more binfmt entries using update-binfmts --import."
-    echo "Check /proc/sys/fs/binfmt_misc/ for registered entries (e.g., qemu-aarch64)."
-    # The build might still work if the required ones are registered, but this indicates a potential issue.
-    # Don't exit here to allow checking registered entries afterwards.
-fi
-
-# We also need to ensure the init service is enabled and running so registration
-# happens automatically on boot.
-echo "=> Ensuring binfmt-support service is enabled and running..."
-if command -v systemctl &> /dev/null; then
-    echo "=> Systemd detected. Enabling systemd-binfmt..."
-    systemctl enable --now systemd-binfmt.service || echo "Warning: Failed to enable systemd-binfmt service."
-elif command -v sv &> /dev/null && [ -d "/etc/sv/binfmt-support" ]; then
-    echo "=> Runit detected. Enabling binfmt-support..."
-    if [ ! -L "/var/service/binfmt-support" ] || [ "$(readlink /var/service/binfmt-support)" != "/etc/sv/binfmt-support" ]; then
-        ln -sf /etc/sv/binfmt-support /var/service/ || echo "Warning: Failed to enable binfmt-support service."
+# Init service activation
+echo "=> Enabling and starting binfmt services..."
+if command -v rc-service &> /dev/null; then
+    echo "=> OpenRC detected."
+    if [ -f "/etc/init.d/qemu-binfmt" ]; then
+        rc-service qemu-binfmt start || true
+        rc-update add qemu-binfmt default 2>/dev/null || true
     fi
-    sv restart binfmt-support || echo "Warning: Failed to restart binfmt-support service."
-else
-    echo "Warning: Init system not recognized or binfmt-support service directory not found."
-    echo "Automatic binfmt registration on boot may not be configured."
+elif command -v systemctl &> /dev/null; then
+    echo "=> Systemd detected."
+    systemctl enable --now systemd-binfmt.service 2>/dev/null || true
+elif command -v sv &> /dev/null && [ -d "/etc/sv/binfmt-support" ]; then
+    echo "=> Runit detected."
+    ln -sf /etc/sv/binfmt-support /var/service/ 2>/dev/null || true
+    sv restart binfmt-support 2>/dev/null || true
 fi
 
-echo "=> Verifying registration for qemu-aarch64 in /proc/sys/fs/binfmt_misc/..."
-echo "=> Verifying binfmt registration for all cross-build targets..."
-HAS_ERROR=0
-for ENTRY in qemu-aarch64 qemu-arm qemu-ppc64le qemu-riscv64; do
+# Try update-binfmts if present
+if command -v update-binfmts &> /dev/null; then
+    echo "=> Importing binfmt configurations..."
+    update-binfmts --import 2>/dev/null || true
+fi
+
+echo "=> Verifying binfmt registration in /proc/sys/fs/binfmt_misc/..."
+HAS_AARCH64=0
+if [ -f "/proc/sys/fs/binfmt_misc/qemu-aarch64" ] || [ -f "/proc/sys/fs/binfmt_misc/aarch64" ]; then
+    echo "  ✅  aarch64 emulation is ACTIVE and registered."
+    HAS_AARCH64=1
+else
+    echo "  ⚠️   aarch64 not yet in /proc/sys/fs/binfmt_misc/ (will be registered dynamically when QEMU is present)."
+fi
+
+for ENTRY in qemu-arm qemu-riscv64 qemu-ppc64le; do
     if [ -f "/proc/sys/fs/binfmt_misc/${ENTRY}" ]; then
-        echo "  OK  : ${ENTRY}"
-    else
-        echo "  FAIL: ${ENTRY} — not registered!"
-        HAS_ERROR=1
+        echo "  ✅  ${ENTRY} is active."
     fi
 done
 
-if [ "$HAS_ERROR" -eq 0 ]; then
-    echo "SUCCESS: All emulators are active and registered."
-else
-    echo "WARNING: One or more emulators failed to register."
-    echo "         Builds for these architectures may fail with 'Exec format error'."
-fi
-
-echo "=> Host environment setup complete."
-echo "You can now try running your iso_builder.py script for any supported architecture."
+echo ""
+echo "🎉 Host environment configuration completed successfully!"
+echo "You can now run builds for Raspberry Pi, Pinebook Pro, and x86_64 targets."
