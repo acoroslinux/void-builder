@@ -38,6 +38,10 @@
       "destination": "/etc/sudoers.d"
     },
     {
+      "source": "polkit-1",
+      "destination": "/etc/polkit-1"
+    },
+    {
       "source": "default",
       "destination": "/etc/default"
     }

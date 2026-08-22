@@ -6,15 +6,15 @@ componentName:   void-modern
 strings:
     productName:         "Void Modern"
     shortProductName:    "VoidModern"
-    version:             "2026.07"
-    shortVersion:        "2026.07"
-    versionedName:       "Void Modern 2026.07"
-    shortVersionedName:  "VoidModern 2026.07"
+    version:             "2026.08"
+    shortVersion:        "2026.08"
+    versionedName:       "Void Modern 2026.08"
+    shortVersionedName:  "VoidModern 2026.08"
     installLabel:        "Install Void Modern"
-    productUrl:          "https://github.com/acoroslinux/void-builder"
-    supportUrl:          "https://github.com/acoroslinux/void-builder"
-    knownIssuesUrl:      "https://github.com/acoroslinux/void-builder"
-    releaseNotesUrl:     "https://github.com/acoroslinux/void-builder"
+    productUrl:          "https://acoroslinux.github.io/void-builder/"
+    supportUrl:          "https://acoroslinux.github.io/void-builder/"
+    knownIssuesUrl:      "https://github.com/acoroslinux/void-builder/issues"
+    releaseNotesUrl:     "https://github.com/acoroslinux/void-builder/releases"
 
 images:
     productLogo:         "logo.png"
