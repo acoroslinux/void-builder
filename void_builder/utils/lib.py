@@ -62,31 +62,38 @@ def _qemu_cpu_name(target_arch):
     return m.get(base)
 
 
+_QEMU_BINFMT_INITIALIZED = set()
+
+
 def setup_qemu_binfmt(target_arch):
     """Set up QEMU user-static binfmt_misc for cross-arch builds."""
     if is_target_native(target_arch):
         return True
-    cpu = _qemu_cpu_name(target_arch)
+
+    canonical = map_xbps_arch(target_arch)
+    if canonical in _QEMU_BINFMT_INITIALIZED:
+        return True
+
+    cpu = _qemu_cpu_name(canonical)
     if cpu is None:
         error_msg(f"Unknown target architecture for QEMU: {target_arch}")
         return False
-    qemu_bin = f"qemu-{cpu}-static"
-    rc, _, _ = CommandRunner.run([qemu_bin, '-version'], check=False, capture_output=True)
-    if rc != 0:
-        qemu_bin = f"qemu-{cpu}"
-        rc, _, _ = CommandRunner.run([qemu_bin, '-version'], check=False, capture_output=True)
-        if rc != 0:
-            error_msg(f"QEMU binary not found: qemu-{cpu}-static or qemu-{cpu}")
-            return False
+
+    import shutil
+    qemu_bin = shutil.which(f"qemu-{cpu}-static") or shutil.which(f"qemu-{cpu}")
+    if not qemu_bin:
+        error_msg(f"QEMU binary not found: qemu-{cpu}-static or qemu-{cpu}")
+        return False
+
     bp = '/proc/sys/fs/binfmt_misc'
     if not os.path.isdir(bp):
-        CommandRunner.run(['modprobe', '-q', 'binfmt_misc'], check=False)
-        CommandRunner.run(['mount', '-t', 'binfmt_misc', 'binfmt_misc', bp], check=False)
+        CommandRunner.run(['modprobe', '-q', 'binfmt_misc'], check=False, silent_errors=True)
+        CommandRunner.run(['mount', '-t', 'binfmt_misc', 'binfmt_misc', bp], check=False, silent_errors=True)
     rf = os.path.join(bp, f"qemu-{cpu}")
     if not os.path.exists(rf):
-        rc, _, _ = CommandRunner.run(['update-binfmts', '--import', f'qemu-{cpu}'], check=False)
-        if rc != 0:
-            pass
+        CommandRunner.run(['update-binfmts', '--import', f'qemu-{cpu}'], check=False, silent_errors=True)
+
+    _QEMU_BINFMT_INITIALIZED.add(canonical)
     return True
 
 
