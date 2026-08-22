@@ -118,7 +118,7 @@ def mount_pseudofs(rootfs):
     # Ensure /run exists as a tmpfs so symlinked /dev/shm -> /run/shm works on Debian/Arch hosts
     run_target = os.path.join(rootfs, 'run')
     os.makedirs(run_target, exist_ok=True)
-    if CommandRunner.run(['mountpoint', '-q', run_target], check=False, capture_output=True)[0] != 0:
+    if CommandRunner.run(['mountpoint', '-q', run_target], check=False, capture_output=True, silent_errors=True)[0] != 0:
         CommandRunner.run(['mount', '-t', 'tmpfs', 'tmpfs', run_target], check=False)
         
     run_shm = os.path.join(rootfs, 'run', 'shm')
@@ -132,11 +132,13 @@ def umount_pseudofs(rootfs):
     """Safely unmount pseudo-filesystems using lazy unmounting to avoid lockups."""
     success = True
     
-    # Pre-emptively unmount internal tmpfs
-    for fs in ('dev/shm', 'run/shm', 'run'):
+    # Pre-emptively unmount internal tmpfs mounts if mounted
+    for fs in ('dev/shm', 'run'):
         target = os.path.join(rootfs, fs)
         if os.path.isdir(target):
-            CommandRunner.run(['umount', '-l', target], check=False)
+            rc, _, _ = CommandRunner.run(['mountpoint', '-q', target], check=False, capture_output=True, silent_errors=True)
+            if rc == 0:
+                CommandRunner.run(['umount', '-l', target], check=False)
             
     # Unmount main points
     for fs in ('sys', 'proc', 'dev'):

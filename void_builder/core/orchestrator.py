@@ -268,9 +268,22 @@ class BuildOrchestrator:
 
         if self.use_tmpfs:
             if self.mode == "real" and os.geteuid() == 0:
-                print(f"[ORCHESTRATOR] 🚀 Mounting tmpfs (RAM disk) on {workdir}...")
+                # Compute safe tmpfs size based on available RAM + Swap (default 16G, up to 75% of total memory)
+                tmpfs_size = "16G"
+                try:
+                    total_kb = 0
+                    with open("/proc/meminfo", "r") as f:
+                        for line in f:
+                            if line.startswith("MemTotal:") or line.startswith("SwapTotal:"):
+                                total_kb += int(line.split()[1])
+                    total_gb = total_kb / (1024 * 1024)
+                    safe_gb = max(12, int(total_gb * 0.75))
+                    tmpfs_size = f"{safe_gb}G"
+                except Exception:
+                    pass
+                print(f"[ORCHESTRATOR] 🚀 Mounting tmpfs ({tmpfs_size} RAM disk) on {workdir}...")
                 import subprocess
-                subprocess.run(["mount", "-t", "tmpfs", "-o", "size=6G,mode=0755", "tmpfs", str(workdir)], check=True)
+                subprocess.run(["mount", "-t", "tmpfs", "-o", f"size={tmpfs_size},mode=0755", "tmpfs", str(workdir)], check=True)
                 self._tmpfs_mounted = True
             else:
                 print(f"[ORCHESTRATOR] 🚀 [MOCK/SIM] Fast RAM staging enabled for {workdir}")
