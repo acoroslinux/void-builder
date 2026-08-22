@@ -519,6 +519,16 @@ class VoidEngine(BaseEngine):
             try:
                 self.logger.info(f"Copying rootfs into ext3fs.img (Size: {img_size_mb}MB)...")
                 subprocess.run(chroot_cmd + ["cp", "-a", f"{self.chroot_path}/.", str(mount_point)], check=True)
+
+                # Strictly ensure security permissions inside ext3fs.img
+                subprocess.run(chroot_cmd + ["chmod", "600", f"{mount_point}/etc/shadow"], check=False)
+                subprocess.run(chroot_cmd + ["chmod", "644", f"{mount_point}/etc/passwd"], check=False)
+                subprocess.run(chroot_cmd + ["chmod", "644", f"{mount_point}/etc/group"], check=False)
+                if (mount_point / "etc" / "sudoers").exists():
+                    subprocess.run(chroot_cmd + ["chmod", "440", f"{mount_point}/etc/sudoers"], check=False)
+                if (mount_point / "etc" / "sudoers.d").exists():
+                    subprocess.run(chroot_cmd + ["chmod", "750", f"{mount_point}/etc/sudoers.d"], check=False)
+                    subprocess.run(chroot_cmd + ["sh", "-c", f"chmod 440 {mount_point}/etc/sudoers.d/* 2>/dev/null || true"], check=False)
             finally:
                 for _ in range(5):
                     res = subprocess.run(chroot_cmd + ["umount", "-f", str(mount_point)], capture_output=True)

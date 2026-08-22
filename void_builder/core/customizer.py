@@ -129,6 +129,8 @@ class UserAction(SystemAction):
 
         groups = self.user_config.get("groups", [])
         password = self.user_config.get("password", "")
+        if not password and name in ("live", "void"):
+            password = "live"
 
         logger.info(f"  [User] Creating user: {name}")
 
@@ -146,11 +148,11 @@ class UserAction(SystemAction):
             chroot.run_command(f"chown -R {name}:{name} /home/{name}")
 
             if password:
-                chroot.run_command(f"sh -c \"echo '{name}:{password}' | chpasswd\"")
+                chroot.run_command(f"sh -c \"echo '{name}:{password}' | chpasswd -c SHA512\"")
 
             if "wheel" in groups:
                 chroot.run_command(
-                    "mkdir -p /etc/sudoers.d && echo '%wheel ALL=(ALL:ALL) NOPASSWD: ALL' > /etc/sudoers.d/10-wheel"
+                    "mkdir -p /etc/sudoers.d && echo '%wheel ALL=(ALL:ALL) NOPASSWD: ALL' > /etc/sudoers.d/10-wheel && chmod 750 /etc/sudoers.d && chmod 440 /etc/sudoers.d/10-wheel"
                 )
         else:
             logger.info(f"    [Mock] Create user: {name} (groups: {groups})")
@@ -368,9 +370,55 @@ class RootPasswordAction(SystemAction):
         elif self.password is not None:
             logger.info("  [Security] Setting root account password...")
             if chroot.mode == "real":
-                chroot.run_command(f"sh -c \"echo 'root:{self.password}' | chpasswd\"")
+                chroot.run_command(f"sh -c \"echo 'root:{self.password}' | chpasswd -c SHA512\"")
             else:
                 logger.info("    [Mock] Set root account password")
+        else:
+            logger.info("  [Security] Setting default root password ('voidlinux')...")
+            if chroot.mode == "real":
+                chroot.run_command("sh -c \"echo 'root:voidlinux' | chpasswd -c SHA512\"")
+            else:
+                logger.info("    [Mock] Set default root password ('voidlinux')")
+
+
+class SecurityPermissionsAction(SystemAction):
+    """Enforces strict security permissions for PAM, Shadow, Sudoers, and SUID binaries."""
+
+    def execute(self, chroot: ChrootManager, source_base: Path):
+        logger.info("  [Security] Enforcing PAM, Shadow, and Sudoers permissions...")
+        if chroot.mode == "real":
+            # 1. Base user / shadow files
+            chroot.run_command("chmod 600 /etc/shadow && chown root:root /etc/shadow", check=False)
+            chroot.run_command("chmod 644 /etc/passwd && chown root:root /etc/passwd", check=False)
+            chroot.run_command("chmod 644 /etc/group && chown root:root /etc/group", check=False)
+            chroot.run_command("[ -f /etc/gshadow ] && chmod 600 /etc/gshadow && chown root:root /etc/gshadow", check=False)
+
+            # 2. PAM configurations
+            chroot.run_command("chmod 755 /etc/pam.d && chmod 644 /etc/pam.d/*", check=False)
+            chroot.run_command("[ -d /etc/security ] && chmod 755 /etc/security && chmod 644 /etc/security/*", check=False)
+
+            # 3. Sudoers permissions (must be strictly 0440 and owned by root:root)
+            chroot.run_command("[ -f /etc/sudoers ] && chmod 440 /etc/sudoers && chown root:root /etc/sudoers", check=False)
+            chroot.run_command("mkdir -p /etc/sudoers.d && chmod 750 /etc/sudoers.d && chown root:root /etc/sudoers.d", check=False)
+            chroot.run_command("chmod 440 /etc/sudoers.d/* && chown -R root:root /etc/sudoers.d", check=False)
+
+            # 4. SUID binaries for authentication
+            suid_bins = [
+                "/usr/bin/passwd",
+                "/usr/bin/su",
+                "/usr/bin/sudo",
+                "/usr/bin/chfn",
+                "/usr/bin/chsh",
+                "/usr/bin/newgrp",
+                "/usr/bin/gpasswd",
+                "/usr/bin/unix_chkpwd",
+                "/sbin/unix_chkpwd",
+                "/usr/libexec/polkit-1/polkit-agent-helper-1",
+            ]
+            for sbin in suid_bins:
+                chroot.run_command(f"[ -f {sbin} ] && chmod 4755 {sbin} && chown root:root {sbin}", check=False)
+        else:
+            logger.info("    [Mock] Verified shadow, PAM, sudoers, and SUID permissions")
 
 
 class SSHKeyAction(SystemAction):
@@ -902,6 +950,9 @@ class SystemConfigurator:
             for hk in post_hooks:
                 if hk:
                     self.actions.append(HookAction(stage="post-install", script_path=str(hk), in_chroot=True))
+
+        # 15. Enforce PAM, Shadow, Sudoers, and SUID Security Permissions
+        self.actions.append(SecurityPermissionsAction())
 
     def apply(self, source_base_dir: Optional[Path] = None):
         if not self.chroot:
