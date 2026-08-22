@@ -20,11 +20,6 @@
     "description": "Highly configurable, next generation framework window manager for X.",
     "customizations_path": "custom_files/",
     "use_common_config": true,
-    "copy_files": [
-      {
-        "source": "desktop-config/awesome",
-        "destination": "/etc/skel/.config"
-      }
-    ]
+    "copy_files": []
   }
 }

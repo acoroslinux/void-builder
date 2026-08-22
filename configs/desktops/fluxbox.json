@@ -21,11 +21,6 @@
     "description": "Lightweight stacking window manager for X, based on Blackbox.",
     "customizations_path": "custom_files/",
     "use_common_config": true,
-    "copy_files": [
-      {
-        "source": "desktop-config/fluxbox",
-        "destination": "/etc/skel/.config"
-      }
-    ]
+    "copy_files": []
   }
 }

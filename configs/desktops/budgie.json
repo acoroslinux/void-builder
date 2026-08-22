@@ -19,11 +19,6 @@
     "description": "Modern desktop environment designed with simplicity and elegance in mind.",
     "customizations_path": "custom_files/",
     "use_common_config": true,
-    "copy_files": [
-      {
-        "source": "desktop-config/budgie",
-        "destination": "/etc/skel/.config"
-      }
-    ]
+    "copy_files": []
   }
 }

@@ -19,11 +19,6 @@
     "description": "Ultra-lightweight, fast, and energy-saving desktop environment.",
     "customizations_path": "custom_files/",
     "use_common_config": true,
-    "copy_files": [
-      {
-        "source": "desktop-config/lxde",
-        "destination": "/etc/skel/.config"
-      }
-    ]
+    "copy_files": []
   }
 }

@@ -18,11 +18,6 @@
     "description": "Modern, beautiful, and highly customizable desktop environment.",
     "customizations_path": "custom_files/",
     "use_common_config": true,
-    "copy_files": [
-      {
-        "source": "desktop-config/kde",
-        "destination": "/etc/skel/.config"
-      }
-    ]
+    "copy_files": []
   }
 }

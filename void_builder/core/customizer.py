@@ -985,11 +985,11 @@ class SystemConfigurator:
 
                 self.actions.append(LoginManagerAction(display_manager, session_name, username))
 
-        # 11. Structured Copy (Universal base, desktop, and profile file copying)
+        # 11. Structured Copy & Tiered Overlays (Common, Desktop-Specific & Profile Custom Files)
         final_copy_list = []
         custom_path = "configs/custom_files/"
 
-        # 11a. Always load base_customizations.json for common assets
+        # 11a. Always load base_customizations.json for common assets (skel, sudoers, samba, etc.)
         base_custom_path = resolve_from_project("configs/base_customizations.json")
         if base_custom_path.exists():
             try:
@@ -1002,7 +1002,7 @@ class SystemConfigurator:
             except Exception as e:
                 logger.error(f"Failed to load/parse configs/base_customizations.json: {e}")
 
-        # 11b. Desktop-specific copy files
+        # 11b. Explicit copy_files from desktop or root configuration
         desktop_env = _safe_get(config, "desktop_environment")
         if desktop_env:
             if hasattr(desktop_env, "_data"):
@@ -1016,7 +1016,6 @@ class SystemConfigurator:
                     if isinstance(item, dict):
                         final_copy_list.append(item)
 
-        # 11c. Customizations and root config copy_files
         direct_copies = cust_config.get("copy_files", []) or _safe_get(config, "copy_files", [])
         for item in direct_copies:
             if hasattr(item, "_data"):
@@ -1027,6 +1026,51 @@ class SystemConfigurator:
         if final_copy_list:
             arch = _safe_get(config, "platform_specific.architecture", "x86_64")
             self.actions.append(StructuredCopyAction(custom_path, final_copy_list, arch))
+
+        # 11c. Automatic Desktop-Specific Overlay Discovery from configs/custom_files/desktops/<name>/
+        desktop_candidates = []
+        desktop_val = _safe_get(config, "desktop") or _safe_get(config, "desktop_environment.name") or _safe_get(config, "preset_name")
+        if desktop_val:
+            desktop_candidates.append(str(desktop_val).lower())
+        
+        off_pkgs = _safe_get(pkg_sources, "official", [])
+        for desk_kw in ("xfce", "kde", "gnome", "cinnamon", "mate", "lxqt", "i3", "bspwm", "awesome", "openbox", "hyprland", "budgie", "deepin", "sway", "enlightenment", "fluxbox", "icewm", "qtile"):
+            if any(desk_kw in str(p) for p in off_pkgs):
+                desktop_candidates.append(desk_kw)
+
+        normalized_desktops = set()
+        for d in desktop_candidates:
+            if "xfce" in d:
+                normalized_desktops.add("xfce")
+            elif "kde" in d or "plasma" in d:
+                normalized_desktops.add("kde")
+            elif "gnome" in d:
+                normalized_desktops.add("gnome")
+            else:
+                for k in ("cinnamon", "mate", "lxqt", "i3", "bspwm", "awesome", "openbox", "hyprland", "budgie", "deepin", "sway", "enlightenment", "fluxbox", "icewm", "qtile"):
+                    if k in d:
+                        normalized_desktops.add(k)
+
+        for d_name in sorted(normalized_desktops):
+            desktop_overlay = resolve_from_project(f"configs/custom_files/desktops/{d_name}")
+            if desktop_overlay.exists():
+                logger.info(f"Auto-applying desktop custom files overlay for '{d_name}': {desktop_overlay}")
+                self.actions.append(OverlayAction(str(desktop_overlay)))
+
+        # 11d. Workstation / Profile-Specific Overlay Discovery
+        active_profiles = _safe_get(config, "package_profiles", [])
+        preset_str = str(_safe_get(config, "preset_name", "")).lower()
+        if "gaming" in active_profiles or "gaming" in preset_str:
+            gaming_overlay = resolve_from_project("configs/custom_files/desktops/workstation-gaming")
+            if gaming_overlay.exists():
+                logger.info(f"Auto-applying workstation gaming custom overlay: {gaming_overlay}")
+                self.actions.append(OverlayAction(str(gaming_overlay)))
+
+        if "office" in active_profiles or "office" in preset_str:
+            office_overlay = resolve_from_project("configs/custom_files/desktops/workstation-office")
+            if office_overlay.exists():
+                logger.info(f"Auto-applying workstation office custom overlay: {office_overlay}")
+                self.actions.append(OverlayAction(str(office_overlay)))
 
         # 12. Flatpak Configuration (run unconditionally, checks inside if flatpak is installed)
         self.actions.append(FlatpakAction())

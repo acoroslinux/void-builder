@@ -1,10 +1,6 @@
 {
   "base_copy_files": [
     {
-      "source": "os-release",
-      "destination": "/usr/lib"
-    },
-    {
       "source": "skel",
       "destination": "/etc/skel"
     },
@@ -15,6 +11,10 @@
     {
       "source": "applications",
       "destination": "/usr/share/applications"
+    },
+    {
+      "source": "scripts",
+      "destination": "/usr/local/bin"
     },
     {
       "source": "plymouth/themes/void-modern",
@@ -28,7 +28,6 @@
       "source": "grub",
       "destination": "/usr/share/grub/themes"
     },
-
     {
       "source": "samba",
       "destination": "/etc/samba"
@@ -44,6 +43,14 @@
     {
       "source": "default",
       "destination": "/etc/default"
+    },
+    {
+      "source": "lightdm",
+      "destination": "/etc/lightdm"
+    },
+    {
+      "source": "calamares",
+      "destination": "/etc/calamares"
     }
   ]
 }

@@ -23,11 +23,6 @@
     "description": "Tiling window manager that represents windows as the leaves of a full binary tree.",
     "customizations_path": "custom_files/",
     "use_common_config": true,
-    "copy_files": [
-      {
-        "source": "desktop-config/bspwm",
-        "destination": "/etc/skel/.config"
-      }
-    ]
+    "copy_files": []
   }
 }

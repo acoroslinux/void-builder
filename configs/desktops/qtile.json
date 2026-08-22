@@ -20,11 +20,6 @@
     "description": "Full-featured, hackable tiling window manager written and configured in Python.",
     "customizations_path": "custom_files/",
     "use_common_config": true,
-    "copy_files": [
-      {
-        "source": "desktop-config/qtile",
-        "destination": "/etc/skel/.config"
-      }
-    ]
+    "copy_files": []
   }
 }
