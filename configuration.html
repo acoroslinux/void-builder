@@ -73,7 +73,12 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#how-to-create-a-brand-new-desktop-profile">6. How to Create a Brand New Desktop Profile</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#file-overlays-configs-custom-files">7. File Overlays (<code class="docutils literal notranslate"><span class="pre">configs/custom_files/</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#custom-file-management-scalable-overlays">7. Custom File Management &amp; Scalable Overlays</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#a-direct-filesystem-overlay-configs-overlay">A. Direct Filesystem Overlay (<code class="docutils literal notranslate"><span class="pre">configs/overlay/</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#b-declarative-structured-copy-configs-base-customizations-json-copy-files">B. Declarative Structured Copy (<code class="docutils literal notranslate"><span class="pre">configs/base_customizations.json</span></code> &amp; <code class="docutils literal notranslate"><span class="pre">copy_files</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#c-automatic-etc-skel-to-home-user-propagation">C. Automatic <code class="docutils literal notranslate"><span class="pre">/etc/skel</span></code> to <code class="docutils literal notranslate"><span class="pre">/home/&lt;user&gt;</span></code> Propagation</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#presets-edition-profiles-configs-presets">8. Presets &amp; Edition Profiles (<code class="docutils literal notranslate"><span class="pre">configs/presets/</span></code>)</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#example-configs-presets-rescue-sysadmin-json">Example: <code class="docutils literal notranslate"><span class="pre">configs/presets/rescue-sysadmin.json</span></code></a></li>
 </ul>
@@ -447,14 +452,52 @@
 </ol>
 </section>
 <hr class="docutils" />
-<section id="file-overlays-configs-custom-files">
-<h2>7. File Overlays (<code class="docutils literal notranslate"><span class="pre">configs/custom_files/</span></code>)<a class="headerlink" href="#file-overlays-configs-custom-files" title="Link to this heading"></a></h2>
-<p>Any directory or file placed inside <code class="docutils literal notranslate"><span class="pre">configs/custom_files/</span></code> is automatically copied directly into the target rootfs at <code class="docutils literal notranslate"><span class="pre">/</span></code> during system customization.</p>
-<p>Example:</p>
+<section id="custom-file-management-scalable-overlays">
+<h2>7. Custom File Management &amp; Scalable Overlays<a class="headerlink" href="#custom-file-management-scalable-overlays" title="Link to this heading"></a></h2>
+<p><strong>Void-Builder</strong> provides 3 distinct, scalable mechanisms for copying custom files and directories into the target system:</p>
+<section id="a-direct-filesystem-overlay-configs-overlay">
+<h3>A. Direct Filesystem Overlay (<code class="docutils literal notranslate"><span class="pre">configs/overlay/</span></code>)<a class="headerlink" href="#a-direct-filesystem-overlay-configs-overlay" title="Link to this heading"></a></h3>
+<p>The simplest and most scalable method. Any file or directory placed inside <code class="docutils literal notranslate"><span class="pre">configs/overlay/</span></code> is automatically discovered and mirrored directly to the target rootfs at <code class="docutils literal notranslate"><span class="pre">/</span></code> with attributes preserved and ownership normalized:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">configs/custom_files/etc/motd</span></code> -&gt; copied to <code class="docutils literal notranslate"><span class="pre">/etc/motd</span></code> in target system.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">configs/custom_files/etc/skel/.config/xfce4/</span></code> -&gt; copied to <code class="docutils literal notranslate"><span class="pre">/etc/skel/.config/xfce4/</span></code> in target system.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">configs/overlay/etc/motd</span></code> -&gt; Copied to <code class="docutils literal notranslate"><span class="pre">/etc/motd</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">configs/overlay/usr/share/backgrounds/wallpaper.png</span></code> -&gt; Copied to <code class="docutils literal notranslate"><span class="pre">/usr/share/backgrounds/wallpaper.png</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">configs/overlay/etc/polkit-1/rules.d/50-custom.rules</span></code> -&gt; Copied to <code class="docutils literal notranslate"><span class="pre">/etc/polkit-1/rules.d/50-custom.rules</span></code></p></li>
 </ul>
+<p>You can also pass external overlay directories on the CLI using <code class="docutils literal notranslate"><span class="pre">--include-dir</span> <span class="pre">/path/to/my-overlay</span></code>.</p>
+</section>
+<section id="b-declarative-structured-copy-configs-base-customizations-json-copy-files">
+<h3>B. Declarative Structured Copy (<code class="docutils literal notranslate"><span class="pre">configs/base_customizations.json</span></code> &amp; <code class="docutils literal notranslate"><span class="pre">copy_files</span></code>)<a class="headerlink" href="#b-declarative-structured-copy-configs-base-customizations-json-copy-files" title="Link to this heading"></a></h3>
+<p>For granular control over source, destination, file permissions, and ownership, use declarative <code class="docutils literal notranslate"><span class="pre">copy_files</span></code> arrays in JSON:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"base_copy_files"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"source"</span><span class="p">:</span><span class="w"> </span><span class="s2">"samba"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"destination"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/etc/samba"</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"source"</span><span class="p">:</span><span class="w"> </span><span class="s2">"scripts/my-helper.sh"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"destination"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/usr/local/bin/my-helper.sh"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0755"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"owner"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0:0"</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"source"</span><span class="p">:</span><span class="w"> </span><span class="s2">"sudoers.d"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"destination"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/etc/sudoers.d"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0440"</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><strong>Automatic Executable Bits</strong>: Any file copied into <code class="docutils literal notranslate"><span class="pre">/usr/bin/</span></code>, <code class="docutils literal notranslate"><span class="pre">/usr/local/bin/</span></code>, <code class="docutils literal notranslate"><span class="pre">/etc/cron.*</span></code>, or ending in <code class="docutils literal notranslate"><span class="pre">.sh</span></code> automatically receives execution permissions (<code class="docutils literal notranslate"><span class="pre">0755</span></code>).</p></li>
+<li><p><strong>Automatic Sudoers Security</strong>: Any file copied into <code class="docutils literal notranslate"><span class="pre">/etc/sudoers.d/</span></code> is automatically restricted to <code class="docutils literal notranslate"><span class="pre">0440</span></code> mode and owned by <code class="docutils literal notranslate"><span class="pre">root:root</span></code>.</p></li>
+</ul>
+</section>
+<section id="c-automatic-etc-skel-to-home-user-propagation">
+<h3>C. Automatic <code class="docutils literal notranslate"><span class="pre">/etc/skel</span></code> to <code class="docutils literal notranslate"><span class="pre">/home/&lt;user&gt;</span></code> Propagation<a class="headerlink" href="#c-automatic-etc-skel-to-home-user-propagation" title="Link to this heading"></a></h3>
+<p>When copying configuration files or dotfiles to <code class="docutils literal notranslate"><span class="pre">/etc/skel/</span></code> (e.g. <code class="docutils literal notranslate"><span class="pre">skel/.config/xfce4/</span></code>), Void-Builder automatically propagates these files into the home directories of all created users (e.g. <code class="docutils literal notranslate"><span class="pre">/home/live/</span></code>, <code class="docutils literal notranslate"><span class="pre">/home/void/</span></code>) and assigns proper user ownership (<code class="docutils literal notranslate"><span class="pre">chown</span> <span class="pre">-R</span> <span class="pre">&lt;user&gt;:&lt;user&gt;</span></code>).</p>
+</section>
 </section>
 <hr class="docutils" />
 <section id="presets-edition-profiles-configs-presets">
