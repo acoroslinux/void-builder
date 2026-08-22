@@ -30,12 +30,21 @@ if command -v emerge &> /dev/null; then
     cat << 'PORTAGE_EOF' > "$QEMU_USE"
 # void-builder cross-compilation dependencies
 app-emulation/qemu static-user
-app-emulation/qemu QEMU_USER_TARGETS: aarch64 arm riscv64
-dev-libs/glib static-libs
+app-emulation/qemu QEMU_USER_TARGETS: aarch64 arm riscv64 x86_64 i386
+virtual/zlib static-libs
 sys-libs/zlib static-libs
+virtual/libintl static-libs
+virtual/libiconv static-libs
+virtual/libffi static-libs
+dev-libs/libffi static-libs
+dev-libs/glib static-libs
 dev-libs/libpcre2 static-libs
 sys-apps/attr static-libs
 sys-libs/libcap static-libs
+app-arch/bzip2 static-libs
+app-arch/xz-utils static-libs
+app-arch/zstd static-libs
+dev-libs/lzo static-libs
 PORTAGE_EOF
 
     echo "=> Installing app-emulation/qemu via emerge..."
