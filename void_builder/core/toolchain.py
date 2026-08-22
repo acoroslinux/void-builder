@@ -83,7 +83,7 @@ class ToolchainManager:
             return "aarch64"
         return "x86_64"
 
-    def _run_xbps_install(self, rootdir: Path, arch: str, packages: List[str], repos: List[str]):
+    def _run_xbps_install(self, rootdir: Path, arch: str, packages: List[str], repos: List[str], unpack_only: bool = False):
         from void_builder.core.path_utils import resolve_from_project
         import tempfile
         cache_dir = resolve_from_project("workdir/cache/xbps") / arch
@@ -101,6 +101,8 @@ class ToolchainManager:
             "-c", str(cache_dir),
             "-y"
         ]
+        if unpack_only:
+            cmd.append("-U")
         for repo in repos:
             cmd.extend(["-R", repo])
         cmd.extend(packages)
@@ -130,7 +132,7 @@ class ToolchainManager:
             "https://repo-default.voidlinux.org/current/aarch64"
         ]
         
-        from void_builder.utils.lib import filter_repositories
+        from void_builder.utils.lib import filter_repositories, is_target_native
         host_repos = filter_repositories(repos, host_arch)
         host_pkgs = ["base-files", "libgcc", "dash", "coreutils", "sed", "tar", "gawk", "squashfs-tools", "xorriso"]
         self._run_xbps_install(self.host_dir, host_arch, host_pkgs, host_repos)
@@ -139,11 +141,12 @@ class ToolchainManager:
         target_pkgs = ["base-files", "bash", "mtools", "dosfstools"]
         if self.arch.startswith(("x86_64", "i686")):
             target_pkgs.extend(["syslinux", "grub-i386-efi", "grub-x86_64-efi", "memtest86+"])
-        elif self.arch.startswith("aarch64"):
+        elif self.arch.startswith("aarch64") or "aarch64" in self.arch or "arm" in self.arch:
             target_pkgs.extend(["grub-arm64-efi"])
             
         target_repos = filter_repositories(repos, self.arch)
-        self._run_xbps_install(self.target_dir, self.arch, target_pkgs, target_repos)
+        is_native = is_target_native(self.arch)
+        self._run_xbps_install(self.target_dir, self.arch, target_pkgs, target_repos, unpack_only=not is_native)
 
     def execute_command(
         self,

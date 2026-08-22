@@ -170,10 +170,14 @@ class ChrootManager:
         for repo in internal_repos:
             cmd.extend(["-R", repo])
         cmd.extend(["-y"])
-        cmd.extend(packages)
-
-        from void_builder.utils.lib import map_xbps_arch
+        from void_builder.utils.lib import map_xbps_arch, is_target_native, setup_qemu_binfmt
         xbps_arch = map_xbps_arch(self.arch)
+        is_native = is_target_native(self.arch)
+        if not is_native:
+            binfmt_ok = setup_qemu_binfmt(self.arch)
+            if not binfmt_ok:
+                cmd.append("-U")
+        cmd.extend(packages)
 
         cmd_env = os.environ.copy()
         cmd_env["XBPS_ARCH"] = xbps_arch

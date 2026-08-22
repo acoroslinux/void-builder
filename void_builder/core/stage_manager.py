@@ -26,8 +26,17 @@ class StageManager:
         self.workdir = Path(workdir).resolve()
         self.mode = mode.lower()
         self.arch = arch
-        self.cache_dir = resolve_from_project("workdir/cache/tarballs")
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            self.cache_dir = resolve_from_project("workdir/cache/tarballs")
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
+            # Verify writable
+            test_file = self.cache_dir / ".write_test"
+            test_file.write_text("ok")
+            test_file.unlink(missing_ok=True)
+        except Exception:
+            import tempfile
+            self.cache_dir = Path(tempfile.gettempdir()) / "void-builder-cache" / "tarballs"
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
 
     def resolve_tarball(self, tarball_arg: str) -> Path:
         """
