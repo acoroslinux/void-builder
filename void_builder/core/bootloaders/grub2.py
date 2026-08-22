@@ -315,12 +315,68 @@ class Grub2Bootloader:
         if os.geteuid() != 0:
             chroot_cmd = ["sudo", "chroot"]
 
+        # 1. Create 32MB FAT image directly on target path
+        with open(efi_img_path, "wb") as f:
+            f.write(b"\x00" * (32 * 1024 * 1024))
+
+        has_host_mtools = bool(shutil.which("mkfs.fat") and shutil.which("mmd") and shutil.which("mcopy"))
+
+        if has_host_mtools:
+            subprocess.run(["mkfs.fat", "-F12", "-S", "512", "-n", "grub_uefi", str(efi_img_path)], check=True, capture_output=True)
+            subprocess.run(["mmd", "-i", str(efi_img_path), "::/EFI", "::/EFI/BOOT"], check=True, capture_output=True)
+
+            for grub_arch, efi_name in builds:
+                logger.info(f"[GRUB2] Building EFI loader for {grub_arch} ({efi_name})...")
+                efi_out = workdir / "boot" / "grub" / efi_name
+                grub_mod_dir = chroot / "usr" / "lib" / "grub" / grub_arch
+                if not grub_mod_dir.exists():
+                    grub_mod_dir = Path(f"/usr/lib/grub/{grub_arch}")
+
+                host_grub_mk = shutil.which("grub-mkstandalone")
+                built = False
+
+                if host_grub_mk and grub_mod_dir.exists():
+                    cmd_host = [
+                        host_grub_mk,
+                        f"--directory={grub_mod_dir}",
+                        f"--format={grub_arch}",
+                        f"--output={efi_out}",
+                        f"boot/grub/grub.cfg={workdir / 'boot' / 'grub' / 'grub.cfg'}"
+                    ]
+                    res = subprocess.run(cmd_host, capture_output=True, text=True)
+                    if res.returncode == 0 and efi_out.exists():
+                        built = True
+
+                if not built and has_real_chroot:
+                    from void_builder.utils.lib import copy_qemu_user_binary
+                    copy_qemu_user_binary(arch, chroot)
+                    cmd_chroot = [
+                        *chroot_cmd, str(chroot), "sh", "-c",
+                        f"grub-mkstandalone --directory=/usr/lib/grub/{grub_arch} --format={grub_arch} --output=/tmp/{efi_name} boot/grub/grub.cfg"
+                    ]
+                    res = subprocess.run(cmd_chroot, capture_output=True, text=True, timeout=180)
+                    if res.returncode == 0 and (chroot / "tmp" / efi_name).exists():
+                        shutil.copy2(chroot / "tmp" / efi_name, efi_out)
+                        (chroot / "tmp" / efi_name).unlink(missing_ok=True)
+                        built = True
+
+                if built and efi_out.exists():
+                    subprocess.run(["mcopy", "-i", str(efi_img_path), str(efi_out), f"::/EFI/BOOT/{efi_name}"], check=True, capture_output=True)
+                    logger.info(f"[GRUB2] Successfully built and embedded {efi_name} into efiboot.img")
+                else:
+                    logger.warning(f"[GRUB2] Skipping {grub_arch} due to build failure (missing libs or unsupported).")
+
+            logger.info(f"[GRUB2] efiboot.img created successfully: {efi_img_path}")
+            return True
+
+        # Fallback to in-chroot generation if host tools missing
         efi_img_chroot = "/tmp/efiboot.img"
         efi_img_host = chroot / "tmp" / "efiboot.img"
-
-        # Create exact 32MB FAT image as void-mklive does
         with open(efi_img_host, "wb") as f:
             f.write(b"\x00" * (32 * 1024 * 1024))
+
+        from void_builder.utils.lib import copy_qemu_user_binary
+        copy_qemu_user_binary(arch, chroot)
 
         fat_cmds = [
             f"mkfs.fat -F12 -S 512 -n grub_uefi {efi_img_chroot}",
@@ -330,14 +386,13 @@ class Grub2Bootloader:
         for grub_arch, efi_name in builds:
             logger.info(f"[GRUB2] Building EFI loader for {grub_arch} ({efi_name})...")
             cmd_grub = [
-                *chroot_cmd, str(chroot), "bash", "-c",
+                *chroot_cmd, str(chroot), "sh", "-c",
                 f"grub-mkstandalone "
                 f"--directory=\"/usr/lib/grub/{grub_arch}\" "
                 f"--format=\"{grub_arch}\" "
                 f"--output=\"/tmp/{efi_name}\" "
                 f"\"boot/grub/grub.cfg\""
             ]
-            
             res = subprocess.run(cmd_grub, capture_output=True, text=True, timeout=180)
             if res.returncode != 0:
                 logger.warning(f"[GRUB2] Skipping {grub_arch} due to build failure (missing libs or unsupported).")
@@ -346,7 +401,7 @@ class Grub2Bootloader:
             fat_cmds.append(f"mcopy -i {efi_img_chroot} /tmp/{efi_name} ::/EFI/BOOT/{efi_name}")
 
         logger.info(f"[GRUB2] Populating efiboot.img via mkfs.fat/mcopy...")
-        cmd_fat = [*chroot_cmd, str(chroot), "bash", "-c", " && ".join(fat_cmds)]
+        cmd_fat = [*chroot_cmd, str(chroot), "sh", "-c", " && ".join(fat_cmds)]
         res = subprocess.run(cmd_fat, capture_output=True, text=True, timeout=180)
         if res.returncode != 0:
             raise Grub2BootloaderError(f"FAT image creation failed: {res.stderr}")
