@@ -517,6 +517,46 @@ class PipewireAction(SystemAction):
                 logger.info("    [Mock] Enable speakersafetyd service for Asahi platform")
 
 
+class NetworkAndPrintersAction(SystemAction):
+    """Configures network discovery (mDNS, NetBIOS, WSDD), Samba shares, and CUPS/SANE printing."""
+
+    def execute(self, chroot: ChrootManager, source_base: Path):
+        logger.info("  [Network/Printers] Configuring network discovery, Samba shares, and CUPS printing...")
+        if chroot.mode == "real":
+            # 1. Configure /etc/nsswitch.conf for mDNS (.local) and NetBIOS resolution
+            nsswitch_path = chroot.chroot_path / "etc" / "nsswitch.conf"
+            if nsswitch_path.exists():
+                try:
+                    content = nsswitch_path.read_text(encoding="utf-8")
+                    lines = content.splitlines()
+                    new_lines = []
+                    hosts_updated = False
+                    for line in lines:
+                        if line.strip().startswith("hosts:") and not hosts_updated:
+                            new_lines.append("hosts:          files mdns4_minimal [NOTFOUND=return] dns mdns4 wins myhostname")
+                            hosts_updated = True
+                        else:
+                            new_lines.append(line)
+                    if not hosts_updated:
+                        new_lines.append("hosts:          files mdns4_minimal [NOTFOUND=return] dns mdns4 wins myhostname")
+                    nsswitch_path.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
+                    logger.info("  [Network] Updated /etc/nsswitch.conf with mDNS and NetBIOS resolution")
+                except Exception as e:
+                    logger.warning(f"  [Network] Failed to update nsswitch.conf: {e}")
+
+            # 2. Samba directories and permissions
+            chroot.run_command("mkdir -p /srv/samba/public /var/lib/samba/usershares /var/spool/samba /var/lib/samba/printers", check=False)
+            chroot.run_command("chmod 1777 /srv/samba/public /var/lib/samba/usershares /var/spool/samba", check=False)
+            chroot.run_command("chmod 755 /var/lib/samba/printers", check=False)
+
+            # 3. CUPS printer directories and permissions
+            chroot.run_command("mkdir -p /var/spool/cups /etc/cups /var/log/cups", check=False)
+            chroot.run_command("chmod 700 /var/spool/cups", check=False)
+            chroot.run_command("chmod 755 /etc/cups /var/log/cups", check=False)
+        else:
+            logger.info("    [Mock] Configured nsswitch.conf, Samba usershares, and CUPS printing stack")
+
+
 class LoginManagerAction(SystemAction):
     """Configures dynamic login session and autologin for various display managers (LightDM, SDDM, GDM, LXDM)."""
 
@@ -953,6 +993,9 @@ class SystemConfigurator:
 
         # 15. Enforce PAM, Shadow, Sudoers, and SUID Security Permissions
         self.actions.append(SecurityPermissionsAction())
+
+        # 16. Configure Network Discovery, Samba usershares, and CUPS printing stack
+        self.actions.append(NetworkAndPrintersAction())
 
     def apply(self, source_base_dir: Optional[Path] = None):
         if not self.chroot:

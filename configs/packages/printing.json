@@ -9,10 +9,15 @@
     "cups-pk-helper",
     "system-config-printer",
     "hplip",
-    "simple-scan"
+    "gutenprint",
+    "foomatic-db",
+    "foomatic-db-engine",
+    "bluez-cups",
+    "simple-scan",
+    "sane",
+    "sane-airscan"
   ],
   "optional_packages": [
-    "foomatic-db",
-    "gutenprint"
+    "foomatic-db-nonfree"
   ]
 }
