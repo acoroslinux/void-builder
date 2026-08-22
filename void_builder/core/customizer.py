@@ -199,7 +199,7 @@ class ServiceAction(SystemAction):
                     except Exception as e:
                         logger.warning(f"  [Service] Could not symlink service {srv}: {e}")
                 else:
-                    logger.warning(f"  [Service] Service '{srv}' directory does not exist at {sv_dir}. Is it installed?")
+                    logger.debug(f"  [Service] Service '{srv}' directory does not exist at {sv_dir} (package not installed, skipping).")
             else:
                 logger.info(f"    [Mock] ln -sf /etc/sv/{srv} /etc/runit/runsvdir/default/{srv}")
 
