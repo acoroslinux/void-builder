@@ -280,6 +280,7 @@ class DracutAction(SystemAction):
             force_add = ["vmklive", "dmsquash-live"] + self.extra_modules
             omit = ["systemd"]
 
+            cmd = ["dracut", "-N", comp]
             drivers = ["overlay", "nvme", "ahci", "sd_mod", "sr_mod", "loop", "xhci_pci", "xhci_hcd", "uas", "usb_storage"]
             for drv in drivers:
                 cmd.extend(["--add-drivers", drv])
