@@ -525,20 +525,33 @@ class ConfigAssembler:
             "pinebookpro-base", "x13s-base", "asahi-base", "grub-arm64-efi"
         }
 
+        def _filter_pkg_list(pkg_list: list) -> list:
+            if not isinstance(pkg_list, list):
+                return pkg_list
+            res = []
+            for p in pkg_list:
+                p_str = p.get("name") if isinstance(p, dict) else str(p)
+                if is_arm and p_str in X86_EXCLUSIVE_PACKAGES:
+                    continue
+                if is_x86 and p_str in ARM_EXCLUSIVE_PACKAGES:
+                    continue
+                res.append(p)
+            # Deduplicate kernel for RPi
+            has_rpi_kernel = any((p.get("name") if isinstance(p, dict) else str(p)) == "rpi-kernel" for p in res)
+            if has_rpi_kernel:
+                res = [p for p in res if (p.get("name") if isinstance(p, dict) else str(p)) != "linux"]
+            return res
+
         package_sources = self.master_config.get("package_sources", {})
         if "official" in package_sources and isinstance(package_sources["official"], list):
-            if is_arm:
-                package_sources["official"] = [
-                    p for p in package_sources["official"]
-                    if str(p) not in X86_EXCLUSIVE_PACKAGES
-                ]
-                if "rpi-kernel" in package_sources["official"] and "linux" in package_sources["official"]:
-                    package_sources["official"].remove("linux")
-            elif is_x86:
-                package_sources["official"] = [
-                    p for p in package_sources["official"]
-                    if str(p) not in ARM_EXCLUSIVE_PACKAGES
-                ]
+            package_sources["official"] = _filter_pkg_list(package_sources["official"])
+
+        if "packages" in self.master_config and isinstance(self.master_config["packages"], list):
+            self.master_config["packages"] = _filter_pkg_list(self.master_config["packages"])
+
+        platform_pkgs = self.master_config.get("platform_specific", {}).get("packages")
+        if platform_pkgs and isinstance(platform_pkgs, list):
+            self.master_config["platform_specific"]["packages"] = _filter_pkg_list(platform_pkgs)
 
         # 4f. Apply direct customization overrides
         cust = self.master_config.setdefault("customizations", {})

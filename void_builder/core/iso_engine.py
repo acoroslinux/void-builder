@@ -105,6 +105,29 @@ class BaseEngine(ISOEngine):
             common_desktop = self._normalize_packages(self._cfg_get("common_desktop_packages", []))
             official_all.extend(pkg for pkg in common_desktop if pkg not in official_all)
 
+        # Architecture exclusions safety check
+        target_arch = str(self.arch or "").lower()
+        is_arm = target_arch.startswith(("aarch64", "arm", "rpi", "pinebook", "asahi"))
+        is_x86 = target_arch.startswith(("x86_64", "i686"))
+        
+        X86_EXCLUSIONS = {
+            "intel-ucode", "amd-ucode", "sof-firmware", "alsa-firmware",
+            "intel-media-driver", "libva-intel-driver", "mesa-vulkan-intel",
+            "xf86-video-intel", "xf86-video-vmware", "xf86-video-vesa", "xf86-video-ati",
+            "open-vm-tools", "thermald", "crda", "syslinux", "grub-i386-efi", "grub-x86_64-efi",
+            "memtest86+", "virtualbox-ose-guest-dkms", "wsdd"
+        }
+        ARM_EXCLUSIONS = {
+            "rpi-base", "rpi-kernel", "rpi-firmware", "rpi-userland",
+            "pinebookpro-base", "x13s-base", "asahi-base", "grub-arm64-efi"
+        }
+        if is_arm:
+            official_all = [p for p in official_all if p not in X86_EXCLUSIONS]
+            if "rpi-kernel" in official_all and "linux" in official_all:
+                official_all.remove("linux")
+        elif is_x86:
+            official_all = [p for p in official_all if p not in ARM_EXCLUSIONS]
+
         return {
             "official": official_all,
             "aur": [],
