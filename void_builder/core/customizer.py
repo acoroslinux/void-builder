@@ -715,15 +715,15 @@ class PlymouthAction(SystemAction):
 
 
 class StructuredCopyAction(SystemAction):
-    """Configures structured copy of files from custom_files to rootfs."""
+    """Configures scalable, structured copy of files and directories from custom_files/overlays to rootfs."""
 
-    def __init__(self, customizations_path: str, copy_files_list: List[Dict[str, str]], architecture: str):
+    def __init__(self, customizations_path: str, copy_files_list: List[Dict[str, Any]], architecture: str):
         self.customizations_path = Path(customizations_path)
         self.copy_files_list = copy_files_list
         self.architecture = architecture
 
     def execute(self, chroot: ChrootManager, source_base: Path):
-        logger.info(f"  [StructuredCopy] Copying {len(self.copy_files_list)} structured files to rootfs...")
+        logger.info(f"  [StructuredCopy] Copying {len(self.copy_files_list)} structured files/directories to rootfs...")
         
         is_arm = self.architecture.startswith(("aarch64", "arm"))
         
@@ -735,13 +735,20 @@ class StructuredCopyAction(SystemAction):
                 py_ver = python_dirs[0].name.replace("python", "")
         
         for entry in self.copy_files_list:
-            src_rel = entry.get("source")
-            dest_rel = entry.get("destination")
+            if hasattr(entry, "_data"):
+                entry = entry._data
+            if not isinstance(entry, dict):
+                continue
+
+            src_rel = entry.get("source") or entry.get("src")
+            dest_rel = entry.get("destination") or entry.get("dest")
+            custom_mode = entry.get("mode")
+            custom_owner = entry.get("owner", "0:0")
+            
             if not src_rel or not dest_rel:
                 continue
 
-            # Apply conditional architecture filters as described in the comments
-            # grub/themes, pep_installer, and pep_installer_integration are ignored on ARM
+            # Architecture filtering
             if is_arm:
                 if "grub/themes" in src_rel or "pep_installer" in src_rel or "pep_installer_integration" in src_rel:
                     logger.info(f"  [StructuredCopy] Skipping {src_rel} (not copied on ARM architecture)")
@@ -750,7 +757,13 @@ class StructuredCopyAction(SystemAction):
             # Format destinations that contain python_version
             dest_rel = dest_rel.format(python_version=py_ver)
             
+            # Resolve src path (check relative to source_base / customizations_path or source_base)
             src_path = source_base / self.customizations_path / src_rel
+            if not src_path.exists():
+                src_path = source_base / src_rel
+            if not src_path.exists():
+                src_path = resolve_from_project(src_rel)
+            
             dest_path = chroot.chroot_path / dest_rel.lstrip("/")
             
             logger.info(f"  [StructuredCopy] Copying: {src_rel} -> {dest_rel}")
@@ -763,17 +776,18 @@ class StructuredCopyAction(SystemAction):
                 import os
                 import subprocess
                 
-                # Ensure destination parent directory exists
+                # Ensure destination directory exists
                 dest_dir = dest_path if src_path.is_dir() and not dest_rel.endswith(src_path.name) else dest_path.parent
                 dest_dir_in_chroot = Path("/") / dest_dir.relative_to(chroot.chroot_path)
                 
                 chroot.run_command(f"mkdir -p {dest_dir_in_chroot}")
                 
-                # Use rsync to preserve attributes but set ownership to root:root safely
+                # Copy with rsync preserving attributes
                 src_str = str(src_path) + "/" if src_path.is_dir() else str(src_path)
                 dest_str = str(dest_path) + "/" if src_path.is_dir() else str(dest_path)
                 
-                cmd_copy = ["rsync", "-a", "--chown=0:0", src_str, dest_str]
+                chown_flag = f"--chown={custom_owner}"
+                cmd_copy = ["rsync", "-a", chown_flag, src_str, dest_str]
                 try:
                     if os.geteuid() != 0:
                         subprocess.run(["sudo"] + cmd_copy, check=True)
@@ -781,8 +795,34 @@ class StructuredCopyAction(SystemAction):
                         subprocess.run(cmd_copy, check=True)
                 except Exception as e:
                     logger.error(f"  [StructuredCopy] Failed to copy {src_path} to {dest_path}: {e}")
+                    continue
+
+                # Apply custom mode if specified
+                if custom_mode:
+                    chroot.run_command(f"chmod -R {custom_mode} {dest_rel}", check=False)
+                elif dest_rel.startswith(("/usr/bin/", "/usr/local/bin/", "/etc/cron.")) or dest_rel.endswith(".sh"):
+                    # Automatically enforce execution permissions for scripts
+                    chroot.run_command(f"chmod -R 755 {dest_rel}", check=False)
+                elif dest_rel.startswith("/etc/sudoers.d"):
+                    # Automatically enforce strict 0440 for sudoers.d
+                    chroot.run_command(f"chmod 440 {dest_rel}/* 2>/dev/null || chmod 440 {dest_rel}", check=False)
+
+                # Mirror /etc/skel files to existing users' home directories
+                if dest_rel.startswith("/etc/skel"):
+                    relative_skel = dest_rel[len("/etc/skel"):].lstrip("/")
+                    chroot_home = chroot.chroot_path / "home"
+                    if chroot_home.exists():
+                        for user_dir in chroot_home.iterdir():
+                            if user_dir.is_dir() and user_dir.name not in ["lost+found"]:
+                                user_dest = user_dir / relative_skel if relative_skel else user_dir
+                                user_dest_str = str(user_dest) + "/" if src_path.is_dir() else str(user_dest)
+                                cmd_user_copy = ["rsync", "-a", f"--chown={user_dir.name}:{user_dir.name}", src_str, user_dest_str]
+                                if os.geteuid() != 0:
+                                    subprocess.run(["sudo"] + cmd_user_copy, check=False)
+                                else:
+                                    subprocess.run(cmd_user_copy, check=False)
             else:
-                logger.info(f"    [Mock] Copy {src_path} to {dest_path}")
+                logger.info(f"    [Mock] Copy {src_path} -> {dest_path}")
 
 
 class SystemConfigurator:
@@ -806,7 +846,12 @@ class SystemConfigurator:
         else:
             return
 
-        # 1. Overlay
+        # 1. Overlay (Auto-discover configs/overlay/ as well as configured overlay_dir)
+        auto_overlay_path = resolve_from_project("configs/overlay")
+        if auto_overlay_path.exists() and any(auto_overlay_path.iterdir()):
+            logger.info(f"Auto-discovered overlay directory at {auto_overlay_path}")
+            self.actions.append(OverlayAction(str(auto_overlay_path)))
+
         overlay_dir = cust_config.get("overlay_dir") or sys_config.get("overlay_dir")
         if overlay_dir:
             self.actions.append(OverlayAction(overlay_dir))
@@ -940,40 +985,48 @@ class SystemConfigurator:
 
                 self.actions.append(LoginManagerAction(display_manager, session_name, username))
 
-        # 11. Structured Copy (Desktop-environment file copying)
+        # 11. Structured Copy (Universal base, desktop, and profile file copying)
+        final_copy_list = []
+        custom_path = "configs/custom_files/"
+
+        # 11a. Always load base_customizations.json for common assets
+        base_custom_path = resolve_from_project("configs/base_customizations.json")
+        if base_custom_path.exists():
+            try:
+                import json
+                with open(base_custom_path, "r", encoding="utf-8") as f:
+                    base_data = json.load(f)
+                base_list = base_data.get("base_copy_files", [])
+                final_copy_list.extend(base_list)
+                logger.info(f"Loaded {len(base_list)} common copy entries from base_customizations.json")
+            except Exception as e:
+                logger.error(f"Failed to load/parse configs/base_customizations.json: {e}")
+
+        # 11b. Desktop-specific copy files
         desktop_env = _safe_get(config, "desktop_environment")
         if desktop_env:
             if hasattr(desktop_env, "_data"):
                 desktop_env = desktop_env._data
             if isinstance(desktop_env, dict):
-                custom_path = desktop_env.get("customizations_path", "custom_files/")
-                use_common = desktop_env.get("use_common_config", False)
-                copy_files = desktop_env.get("copy_files", []) or []
-
-                final_copy_list = []
-                if use_common:
-                    base_custom_path = resolve_from_project("configs/base_customizations.json")
-                    if base_custom_path.exists():
-                        try:
-                            import json
-                            with open(base_custom_path, "r", encoding="utf-8") as f:
-                                base_data = json.load(f)
-                            base_list = base_data.get("base_copy_files", [])
-                            final_copy_list.extend(base_list)
-                            logger.info(f"Loaded {len(base_list)} common copy entries from base_customizations.json")
-                        except Exception as e:
-                            logger.error(f"Failed to load/parse configs/base_customizations.json: {e}")
-
-                # Add desktop specific copy_files
-                for item in copy_files:
+                custom_path = desktop_env.get("customizations_path", custom_path)
+                d_copies = desktop_env.get("copy_files", []) or []
+                for item in d_copies:
                     if hasattr(item, "_data"):
                         item = item._data
                     if isinstance(item, dict):
                         final_copy_list.append(item)
 
-                if final_copy_list:
-                    arch = _safe_get(config, "platform_specific.architecture", "x86_64")
-                    self.actions.append(StructuredCopyAction(custom_path, final_copy_list, arch))
+        # 11c. Customizations and root config copy_files
+        direct_copies = cust_config.get("copy_files", []) or _safe_get(config, "copy_files", [])
+        for item in direct_copies:
+            if hasattr(item, "_data"):
+                item = item._data
+            if isinstance(item, dict):
+                final_copy_list.append(item)
+
+        if final_copy_list:
+            arch = _safe_get(config, "platform_specific.architecture", "x86_64")
+            self.actions.append(StructuredCopyAction(custom_path, final_copy_list, arch))
 
         # 12. Flatpak Configuration (run unconditionally, checks inside if flatpak is installed)
         self.actions.append(FlatpakAction())

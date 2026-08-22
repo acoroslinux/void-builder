@@ -327,13 +327,48 @@ To add a new desktop environment profile (e.g. `configs/desktops/pantheon.json`)
 
 ---
 
-## 7. File Overlays (`configs/custom_files/`)
+## 7. Custom File Management & Scalable Overlays
 
-Any directory or file placed inside `configs/custom_files/` is automatically copied directly into the target rootfs at `/` during system customization.
+**Void-Builder** provides 3 distinct, scalable mechanisms for copying custom files and directories into the target system:
 
-Example:
-- `configs/custom_files/etc/motd` -> copied to `/etc/motd` in target system.
-- `configs/custom_files/etc/skel/.config/xfce4/` -> copied to `/etc/skel/.config/xfce4/` in target system.
+### A. Direct Filesystem Overlay (`configs/overlay/`)
+The simplest and most scalable method. Any file or directory placed inside `configs/overlay/` is automatically discovered and mirrored directly to the target rootfs at `/` with attributes preserved and ownership normalized:
+* `configs/overlay/etc/motd` -> Copied to `/etc/motd`
+* `configs/overlay/usr/share/backgrounds/wallpaper.png` -> Copied to `/usr/share/backgrounds/wallpaper.png`
+* `configs/overlay/etc/polkit-1/rules.d/50-custom.rules` -> Copied to `/etc/polkit-1/rules.d/50-custom.rules`
+
+You can also pass external overlay directories on the CLI using `--include-dir /path/to/my-overlay`.
+
+### B. Declarative Structured Copy (`configs/base_customizations.json` & `copy_files`)
+For granular control over source, destination, file permissions, and ownership, use declarative `copy_files` arrays in JSON:
+
+```json
+{
+  "base_copy_files": [
+    {
+      "source": "samba",
+      "destination": "/etc/samba"
+    },
+    {
+      "source": "scripts/my-helper.sh",
+      "destination": "/usr/local/bin/my-helper.sh",
+      "mode": "0755",
+      "owner": "0:0"
+    },
+    {
+      "source": "sudoers.d",
+      "destination": "/etc/sudoers.d",
+      "mode": "0440"
+    }
+  ]
+}
+```
+
+* **Automatic Executable Bits**: Any file copied into `/usr/bin/`, `/usr/local/bin/`, `/etc/cron.*`, or ending in `.sh` automatically receives execution permissions (`0755`).
+* **Automatic Sudoers Security**: Any file copied into `/etc/sudoers.d/` is automatically restricted to `0440` mode and owned by `root:root`.
+
+### C. Automatic `/etc/skel` to `/home/<user>` Propagation
+When copying configuration files or dotfiles to `/etc/skel/` (e.g. `skel/.config/xfce4/`), Void-Builder automatically propagates these files into the home directories of all created users (e.g. `/home/live/`, `/home/void/`) and assigns proper user ownership (`chown -R <user>:<user>`).
 
 ---
 

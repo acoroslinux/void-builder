@@ -1,0 +1,51 @@
+2026-08-22 16:01:49,496 - ISOBuilder - INFO - [post_install] Running Void 3-pass reconfigure...
+2026-08-22 16:01:49,497 - ISOBuilder - INFO - [post_install] Cleaning up rootfs caches and temporary files...
+2026-08-22 16:01:49,498 - ISOBuilder - INFO - [bootloaders] Preparing bootloader files and copying kernel...
+2026-08-22 16:01:49,498 - ISOBuilder - WARNING - [bootloaders] Kernel or initramfs not found in chroot /boot. Using mock placeholders.
+2026-08-22 16:01:49,500 - ISOBuilder - INFO - [bootloaders] Copied GRUB unicode font to ISO boot tree
+2026-08-22 16:01:49,554 - ISOBuilder - INFO - [tarball] Exporting rootfs tarball to /tmp/tmpjfgcw8pn/test.tar.xz...
+2026-08-22 16:01:49,554 - ISOBuilder - INFO - [tarball] [MOCK] Would create rootfs tarball: /tmp/tmpjfgcw8pn/test.tar.xz
+2026-08-22 16:01:49,554 - ISOBuilder - INFO - [manifest] Generating checksums and manifest for test.tar.xz...
+2026-08-22 16:01:49,556 - ISOBuilder - INFO - [manifest] Generated SHA256: test.tar.xz.sha256
+2026-08-22 16:01:49,556 - ISOBuilder - INFO - [manifest] Generated SHA512: test.tar.xz.sha512
+2026-08-22 16:01:49,557 - ISOBuilder - INFO - [manifest] Generated MD5: test.tar.xz.md5
+2026-08-22 16:01:49,557 - ISOBuilder - INFO - [manifest] Generated Manifest: test.tar.xz.manifest.json
+2026-08-22 16:01:49,557 - ISOBuilder - INFO - === Build completed in 0.07s ===
+2026-08-22 16:01:49,567 - ISOBuilder - INFO - === Starting build pipeline for architecture x86_64 ===
+2026-08-22 16:01:49,567 - ISOBuilder - INFO - [setup_chroot] Preparing chroot at /home/manuel/void-builder/workdir/x86_64
+2026-08-22 16:01:49,568 - ISOBuilder - WARNING - [Packages] Directory /home/manuel/void-builder/custom_packages exists but no .xbps files found.
+2026-08-22 16:01:49,569 - ISOBuilder - INFO - [post_install] Running customizations through configurator...
+2026-08-22 16:01:49,584 - ISOBuilder - INFO - [post_install] Running Void 3-pass reconfigure...
+2026-08-22 16:01:49,584 - ISOBuilder - INFO - [post_install] Cleaning up rootfs caches and temporary files...
+2026-08-22 16:01:49,585 - ISOBuilder - INFO - [bootloaders] Preparing bootloader files and copying kernel...
+2026-08-22 16:01:49,585 - ISOBuilder - WARNING - [bootloaders] Kernel or initramfs not found in chroot /boot. Using mock placeholders.
+2026-08-22 16:01:49,590 - ISOBuilder - INFO - [bootloaders] Copied GRUB unicode font to ISO boot tree
+2026-08-22 16:01:49,660 - ISOBuilder - INFO - === Step 4: Compressing Root Filesystem ===
+2026-08-22 16:01:49,661 - ISOBuilder - INFO - [MOCK] mksquashfs /home/manuel/void-builder/workdir/x86_64/airootfs /home/manuel/void-builder/workdir/x86_64/iso-staging/LiveOS/squashfs.img -comp zstd
+2026-08-22 16:01:49,662 - ISOBuilder - INFO - [finalize] [MOCK] Would create ISO: /tmp/tmpf_9ibn8z/void-fast-test.iso from /home/manuel/void-builder/workdir/x86_64/iso-staging
+2026-08-22 16:01:49,662 - ISOBuilder - INFO - [finalize] [MOCK] Command: xorriso -as mkisofs -iso-level 3 -rock -joliet -joliet-long -max-iso9660-filenames -omit-period -omit-version-number -relaxed-filenames -allow-lowercase -volid VOID_MODERN -pad -partition_offset 16 -eltorito-boot boot/isolinux/isolinux.bin -eltorito-catalog boot/isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -eltorito-alt-boot -e boot/grub/efiboot.img -no-emul-boot -isohybrid-gpt-basdat -isohybrid-apm-hfsplus -output /tmp/tmpf_9ibn8z/void-fast-test.iso /home/manuel/void-builder/workdir/x86_64/iso-staging
+2026-08-22 16:01:49,663 - ISOBuilder - INFO - [manifest] Generating checksums and manifest for void-fast-test.iso...
+2026-08-22 16:01:49,664 - ISOBuilder - INFO - [manifest] Generated SHA256: void-fast-test.iso.sha256
+2026-08-22 16:01:49,664 - ISOBuilder - INFO - [manifest] Generated SHA512: void-fast-test.iso.sha512
+2026-08-22 16:01:49,665 - ISOBuilder - INFO - [manifest] Generated MD5: void-fast-test.iso.md5
+2026-08-22 16:01:49,665 - ISOBuilder - INFO - [manifest] Generated Manifest: void-fast-test.iso.manifest.json
+2026-08-22 16:01:49,665 - ISOBuilder - INFO - === Build completed in 0.10s ===
+2026-08-22 16:01:49,688 - ISOBuilder - INFO - === Starting build pipeline for architecture x86_64 ===
+2026-08-22 16:01:49,688 - ISOBuilder - INFO - [setup_chroot] Preparing chroot at /home/manuel/void-builder/workdir/x86_64
+2026-08-22 16:01:49,689 - ISOBuilder - WARNING - [Packages] Directory /home/manuel/void-builder/custom_packages exists but no .xbps files found.
+2026-08-22 16:01:49,690 - ISOBuilder - INFO - [post_install] Running customizations through configurator...
+2026-08-22 16:01:49,706 - ISOBuilder - INFO - [post_install] Running Void 3-pass reconfigure...
+2026-08-22 16:01:49,706 - ISOBuilder - INFO - [post_install] Cleaning up rootfs caches and temporary files...
+2026-08-22 16:01:49,707 - ISOBuilder - INFO - [bootloaders] Preparing bootloader files and copying kernel...
+2026-08-22 16:01:49,708 - ISOBuilder - WARNING - [bootloaders] Kernel or initramfs not found in chroot /boot. Using mock placeholders.
+2026-08-22 16:01:49,713 - ISOBuilder - INFO - [bootloaders] Copied GRUB unicode font to ISO boot tree
+2026-08-22 16:01:49,772 - ISOBuilder - INFO - === Step 4: Compressing Root Filesystem ===
+2026-08-22 16:01:49,772 - ISOBuilder - INFO - [MOCK] mksquashfs /home/manuel/void-builder/workdir/x86_64/airootfs /home/manuel/void-builder/workdir/x86_64/iso-staging/LiveOS/squashfs.img -comp xz
+2026-08-22 16:01:49,773 - ISOBuilder - INFO - [finalize] [MOCK] Would create ISO: /tmp/tmpu43ea468/void-test.iso from /home/manuel/void-builder/workdir/x86_64/iso-staging
+2026-08-22 16:01:49,773 - ISOBuilder - INFO - [finalize] [MOCK] Command: xorriso -as mkisofs -iso-level 3 -rock -joliet -joliet-long -max-iso9660-filenames -omit-period -omit-version-number -relaxed-filenames -allow-lowercase -volid VOID_MODERN -pad -partition_offset 16 -eltorito-boot boot/isolinux/isolinux.bin -eltorito-catalog boot/isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -eltorito-alt-boot -e boot/grub/efiboot.img -no-emul-boot -isohybrid-gpt-basdat -isohybrid-apm-hfsplus -output /tmp/tmpu43ea468/void-test.iso /home/manuel/void-builder/workdir/x86_64/iso-staging
+2026-08-22 16:01:49,773 - ISOBuilder - INFO - [manifest] Generating checksums and manifest for void-test.iso...
+2026-08-22 16:01:49,774 - ISOBuilder - INFO - [manifest] Generated SHA256: void-test.iso.sha256
+2026-08-22 16:01:49,774 - ISOBuilder - INFO - [manifest] Generated SHA512: void-test.iso.sha512
+2026-08-22 16:01:49,775 - ISOBuilder - INFO - [manifest] Generated MD5: void-test.iso.md5
+2026-08-22 16:01:49,775 - ISOBuilder - INFO - [manifest] Generated Manifest: void-test.iso.manifest.json
+2026-08-22 16:01:49,775 - ISOBuilder - INFO - === Build completed in 0.09s ===
