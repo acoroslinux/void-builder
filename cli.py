@@ -22,14 +22,21 @@ def _slugify_name(value: str, fallback: str) -> str:
     return normalized or fallback
 
 
-def _resolve_output_name(architecture: str, desktop: str = None, output: str = None, platform: str = None) -> str:
+def _resolve_output_name(architecture: str, desktop: str = None, output: str = None, platform: Any = None) -> str:
     if output:
         return output
 
     desktop_label = _slugify_name(desktop or "base", "base")
     arch_label = _slugify_name(architecture, "x86_64")
-    if platform and platform.lower() != architecture.lower():
-        plat_label = _slugify_name(platform, "")
+
+    plat_str = ""
+    if isinstance(platform, list) and platform:
+        plat_str = "-".join(str(p) for p in platform)
+    elif isinstance(platform, str) and platform:
+        plat_str = platform
+
+    if plat_str and plat_str.lower() != architecture.lower():
+        plat_label = _slugify_name(plat_str, "")
         return f"void-builder-{desktop_label}-{plat_label}-{arch_label}.iso"
     return f"void-builder-{desktop_label}-{arch_label}.iso"
 
