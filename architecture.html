@@ -7,16 +7,16 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Architectural Blueprint &amp; Engine Design &mdash; Void-Builder</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=f5127f15" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/custom.css?v=75d58705" />
 
   
-      <script src="_static/jquery.js?v=8dae8fb0"></script>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="_static/documentation_options.js?v=8d563738"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -47,7 +47,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started &amp; Total Build Isolation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Comprehensive Usage Manual &amp; Examples</a></li>
-<li class="toctree-l1"><a class="reference internal" href="cli_reference.html">CLI Complete Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli_reference.html">CLI Complete Technical Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration Guide &amp; JSON Schemas</a></li>
 <li class="toctree-l1"><a class="reference internal" href="package_rules.html">Dynamic Package Rules &amp; Resolution</a></li>
 <li class="toctree-l1"><a class="reference internal" href="custom_packages.html">Custom Packages &amp; Local XBPS Repositories</a></li>
@@ -70,6 +70,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#module-void-builder-core-chroot-manager">Module: <code class="docutils literal notranslate"><span class="pre">void_builder.core.chroot_manager</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#chrootmanager"><code class="docutils literal notranslate"><span class="pre">ChrootManager</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-void-builder-core-stage-manager">Module: <code class="docutils literal notranslate"><span class="pre">void_builder.core.stage_manager</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#stagemanager"><code class="docutils literal notranslate"><span class="pre">StageManager</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#module-void-builder-core-iso-engine">Module: <code class="docutils literal notranslate"><span class="pre">void_builder.core.iso_engine</span></code></a><ul>
@@ -249,6 +253,23 @@ Output Artifacts (.iso / .img / .tar.xz + Manifests)
 </section>
 </section>
 <hr class="docutils" />
+<section id="module-void-builder-core-stage-manager">
+<h3>Module: <code class="docutils literal notranslate"><span class="pre">void_builder.core.stage_manager</span></code><a class="headerlink" href="#module-void-builder-core-stage-manager" title="Link to this heading"></a></h3>
+<section id="stagemanager">
+<h4><code class="docutils literal notranslate"><span class="pre">StageManager</span></code><a class="headerlink" href="#stagemanager" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p><strong>Role</strong>: Manages base system stage tarballs (<code class="docutils literal notranslate"><span class="pre">void-base-&lt;arch&gt;.tar.xz</span></code>) for rapid ISO builds.</p></li>
+<li><p><strong>Methods</strong>:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">resolve_tarball(tarball_arg)</span></code>: Resolves file path, URI (<code class="docutils literal notranslate"><span class="pre">file://</span></code>), HTTP/HTTPS URL, or automatic candidate lookup (<code class="docutils literal notranslate"><span class="pre">y</span></code>/<code class="docutils literal notranslate"><span class="pre">auto</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">extract_tarball(tarball_path,</span> <span class="pre">target_root)</span></code>: Unpacks stage seed into target rootfs preserving permissions (<code class="docutils literal notranslate"><span class="pre">tar</span> <span class="pre">xpf</span> <span class="pre">...</span> <span class="pre">--numeric-owner</span> <span class="pre">--xattrs-include='*.*'</span></code>). Automatically leverages multi-core parallel decompressors (<code class="docutils literal notranslate"><span class="pre">pixz</span></code>, <code class="docutils literal notranslate"><span class="pre">zstd</span> <span class="pre">-T0</span></code>, <code class="docutils literal notranslate"><span class="pre">pigz</span></code>) when available.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">create_stage_tarball(source_root,</span> <span class="pre">output_tarball,</span> <span class="pre">compression)</span></code>: Packages clean rootfs into compressed stage tarball (<code class="docutils literal notranslate"><span class="pre">.tar.xz</span></code>, <code class="docutils literal notranslate"><span class="pre">.tar.gz</span></code>, <code class="docutils literal notranslate"><span class="pre">.tar.zst</span></code>). Automatically applies multi-threaded compressors (<code class="docutils literal notranslate"><span class="pre">zstd</span> <span class="pre">-T0</span> <span class="pre">-3</span></code>, <code class="docutils literal notranslate"><span class="pre">pixz</span></code>, <code class="docutils literal notranslate"><span class="pre">pigz</span></code>).</p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
 <section id="module-void-builder-core-iso-engine">
 <h3>Module: <code class="docutils literal notranslate"><span class="pre">void_builder.core.iso_engine</span></code><a class="headerlink" href="#module-void-builder-core-iso-engine" title="Link to this heading"></a></h3>
 <section id="isoengine">
@@ -265,7 +286,7 @@ Output Artifacts (.iso / .img / .tar.xz + Manifests)
 <li><p><strong>Methods</strong>:</p>
 <ul>
 <li><p><code class="docutils literal notranslate"><span class="pre">setup_workdir(workdir)</span></code>: Resolves and creates workspace paths.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">_generate_manifest_and_checksums(output_path)</span></code>: Computes SHA256/MD5 hashes and generates <code class="docutils literal notranslate"><span class="pre">manifest.json</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_generate_manifest_and_checksums(output_path)</span></code>: Computes SHA256, SHA512, MD5 hashes and generates <code class="docutils literal notranslate"><span class="pre">manifest.json</span></code>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">export_tarball(output_path)</span></code>: Packs rootfs into <code class="docutils literal notranslate"><span class="pre">.tar.xz</span></code> container tarball.</p></li>
 </ul>
 </li>
@@ -277,8 +298,8 @@ Output Artifacts (.iso / .img / .tar.xz + Manifests)
 <li><p><strong>Role</strong>: Handles PC ISO 9660 hybrid ISO image building (<code class="docutils literal notranslate"><span class="pre">x86_64</span></code>, <code class="docutils literal notranslate"><span class="pre">i686</span></code>, <code class="docutils literal notranslate"><span class="pre">aarch64</span></code>).</p></li>
 <li><p><strong>Methods</strong>:</p>
 <ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">_create_squashfs()</span></code>: Invokes <code class="docutils literal notranslate"><span class="pre">mksquashfs</span></code> with configured compression (<code class="docutils literal notranslate"><span class="pre">xz</span></code>, <code class="docutils literal notranslate"><span class="pre">zstd</span></code>, <code class="docutils literal notranslate"><span class="pre">gzip</span></code>).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">finalize_isofile(output_path)</span></code>: Assembles ISO using <code class="docutils literal notranslate"><span class="pre">xorriso</span></code> with BIOS El Torito and UEFI GRUB EFI options.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_create_squashfs()</span></code>: Invokes <code class="docutils literal notranslate"><span class="pre">mksquashfs</span></code> with configured compression (<code class="docutils literal notranslate"><span class="pre">xz</span></code>, <code class="docutils literal notranslate"><span class="pre">zstd</span></code>, <code class="docutils literal notranslate"><span class="pre">gzip</span></code>), multi-threaded processor allocation (<code class="docutils literal notranslate"><span class="pre">-processors</span> <span class="pre">&lt;N&gt;</span></code>), and fast block sizing.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">finalize_isofile(output_path)</span></code>: Assembles ISO using <code class="docutils literal notranslate"><span class="pre">xorriso</span></code> with BIOS El Torito and UEFI GRUB EFI options. Strictly validates xorriso return codes and output media space to prevent corrupted image output.</p></li>
 </ul>
 </li>
 </ul>
@@ -289,7 +310,7 @@ Output Artifacts (.iso / .img / .tar.xz + Manifests)
 <li><p><strong>Role</strong>: Handles Single-Board Computer raw disk images (<code class="docutils literal notranslate"><span class="pre">rpi-aarch64</span></code>, <code class="docutils literal notranslate"><span class="pre">pinebookpro</span></code>, <code class="docutils literal notranslate"><span class="pre">asahi</span></code>).</p></li>
 <li><p><strong>Methods</strong>:</p>
 <ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">finalize_isofile(output_path)</span></code>: Dynamically calculates required image size, runs <code class="docutils literal notranslate"><span class="pre">sfdisk</span></code> partitioning, sets up loop device via <code class="docutils literal notranslate"><span class="pre">losetup</span></code>, formats VFAT/EXT4 partitions, copies rootfs, writes U-Boot / GRUB EFI bootloaders, and compresses raw <code class="docutils literal notranslate"><span class="pre">.img</span></code> with <code class="docutils literal notranslate"><span class="pre">xz</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">finalize_isofile(output_path)</span></code>: Dynamically calculates required image size, runs <code class="docutils literal notranslate"><span class="pre">sfdisk</span></code> partitioning, sets up loop device via <code class="docutils literal notranslate"><span class="pre">losetup</span></code>, formats VFAT/EXT4 partitions with lazy table initialization, copies rootfs, writes U-Boot / GRUB EFI bootloaders, and compresses raw <code class="docutils literal notranslate"><span class="pre">.img</span></code> with <code class="docutils literal notranslate"><span class="pre">xz</span></code>.</p></li>
 </ul>
 </li>
 </ul>
@@ -301,11 +322,17 @@ Output Artifacts (.iso / .img / .tar.xz + Manifests)
 <section id="systemconfigurator">
 <h4><code class="docutils literal notranslate"><span class="pre">SystemConfigurator</span></code><a class="headerlink" href="#systemconfigurator" title="Link to this heading"></a></h4>
 <ul class="simple">
-<li><p><strong>Role</strong>: Performs low-level system configuration inside target rootfs.</p></li>
-<li><p><strong>Methods</strong>:</p>
+<li><p><strong>Role</strong>: Executes modular, decoupled <code class="docutils literal notranslate"><span class="pre">SystemAction</span></code> objects inside target rootfs.</p></li>
+<li><p><strong>Action Sequence</strong>:</p>
 <ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">load_from_config(config)</span></code>: Reads hostname, locale, timezone, user accounts, runit services, Plymouth theme, and Dracut options.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">apply()</span></code>: Executes individual configurator actions sequentially (<code class="docutils literal notranslate"><span class="pre">apply_locale</span></code>, <code class="docutils literal notranslate"><span class="pre">apply_users</span></code>, <code class="docutils literal notranslate"><span class="pre">apply_services</span></code>, <code class="docutils literal notranslate"><span class="pre">apply_dracut</span></code>, <code class="docutils literal notranslate"><span class="pre">apply_plymouth</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">RootPasswordAction</span></code>: Sets root password or locks root account.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SSHKeyAction</span></code>: Injects authorized public SSH keys into <code class="docutils literal notranslate"><span class="pre">/root/.ssh/authorized_keys</span></code> and <code class="docutils literal notranslate"><span class="pre">/home/&lt;user&gt;/.ssh/authorized_keys</span></code> with strict permissions.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LocaleAction</span></code>: Applies hostname, timezone, locale, and keymap.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UserAction</span></code>: Creates live user accounts and assigns groups.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ServiceAction</span></code>: Enables Runit services with conflict suppression (e.g. omits <code class="docutils literal notranslate"><span class="pre">dhcpcd</span></code> if <code class="docutils literal notranslate"><span class="pre">NetworkManager</span></code> is enabled).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">HookAction</span></code>: Executes user-defined shell scripts at lifecycle milestones (<code class="docutils literal notranslate"><span class="pre">pre-install</span></code>, <code class="docutils literal notranslate"><span class="pre">post-install</span></code>, <code class="docutils literal notranslate"><span class="pre">pre-iso</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">DracutAction</span></code>: Generates initramfs with optimized compression.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">StructuredCopyAction</span></code>: Copies overlay file trees from <code class="docutils literal notranslate"><span class="pre">configs/custom_files/</span></code>.</p></li>
 </ul>
 </li>
 </ul>
@@ -316,21 +343,21 @@ Output Artifacts (.iso / .img / .tar.xz + Manifests)
 <section id="step-by-step-pipeline-phases">
 <h2>4. Step-by-Step Pipeline Phases<a class="headerlink" href="#step-by-step-pipeline-phases" title="Link to this heading"></a></h2>
 <ol class="arabic simple">
-<li><p><strong>Phase 1 - Initialization</strong>: <code class="docutils literal notranslate"><span class="pre">BuildOrchestrator</span></code> parses arguments, instantiates <code class="docutils literal notranslate"><span class="pre">ConfigAssembler</span></code>, and builds master <code class="docutils literal notranslate"><span class="pre">Config</span></code> object.</p></li>
-<li><p><strong>Phase 2 - Workdir Resolution</strong>: Tests write permissions on <code class="docutils literal notranslate"><span class="pre">workdir/&lt;arch&gt;</span></code>, falling back to <code class="docutils literal notranslate"><span class="pre">/tmp/void-builder-fallback/&lt;arch&gt;</span></code> if write permission is denied.</p></li>
+<li><p><strong>Phase 1 - Initialization &amp; Presets</strong>: <code class="docutils literal notranslate"><span class="pre">BuildOrchestrator</span></code> parses arguments, applies preset profiles (<code class="docutils literal notranslate"><span class="pre">minimal</span></code>, <code class="docutils literal notranslate"><span class="pre">developer</span></code>, <code class="docutils literal notranslate"><span class="pre">gaming</span></code>, etc.), instantiates <code class="docutils literal notranslate"><span class="pre">ConfigAssembler</span></code>, and builds master <code class="docutils literal notranslate"><span class="pre">Config</span></code> object.</p></li>
+<li><p><strong>Phase 2 - Workdir &amp; TmpFS Staging</strong>: Tests write permissions on <code class="docutils literal notranslate"><span class="pre">workdir/&lt;arch&gt;</span></code>, optionally mounting in-memory <code class="docutils literal notranslate"><span class="pre">tmpfs</span></code> if <code class="docutils literal notranslate"><span class="pre">--tmpfs</span></code> is active for maximum I/O throughput.</p></li>
 <li><p><strong>Phase 3 - Toolchain Preparation</strong>: Initializes <code class="docutils literal notranslate"><span class="pre">ToolchainManager</span></code> and verifies static <code class="docutils literal notranslate"><span class="pre">xbps</span></code> binaries.</p></li>
 <li><p><strong>Phase 4 - Chroot Provisioning</strong>: Creates <code class="docutils literal notranslate"><span class="pre">airootfs</span></code> directory and mounts virtual filesystems (<code class="docutils literal notranslate"><span class="pre">/proc</span></code>, <code class="docutils literal notranslate"><span class="pre">/sys</span></code>, <code class="docutils literal notranslate"><span class="pre">/dev</span></code>, <code class="docutils literal notranslate"><span class="pre">/dev/pts</span></code>, <code class="docutils literal notranslate"><span class="pre">/dev/shm</span></code>).</p></li>
-<li><p><strong>Phase 5 - Package Installation</strong>: Invokes <code class="docutils literal notranslate"><span class="pre">xbps-install.static</span></code> with target package plan and repository list.</p></li>
-<li><p><strong>Phase 6 - System Customization</strong>: <code class="docutils literal notranslate"><span class="pre">SystemConfigurator</span></code> configures <code class="docutils literal notranslate"><span class="pre">/etc/hostname</span></code>, <code class="docutils literal notranslate"><span class="pre">/etc/locale.conf</span></code>, <code class="docutils literal notranslate"><span class="pre">/etc/rc.conf</span></code>, creates user accounts, symlinks Runit services into <code class="docutils literal notranslate"><span class="pre">/etc/runit/runsvdir/default/</span></code>, and runs Dracut initramfs generator.</p></li>
+<li><p><strong>Phase 5 - Package Installation</strong>: Invokes <code class="docutils literal notranslate"><span class="pre">xbps-install.static</span></code> with target package plan and repository list (or extracts pre-built base stage tarball via <code class="docutils literal notranslate"><span class="pre">StageManager</span></code>).</p></li>
+<li><p><strong>Phase 6 - System Customization &amp; Actions</strong>: <code class="docutils literal notranslate"><span class="pre">SystemConfigurator</span></code> executes <code class="docutils literal notranslate"><span class="pre">SystemAction</span></code> chain (locale, users, services, SSH keys, root password, hooks, Dracut initramfs).</p></li>
 <li><p><strong>Phase 7 - 3-Pass Reconfiguration</strong>: Runs <code class="docutils literal notranslate"><span class="pre">xbps-reconfigure</span> <span class="pre">-a</span></code> inside chroot.</p></li>
 <li><p><strong>Phase 8 - Bootloaders &amp; Finalization</strong>:</p>
 <ul class="simple">
-<li><p>For ISO: Generates SYSLINUX/GRUB configs, creates SquashFS, runs <code class="docutils literal notranslate"><span class="pre">xorriso</span></code>.</p></li>
-<li><p>For SBC: Partition image with <code class="docutils literal notranslate"><span class="pre">sfdisk</span></code>, format VFAT/EXT4, write U-Boot, compress image with <code class="docutils literal notranslate"><span class="pre">xz</span></code>.</p></li>
+<li><p>For ISO: Generates SYSLINUX/GRUB configs, creates SquashFS (<code class="docutils literal notranslate"><span class="pre">zstd</span></code> / <code class="docutils literal notranslate"><span class="pre">xz</span></code>), runs <code class="docutils literal notranslate"><span class="pre">xorriso</span></code>.</p></li>
+<li><p>For SBC: Partition image with <code class="docutils literal notranslate"><span class="pre">sfdisk</span></code>, format VFAT/EXT4, write U-Boot, compress image.</p></li>
 <li><p>For Tarball: Packs rootfs into <code class="docutils literal notranslate"><span class="pre">.tar.xz</span></code>.</p></li>
 </ul>
 </li>
-<li><p><strong>Phase 9 - Checksums &amp; Manifest</strong>: Calculates SHA256 and MD5 hashes, writes <code class="docutils literal notranslate"><span class="pre">manifest.json</span></code>, unmounts virtual filesystems, and cleans temporary files.</p></li>
+<li><p><strong>Phase 9 - Checksums, Manifests &amp; Benchmarking</strong>: Computes SHA256, SHA512, MD5, generates <code class="docutils literal notranslate"><span class="pre">.manifest.json</span></code>, safely unmounts filesystems, and prints <code class="docutils literal notranslate"><span class="pre">--benchmark</span></code> timing breakdown.</p></li>
 </ol>
 </section>
 </section>

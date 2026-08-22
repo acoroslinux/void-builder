@@ -6,17 +6,17 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Void-Builder Comprehensive Manual &mdash; Void-Builder</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=f5127f15" />
+  <title>Void-Builder Comprehensive Technical Manual &mdash; Void-Builder</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/custom.css?v=75d58705" />
 
   
-      <script src="_static/jquery.js?v=8dae8fb0"></script>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="_static/documentation_options.js?v=8d563738"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -46,7 +46,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started &amp; Total Build Isolation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Comprehensive Usage Manual &amp; Examples</a></li>
-<li class="toctree-l1"><a class="reference internal" href="cli_reference.html">CLI Complete Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli_reference.html">CLI Complete Technical Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration Guide &amp; JSON Schemas</a></li>
 <li class="toctree-l1"><a class="reference internal" href="package_rules.html">Dynamic Package Rules &amp; Resolution</a></li>
 <li class="toctree-l1"><a class="reference internal" href="custom_packages.html">Custom Packages &amp; Local XBPS Repositories</a></li>
@@ -74,7 +74,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Void-Builder Comprehensive Manual</li>
+      <li class="breadcrumb-item active">Void-Builder Comprehensive Technical Manual</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/index.md.txt" rel="nofollow"> View page source</a>
       </li>
@@ -84,12 +84,12 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="void-builder-comprehensive-manual">
-<h1>Void-Builder Comprehensive Manual<a class="headerlink" href="#void-builder-comprehensive-manual" title="Link to this heading"></a></h1>
-<p>Welcome to the exhaustive technical documentation for <strong>Void-Builder</strong>, the modular, dynamic, and multi-architecture Void Linux ISO and disk image building toolkit.</p>
+  <section id="void-builder-comprehensive-technical-manual">
+<h1>Void-Builder Comprehensive Technical Manual<a class="headerlink" href="#void-builder-comprehensive-technical-manual" title="Link to this heading"></a></h1>
+<p>Welcome to the comprehensive technical documentation for <strong>Void-Builder</strong>, the enterprise-grade, modular, dynamic, and multi-architecture Void Linux ISO and disk image building toolkit.</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>                  _     _                      _  _     _                 
   _   ___ (_) __| |   |__  _  _  _ | |__| |___  _ __ 
- | |/ / _ \| |/ _` |  | &#39;_ \| | | | | | / _` / _ \| &#39;__|
+ | |/ / _ \| |/ _` |  | '_ \| | | | | | / _` / _ \| '__|
  | &lt; (_) | | (_| |  | |_) | |_| | |_| | (_| | __/ |   
  |_|\_\___/|_|\__,_|  |_.__/ \__,_|\__,_|\__,_|\___|_|   
 </pre></div>
@@ -111,18 +111,22 @@
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Comprehensive Usage Manual &amp; Examples</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="usage.html#supported-architecture-targets-matrix">1. Supported Architecture Targets Matrix</a></li>
 <li class="toctree-l2"><a class="reference internal" href="usage.html#output-formats-explained">2. Output Formats Explained</a></li>
-<li class="toctree-l2"><a class="reference internal" href="usage.html#compression-algorithms-compared">3. Compression Algorithms Compared</a></li>
-<li class="toctree-l2"><a class="reference internal" href="usage.html#complete-usage-examples">4. 10 Complete Usage Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#stage-seed-tarball-system-gentoo-style-rapid-iso-builds">3. Stage Seed Tarball System (Gentoo-Style Rapid ISO Builds)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#compression-algorithms-compared">4. Compression Algorithms Compared</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#complete-usage-examples">4. Complete Usage Examples</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="cli_reference.html">CLI Complete Reference</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="cli_reference.html">CLI Complete Technical Reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="cli_reference.html#command-syntax">Command Syntax</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cli_reference.html#positional-arguments">Positional Arguments</a></li>
-<li class="toctree-l2"><a class="reference internal" href="cli_reference.html#core-execution-flags">Core Execution Flags</a></li>
-<li class="toctree-l2"><a class="reference internal" href="cli_reference.html#customization-overrides">Customization Overrides</a></li>
-<li class="toctree-l2"><a class="reference internal" href="cli_reference.html#toolchain-advanced-flags">Toolchain &amp; Advanced Flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli_reference.html#presets-editions">Presets &amp; Editions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli_reference.html#performance-speed-flags">Performance &amp; Speed Flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli_reference.html#execution-modes-actions">Execution Modes &amp; Actions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli_reference.html#system-localization-overrides">System &amp; Localization Overrides</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli_reference.html#security-user-management">Security &amp; User Management</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli_reference.html#lifecycle-hooks-engine">Lifecycle Hooks Engine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli_reference.html#output-formats">Output &amp; Formats</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cli_reference.html#exit-codes">Exit Codes</a></li>
-<li class="toctree-l2"><a class="reference internal" href="cli_reference.html#environment-variables">Environment Variables</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration Guide &amp; JSON Schemas</a><ul>
@@ -130,9 +134,13 @@
 <li class="toctree-l2"><a class="reference internal" href="configuration.html#master-manifest-global-build-json">2. Master Manifest: <code class="docutils literal notranslate"><span class="pre">global_build.json</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="configuration.html#architecture-profiles-configs-architectures">3. Architecture Profiles (<code class="docutils literal notranslate"><span class="pre">configs/architectures/</span></code>)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="configuration.html#desktop-profiles-configs-desktops">4. Desktop Profiles (<code class="docutils literal notranslate"><span class="pre">configs/desktops/</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#package-bundle-profiles-configs-packages">4. Package Bundle Profiles (<code class="docutils literal notranslate"><span class="pre">configs/packages/</span></code>)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="configuration.html#runit-service-profiles-configs-services">5. Runit Service Profiles (<code class="docutils literal notranslate"><span class="pre">configs/services/</span></code>)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="configuration.html#how-to-create-a-brand-new-desktop-profile">6. How to Create a Brand New Desktop Profile</a></li>
 <li class="toctree-l2"><a class="reference internal" href="configuration.html#file-overlays-configs-custom-files">7. File Overlays (<code class="docutils literal notranslate"><span class="pre">configs/custom_files/</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#presets-edition-profiles-configs-presets">8. Presets &amp; Edition Profiles (<code class="docutils literal notranslate"><span class="pre">configs/presets/</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#lifecycle-hooks-engine-configs-hooks">9. Lifecycle Hooks Engine (<code class="docutils literal notranslate"><span class="pre">configs/hooks/</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#security-actions-service-conflict-resolution">10. Security Actions &amp; Service Conflict Resolution</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="package_rules.html">Dynamic Package Rules &amp; Resolution</a><ul>
@@ -189,11 +197,27 @@
 </div>
 </section>
 <hr class="docutils" />
-<section id="overview-technical-summary">
-<h2>Overview &amp; Technical Summary<a class="headerlink" href="#overview-technical-summary" title="Link to this heading"></a></h2>
-<p>Void-Builder is a enterprise-grade Python application designed to assemble bootable live ISO images, raw Single-Board Computer (SBC) disk images, and container rootfs archives for <strong>Void Linux</strong>. It provides a fully decoupled architecture separating configuration resolution, host toolchain management, pseudo-filesystem chroot management, system customization, and output finalization.</p>
-<section id="supported-target-architectures-12-total">
-<h3>Supported Target Architectures (12 Total)<a class="headerlink" href="#supported-target-architectures-12-total" title="Link to this heading"></a></h3>
+<section id="overview-architecture-highlights">
+<h2>Overview &amp; Architecture Highlights<a class="headerlink" href="#overview-architecture-highlights" title="Link to this heading"></a></h2>
+<p><strong>Void-Builder</strong> is an advanced Python-based toolkit designed to assemble bootable live ISO images, raw Single-Board Computer (SBC) disk images, and container rootfs archives for <strong>Void Linux</strong>. It provides a fully decoupled architecture separating configuration resolution, host toolchain management, pseudo-filesystem chroot management, system customization, and output finalization.</p>
+<section id="key-capabilities">
+<h3>Key Capabilities<a class="headerlink" href="#key-capabilities" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>🌐 <strong>12 Hardware Architectures &amp; Platforms</strong>: Build for x86_64, x86_64-musl, i686, aarch64, aarch64-musl, armv7l, armv7l-musl, Raspberry Pi (aarch64, armv7l, armv6l), Pinebook Pro, and Apple Silicon (Asahi).</p></li>
+<li><p>🎯 <strong>Unified Presets &amp; Flavours (<code class="docutils literal notranslate"><span class="pre">-P</span></code> / <code class="docutils literal notranslate"><span class="pre">--preset</span></code>)</strong>: Ready-to-build editions (<code class="docutils literal notranslate"><span class="pre">minimal</span></code>, <code class="docutils literal notranslate"><span class="pre">desktop-xfce</span></code>, <code class="docutils literal notranslate"><span class="pre">desktop-kde</span></code>, <code class="docutils literal notranslate"><span class="pre">desktop-gnome</span></code>, <code class="docutils literal notranslate"><span class="pre">rescue-sysadmin</span></code>, <code class="docutils literal notranslate"><span class="pre">developer</span></code>, <code class="docutils literal notranslate"><span class="pre">gaming</span></code>).</p></li>
+<li><p>⚡ <strong>High-Speed Turbo Pipeline (<code class="docutils literal notranslate"><span class="pre">--fast</span></code>, <code class="docutils literal notranslate"><span class="pre">--tmpfs</span></code>, <code class="docutils literal notranslate"><span class="pre">--benchmark</span></code>)</strong>: Multi-threaded <code class="docutils literal notranslate"><span class="pre">zstd</span></code> compression level 3, fast formatting, build in memory RAM (<code class="docutils literal notranslate"><span class="pre">tmpfs</span></code>), and per-stage timing breakdown.</p></li>
+<li><p>📦 <strong>Gentoo-Style Stage Seed Tarballs (<code class="docutils literal notranslate"><span class="pre">--use-tarball</span></code>, <code class="docutils literal notranslate"><span class="pre">--create-tarball</span></code>)</strong>: Bootstraps from reusable base archives and layers delta packages in seconds.</p></li>
+<li><p>🔑 <strong>Security &amp; SSH Public Key Ingestion</strong>: Inject root passwords, lock accounts, and provision SSH keys directly into <code class="docutils literal notranslate"><span class="pre">authorized_keys</span></code>.</p></li>
+<li><p>🪝 <strong>Lifecycle Hooks Engine</strong>: Execute customized shell scripts at <code class="docutils literal notranslate"><span class="pre">pre-install</span></code>, <code class="docutils literal notranslate"><span class="pre">post-install</span></code>, and <code class="docutils literal notranslate"><span class="pre">pre-iso</span></code> stages.</p></li>
+<li><p>🤖 <strong>Interactive Wizard Mode (<code class="docutils literal notranslate"><span class="pre">-i</span></code> / <code class="docutils literal notranslate"><span class="pre">--interactive</span></code>)</strong>: Intuitive terminal menu for step-by-step image creation.</p></li>
+<li><p>🛡️ <strong>Zero Host Dependencies</strong>: Downloads verified static <code class="docutils literal notranslate"><span class="pre">xbps-install.static</span></code> binaries directly from Void Linux infrastructure.</p></li>
+<li><p>🧾 <strong>Automated Checksums &amp; Manifests</strong>: Automatically generates <code class="docutils literal notranslate"><span class="pre">.sha256</span></code>, <code class="docutils literal notranslate"><span class="pre">.sha512</span></code>, <code class="docutils literal notranslate"><span class="pre">.md5</span></code>, and <code class="docutils literal notranslate"><span class="pre">.manifest.json</span></code> metadata for all build artifacts.</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="supported-target-architectures">
+<h2>Supported Target Architectures<a class="headerlink" href="#supported-target-architectures" title="Link to this heading"></a></h2>
 <ol class="arabic simple">
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">x86_64</span></code></strong>: Standard 64-bit AMD/Intel PC (glibc)</p></li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">x86_64-musl</span></code></strong>: 64-bit AMD/Intel PC with Musl C library</p></li>
@@ -209,12 +233,11 @@
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">asahi</span></code></strong>: Apple Silicon (M1/M2/M3) Asahi Linux</p></li>
 </ol>
 </section>
-</section>
 <hr class="docutils" />
 <section id="author-maintainer">
 <h2>Author &amp; Maintainer<a class="headerlink" href="#author-maintainer" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li><p><strong>Developer</strong>: Manuel Rosa (<a class="reference external" href="mailto:manuelsilvarosa&#37;&#52;&#48;gmail&#46;com">manuelsilvarosa<span>&#64;</span>gmail<span>&#46;</span>com</a>)</p></li>
+<li><p><strong>Developer &amp; Lead Maintainer</strong>: Manuel Rosa (<a class="reference external" href="mailto:manuelsilvarosa&#37;&#52;&#48;gmail&#46;com">manuelsilvarosa<span>&#64;</span>gmail<span>&#46;</span>com</a>)</p></li>
 </ul>
 </section>
 </section>

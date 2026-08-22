@@ -7,21 +7,21 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dynamic Package Rules &amp; Resolution &mdash; Void-Builder</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=f5127f15" />
-      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=72619f87" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=75d58705" />
 
   
-      <script src="_static/jquery.js?v=8dae8fb0"></script>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="_static/documentation_options.js?v=8d563738"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Custom Packages &amp; Local XBPS Repositories" href="custom_packages.html" />
-    <link rel="prev" title="Configuration Guide" href="configuration.html" /> 
+    <link rel="prev" title="Configuration Guide &amp; JSON Schemas" href="configuration.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -45,10 +45,10 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
-<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage &amp; Examples</a></li>
-<li class="toctree-l1"><a class="reference internal" href="cli_reference.html">CLI Complete Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started &amp; Total Build Isolation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Comprehensive Usage Manual &amp; Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli_reference.html">CLI Complete Technical Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration Guide &amp; JSON Schemas</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Dynamic Package Rules &amp; Resolution</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#overview-of-package-rules-engine">Overview of Package Rules Engine</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#file-structure-of-package-rules-json">File Structure of <code class="docutils literal notranslate"><span class="pre">package_rules.json</span></code></a></li>
@@ -59,8 +59,8 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Architecture &amp; Bootloaders</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture &amp; System Design</a></li>
-<li class="toctree-l1"><a class="reference internal" href="bootloaders.html">Bootloaders &amp; Boot Process</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architectural Blueprint &amp; Engine Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bootloaders.html">Bootloaders &amp; Hardware Boot Manual</a></li>
 <li class="toctree-l1"><a class="reference internal" href="calamares.html">Calamares Installer Integration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_reference.html">Python API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting &amp; FAQ</a></li>
@@ -107,69 +107,69 @@
 <section id="file-structure-of-package-rules-json">
 <h2>File Structure of <code class="docutils literal notranslate"><span class="pre">package_rules.json</span></code><a class="headerlink" href="#file-structure-of-package-rules-json" title="Link to this heading"></a></h2>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;_comment&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Dynamic package injection rules based on architecture, platform, and desktop choices.&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;architecture_packages&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;x86_64&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">      </span><span class="s2">&quot;grub-x86_64-efi&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;syslinux&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;qemu-firmware&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;sof-firmware&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;xf86-video-intel&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;xf86-video-amdgpu&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;xf86-video-ati&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;xf86-video-nouveau&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;xf86-video-vesa&quot;</span>
+<span class="w">  </span><span class="nt">"_comment"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Dynamic package injection rules based on architecture, platform, and desktop choices."</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"architecture_packages"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"x86_64"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">"grub-x86_64-efi"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"syslinux"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"qemu-firmware"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"sof-firmware"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"xf86-video-intel"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"xf86-video-amdgpu"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"xf86-video-ati"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"xf86-video-nouveau"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"xf86-video-vesa"</span>
 <span class="w">    </span><span class="p">],</span>
-<span class="w">    </span><span class="nt">&quot;i686&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">      </span><span class="s2">&quot;grub-i386-efi&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;syslinux&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;xf86-video-intel&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;xf86-video-vesa&quot;</span>
+<span class="w">    </span><span class="nt">"i686"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">"grub-i386-efi"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"syslinux"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"xf86-video-intel"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"xf86-video-vesa"</span>
 <span class="w">    </span><span class="p">],</span>
-<span class="w">    </span><span class="nt">&quot;aarch64&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">      </span><span class="s2">&quot;grub-arm64-efi&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;qemu-firmware&quot;</span>
+<span class="w">    </span><span class="nt">"aarch64"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">"grub-arm64-efi"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"qemu-firmware"</span>
 <span class="w">    </span><span class="p">],</span>
-<span class="w">    </span><span class="nt">&quot;rpi&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">      </span><span class="s2">&quot;rpi-base&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;rpi-kernel&quot;</span>
+<span class="w">    </span><span class="nt">"rpi"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">"rpi-base"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"rpi-kernel"</span>
 <span class="w">    </span><span class="p">]</span>
 <span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;platform_packages&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;pinebookpro&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">      </span><span class="s2">&quot;pinebookpro-base&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;pinebookpro-kernel&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;pinebookpro-uboot&quot;</span>
+<span class="w">  </span><span class="nt">"platform_packages"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"pinebookpro"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">"pinebookpro-base"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"pinebookpro-kernel"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"pinebookpro-uboot"</span>
 <span class="w">    </span><span class="p">],</span>
-<span class="w">    </span><span class="nt">&quot;asahi&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">      </span><span class="s2">&quot;asahi-base&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;asahi-scripts&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;linux-asahi&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;mesa-asahi-dri&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;grub-arm64-efi&quot;</span>
+<span class="w">    </span><span class="nt">"asahi"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">"asahi-base"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"asahi-scripts"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"linux-asahi"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"mesa-asahi-dri"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"grub-arm64-efi"</span>
 <span class="w">    </span><span class="p">]</span>
 <span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;desktop_packages&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;common&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">      </span><span class="s2">&quot;pipewire&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;alsa-pipewire&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;wireplumber&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;dbus&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;polkit&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;elogind&quot;</span>
+<span class="w">  </span><span class="nt">"desktop_packages"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"common"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">"pipewire"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"alsa-pipewire"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"wireplumber"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"dbus"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"polkit"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"elogind"</span>
 <span class="w">    </span><span class="p">],</span>
-<span class="w">    </span><span class="nt">&quot;gnome&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">      </span><span class="s2">&quot;gnome-core&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;gdm&quot;</span>
+<span class="w">    </span><span class="nt">"gnome"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">"gnome-core"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"gdm"</span>
 <span class="w">    </span><span class="p">],</span>
-<span class="w">    </span><span class="nt">&quot;kde&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">      </span><span class="s2">&quot;kde5&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;sddm&quot;</span>
+<span class="w">    </span><span class="nt">"kde"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">"kde5"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"sddm"</span>
 <span class="w">    </span><span class="p">],</span>
-<span class="w">    </span><span class="nt">&quot;xfce&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">      </span><span class="s2">&quot;xfce4&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;lightdm&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;lightdm-gtk-greeter&quot;</span>
+<span class="w">    </span><span class="nt">"xfce"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">"xfce4"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"lightdm"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"lightdm-gtk-greeter"</span>
 <span class="w">    </span><span class="p">]</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
@@ -194,7 +194,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="configuration.html" class="btn btn-neutral float-left" title="Configuration Guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="configuration.html" class="btn btn-neutral float-left" title="Configuration Guide &amp; JSON Schemas" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="custom_packages.html" class="btn btn-neutral float-right" title="Custom Packages &amp; Local XBPS Repositories" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

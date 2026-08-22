@@ -7,21 +7,21 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Comprehensive Usage Manual &amp; Examples &mdash; Void-Builder</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=f5127f15" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/custom.css?v=75d58705" />
 
   
-      <script src="_static/jquery.js?v=8dae8fb0"></script>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="_static/documentation_options.js?v=8d563738"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="CLI Complete Reference" href="cli_reference.html" />
-    <link rel="prev" title="Getting Started &amp; System Preparation" href="getting_started.html" /> 
+    <link rel="next" title="CLI Complete Technical Reference" href="cli_reference.html" />
+    <link rel="prev" title="Getting Started &amp; Total Build Isolation" href="getting_started.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -45,7 +45,7 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started &amp; System Preparation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started &amp; Total Build Isolation</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Comprehensive Usage Manual &amp; Examples</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#supported-architecture-targets-matrix">1. Supported Architecture Targets Matrix</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#output-formats-explained">2. Output Formats Explained</a><ul>
@@ -54,23 +54,24 @@
 <li class="toctree-l3"><a class="reference internal" href="#c-rootfs-container-tarball-format-tarball">C. RootFS Container Tarball (<code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">tarball</span></code>)</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#compression-algorithms-compared">3. Compression Algorithms Compared</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#complete-usage-examples">4. 10 Complete Usage Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#stage-seed-tarball-system-gentoo-style-rapid-iso-builds">3. Stage Seed Tarball System (Gentoo-Style Rapid ISO Builds)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#compression-algorithms-compared">4. Compression Algorithms Compared</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#complete-usage-examples">4. Complete Usage Examples</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#example-1-standard-non-root-simulation-mock-build">Example 1: Standard Non-Root Simulation (Mock Build)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#example-2-production-real-iso-build-gnome-desktop">Example 2: Production Real ISO Build (GNOME Desktop)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#example-3-ultra-fast-boot-iso-with-zstd-compression">Example 3: Ultra-Fast Boot ISO with ZSTD Compression</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#example-4-raspberry-pi-4-64-bit-disk-image">Example 4: Raspberry Pi 4 64-Bit Disk Image</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#example-5-container-base-tarball-export">Example 5: Container Base Tarball Export</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#example-6-pinebook-pro-laptop-image">Example 6: Pinebook Pro Laptop Image</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#example-7-apple-silicon-mac-image-asahi-linux">Example 7: Apple Silicon Mac Image (Asahi Linux)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#example-8-lightweight-musl-c-library-iso">Example 8: Lightweight Musl C Library ISO</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#example-9-offline-graphical-installer-iso-with-calamares">Example 9: Offline Graphical Installer ISO with Calamares</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#example-10-custom-repository-included-directory-overlay">Example 10: Custom Repository &amp; Included Directory Overlay</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-2-ultra-fast-ram-build-with-benchmark-timings">Example 2: Ultra-Fast RAM Build with Benchmark Timings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-3-specialized-flavour-build-rescue-sysadmin-edition">Example 3: Specialized Flavour Build (Rescue &amp; SysAdmin Edition)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-4-full-localization-system-configuration">Example 4: Full Localization &amp; System Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-5-developer-workstation-with-ssh-key-ingestion">Example 5: Developer Workstation with SSH Key Ingestion</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-6-gaming-edition-with-steam-multilib">Example 6: Gaming Edition with Steam &amp; Multilib</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-7-raspberry-pi-4-64-bit-disk-image">Example 7: Raspberry Pi 4 64-Bit Disk Image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-8-lifecycle-hooks-execution">Example 8: Lifecycle Hooks Execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-9-container-rootfs-export">Example 9: Container RootFS Export</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-10-calamares-graphical-installer-live-iso">Example 10: Calamares Graphical Installer Live ISO</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="cli_reference.html">CLI Complete Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli_reference.html">CLI Complete Technical Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration Guide &amp; JSON Schemas</a></li>
 <li class="toctree-l1"><a class="reference internal" href="package_rules.html">Dynamic Package Rules &amp; Resolution</a></li>
 <li class="toctree-l1"><a class="reference internal" href="custom_packages.html">Custom Packages &amp; Local XBPS Repositories</a></li>
@@ -230,8 +231,34 @@
 </section>
 </section>
 <hr class="docutils" />
+<section id="stage-seed-tarball-system-gentoo-style-rapid-iso-builds">
+<h2>3. Stage Seed Tarball System (Gentoo-Style Rapid ISO Builds)<a class="headerlink" href="#stage-seed-tarball-system-gentoo-style-rapid-iso-builds" title="Link to this heading"></a></h2>
+<p>Void-Builder incorporates a Stage Seed Tarball mechanism inspired by Gentoo Linux’s Stage3 seed architecture:</p>
+<ol class="arabic simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">--use-tarball</span> <span class="pre">[SOURCE]</span></code></strong>:</p>
+<ul class="simple">
+<li><p>Unpacks a pre-built base rootfs tarball (<code class="docutils literal notranslate"><span class="pre">void-base-&lt;arch&gt;.tar.xz</span></code>) directly into the target chroot.</p></li>
+<li><p>Automatically runs <code class="docutils literal notranslate"><span class="pre">xbps-install</span> <span class="pre">-Syu</span></code> inside the chroot to bring base packages up to the latest Void Linux repository release.</p></li>
+<li><p>Layers requested desktop environments and additional package profiles in seconds, bypassing redundant base downloads.</p></li>
+<li><p><strong>Supported Sources</strong>:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">--use-tarball</span> <span class="pre">y</span></code> / <code class="docutils literal notranslate"><span class="pre">--use-tarball</span> <span class="pre">auto</span></code>: Automatically looks for cached stage seeds in <code class="docutils literal notranslate"><span class="pre">output/stage_seeds/</span></code> or <code class="docutils literal notranslate"><span class="pre">workdir/cache/tarballs/</span></code>.</p></li>
+<li><p>Local file: <code class="docutils literal notranslate"><span class="pre">/path/to/stage.tar.xz</span></code> or <code class="docutils literal notranslate"><span class="pre">file:///...</span></code></p></li>
+<li><p>Remote URL: <code class="docutils literal notranslate"><span class="pre">https://...</span></code> (downloads and caches the tarball automatically).</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">--create-tarball</span></code></strong>:</p>
+<ul class="simple">
+<li><p>Saves the bootstrapped base rootfs as a reusable stage seed in <code class="docutils literal notranslate"><span class="pre">output/stage_seeds/void-base-&lt;arch&gt;.tar.xz</span></code> and <code class="docutils literal notranslate"><span class="pre">workdir/cache/tarballs/void-base-&lt;arch&gt;.tar.xz</span></code> alongside its SHA256 and MD5 checksums.</p></li>
+</ul>
+</li>
+</ol>
+</section>
+<hr class="docutils" />
 <section id="compression-algorithms-compared">
-<h2>3. Compression Algorithms Compared<a class="headerlink" href="#compression-algorithms-compared" title="Link to this heading"></a></h2>
+<h2>4. Compression Algorithms Compared<a class="headerlink" href="#compression-algorithms-compared" title="Link to this heading"></a></h2>
 <p>Select the compression algorithm via <code class="docutils literal notranslate"><span class="pre">--compression</span></code>:</p>
 <table class="docutils align-default">
 <thead>
@@ -266,41 +293,74 @@
 </section>
 <hr class="docutils" />
 <section id="complete-usage-examples">
-<h2>4. 10 Complete Usage Examples<a class="headerlink" href="#complete-usage-examples" title="Link to this heading"></a></h2>
+<h2>4. Complete Usage Examples<a class="headerlink" href="#complete-usage-examples" title="Link to this heading"></a></h2>
 <section id="example-1-standard-non-root-simulation-mock-build">
 <h3>Example 1: Standard Non-Root Simulation (Mock Build)<a class="headerlink" href="#example-1-standard-non-root-simulation-mock-build" title="Link to this heading"></a></h3>
 <p>Simulate an x86_64 ISO build with XFCE desktop environment without root privileges:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>cli.py<span class="w"> </span>x86_64<span class="w"> </span>-d<span class="w"> </span>xfce<span class="w"> </span>--mode<span class="w"> </span>mock
 </pre></div>
 </div>
-<p>Expected Output Files:</p>
+<p>Expected Output Files in <code class="docutils literal notranslate"><span class="pre">output/</span></code>:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">void-builder-xfce-x86_64.iso</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">void-builder-xfce-x86_64.iso.sha256</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">void-builder-xfce-x86_64.iso.sha512</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">void-builder-xfce-x86_64.iso.md5</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">void-builder-xfce-x86_64.iso.manifest.json</span></code></p></li>
 </ul>
 </section>
 <hr class="docutils" />
-<section id="example-2-production-real-iso-build-gnome-desktop">
-<h3>Example 2: Production Real ISO Build (GNOME Desktop)<a class="headerlink" href="#example-2-production-real-iso-build-gnome-desktop" title="Link to this heading"></a></h3>
-<p>Build a real production ISO containing the GNOME desktop environment for 64-bit PCs:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>x86_64<span class="w"> </span>-d<span class="w"> </span>gnome<span class="w"> </span>--mode<span class="w"> </span>real
+<section id="example-2-ultra-fast-ram-build-with-benchmark-timings">
+<h3>Example 2: Ultra-Fast RAM Build with Benchmark Timings<a class="headerlink" href="#example-2-ultra-fast-ram-build-with-benchmark-timings" title="Link to this heading"></a></h3>
+<p>Build a live ISO entirely inside RAM (<code class="docutils literal notranslate"><span class="pre">tmpfs</span></code>) with <code class="docutils literal notranslate"><span class="pre">zstd</span></code> level 3 compression and per-stage timing breakdown:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>x86_64<span class="w"> </span>--preset<span class="w"> </span>desktop-xfce<span class="w"> </span>--fast<span class="w"> </span>--tmpfs<span class="w"> </span>--benchmark<span class="w"> </span>--mode<span class="w"> </span>real
 </pre></div>
 </div>
 </section>
 <hr class="docutils" />
-<section id="example-3-ultra-fast-boot-iso-with-zstd-compression">
-<h3>Example 3: Ultra-Fast Boot ISO with ZSTD Compression<a class="headerlink" href="#example-3-ultra-fast-boot-iso-with-zstd-compression" title="Link to this heading"></a></h3>
-<p>Build a KDE Plasma desktop ISO compressed with <code class="docutils literal notranslate"><span class="pre">zstd</span></code> for maximum boot speed:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>x86_64<span class="w"> </span>-d<span class="w"> </span>kde<span class="w"> </span>--mode<span class="w"> </span>real<span class="w"> </span>--compression<span class="w"> </span>zstd
+<section id="example-3-specialized-flavour-build-rescue-sysadmin-edition">
+<h3>Example 3: Specialized Flavour Build (Rescue &amp; SysAdmin Edition)<a class="headerlink" href="#example-3-specialized-flavour-build-rescue-sysadmin-edition" title="Link to this heading"></a></h3>
+<p>Build an all-in-one system rescue, forensics, and partition recovery ISO:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>x86_64<span class="w"> </span>--preset<span class="w"> </span>rescue-sysadmin<span class="w"> </span>--mode<span class="w"> </span>real
 </pre></div>
 </div>
 </section>
 <hr class="docutils" />
-<section id="example-4-raspberry-pi-4-64-bit-disk-image">
-<h3>Example 4: Raspberry Pi 4 64-Bit Disk Image<a class="headerlink" href="#example-4-raspberry-pi-4-64-bit-disk-image" title="Link to this heading"></a></h3>
-<p>Generate a bootable SD Card image for Raspberry Pi 4:</p>
+<section id="example-4-full-localization-system-configuration">
+<h3>Example 4: Full Localization &amp; System Configuration<a class="headerlink" href="#example-4-full-localization-system-configuration" title="Link to this heading"></a></h3>
+<p>Build an ISO customized with Portuguese localization, custom hostname, and root credentials:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>x86_64<span class="w"> </span>-P<span class="w"> </span>desktop-xfce<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--hostname<span class="w"> </span>void-portugal<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--locale<span class="w"> </span>pt_PT.UTF-8<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--timezone<span class="w"> </span>Europe/Lisbon<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--keymap<span class="w"> </span>pt-latin1<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--root-password<span class="w"> </span><span class="s2">"SecretPass123"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--mode<span class="w"> </span>real
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="example-5-developer-workstation-with-ssh-key-ingestion">
+<h3>Example 5: Developer Workstation with SSH Key Ingestion<a class="headerlink" href="#example-5-developer-workstation-with-ssh-key-ingestion" title="Link to this heading"></a></h3>
+<p>Build a developer environment with Rust, Go, Python, Podman, and inject your host SSH public key:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>x86_64<span class="w"> </span>--preset<span class="w"> </span>developer<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--ssh-key<span class="w"> </span>~/.ssh/id_ed25519.pub<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--mode<span class="w"> </span>real
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="example-6-gaming-edition-with-steam-multilib">
+<h3>Example 6: Gaming Edition with Steam &amp; Multilib<a class="headerlink" href="#example-6-gaming-edition-with-steam-multilib" title="Link to this heading"></a></h3>
+<p>Build a gaming-ready ISO with Steam, Vulkan drivers, Wine, and automated multilib/nonfree repo configuration:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>x86_64<span class="w"> </span>--preset<span class="w"> </span>gaming<span class="w"> </span>--mode<span class="w"> </span>real
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="example-7-raspberry-pi-4-64-bit-disk-image">
+<h3>Example 7: Raspberry Pi 4 64-Bit Disk Image<a class="headerlink" href="#example-7-raspberry-pi-4-64-bit-disk-image" title="Link to this heading"></a></h3>
+<p>Generate a bootable SD Card image for Raspberry Pi 4/5:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Setup host cross-emulation once</span>
 sudo<span class="w"> </span>./setup_host_build_env.sh
 
@@ -308,64 +368,30 @@ sudo<span class="w"> </span>./setup_host_build_env.sh
 sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>rpi-aarch64<span class="w"> </span>--mode<span class="w"> </span>real
 </pre></div>
 </div>
-<p>Generated Artifact:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">void-builder-base-rpi-aarch64.img.xz</span></code></p></li>
-</ul>
 </section>
 <hr class="docutils" />
-<section id="example-5-container-base-tarball-export">
-<h3>Example 5: Container Base Tarball Export<a class="headerlink" href="#example-5-container-base-tarball-export" title="Link to this heading"></a></h3>
+<section id="example-8-lifecycle-hooks-execution">
+<h3>Example 8: Lifecycle Hooks Execution<a class="headerlink" href="#example-8-lifecycle-hooks-execution" title="Link to this heading"></a></h3>
+<p>Execute customized shell scripts during build phases:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>x86_64<span class="w"> </span>-P<span class="w"> </span>minimal<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--hook<span class="w"> </span>post-install:configs/hooks/post-install.example.sh<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--mode<span class="w"> </span>real
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="example-9-container-rootfs-export">
+<h3>Example 9: Container RootFS Export<a class="headerlink" href="#example-9-container-rootfs-export" title="Link to this heading"></a></h3>
 <p>Export a customized Void Linux rootfs tarball for LXC, Docker, or Podman:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>x86_64<span class="w"> </span>-d<span class="w"> </span>base<span class="w"> </span>--mode<span class="w"> </span>real<span class="w"> </span>--format<span class="w"> </span>tarball
-</pre></div>
-</div>
-<p>Generated Artifact:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">void-builder-base-x86_64.tar.xz</span></code></p></li>
-</ul>
-</section>
-<hr class="docutils" />
-<section id="example-6-pinebook-pro-laptop-image">
-<h3>Example 6: Pinebook Pro Laptop Image<a class="headerlink" href="#example-6-pinebook-pro-laptop-image" title="Link to this heading"></a></h3>
-<p>Build a raw disk image for the Pine64 Pinebook Pro laptop featuring Rockchip RK3399 U-Boot loader:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>pinebookpro<span class="w"> </span>-d<span class="w"> </span>sway<span class="w"> </span>--mode<span class="w"> </span>real
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>x86_64<span class="w"> </span>-P<span class="w"> </span>minimal<span class="w"> </span>--format<span class="w"> </span>tarball<span class="w"> </span>--mode<span class="w"> </span>real
 </pre></div>
 </div>
 </section>
 <hr class="docutils" />
-<section id="example-7-apple-silicon-mac-image-asahi-linux">
-<h3>Example 7: Apple Silicon Mac Image (Asahi Linux)<a class="headerlink" href="#example-7-apple-silicon-mac-image-asahi-linux" title="Link to this heading"></a></h3>
-<p>Build an Apple Silicon ARM64 disk image formatted with Asahi Linux kernel and GRUB EFI:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>asahi<span class="w"> </span>-d<span class="w"> </span>gnome<span class="w"> </span>--mode<span class="w"> </span>real
-</pre></div>
-</div>
-</section>
-<hr class="docutils" />
-<section id="example-8-lightweight-musl-c-library-iso">
-<h3>Example 8: Lightweight Musl C Library ISO<a class="headerlink" href="#example-8-lightweight-musl-c-library-iso" title="Link to this heading"></a></h3>
-<p>Build an <code class="docutils literal notranslate"><span class="pre">x86_64-musl</span></code> lightweight ISO for server deployments:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>x86_64-musl<span class="w"> </span>-d<span class="w"> </span>base<span class="w"> </span>-s<span class="w"> </span>ssh<span class="w"> </span>--mode<span class="w"> </span>real
-</pre></div>
-</div>
-</section>
-<hr class="docutils" />
-<section id="example-9-offline-graphical-installer-iso-with-calamares">
-<h3>Example 9: Offline Graphical Installer ISO with Calamares<a class="headerlink" href="#example-9-offline-graphical-installer-iso-with-calamares" title="Link to this heading"></a></h3>
-<p>Compile the Calamares graphical installer from source templates and inject it into an XFCE live ISO:</p>
+<section id="example-10-calamares-graphical-installer-live-iso">
+<h3>Example 10: Calamares Graphical Installer Live ISO<a class="headerlink" href="#example-10-calamares-graphical-installer-live-iso" title="Link to this heading"></a></h3>
+<p>Compile the Calamares graphical installer and inject it into an XFCE live ISO:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>x86_64<span class="w"> </span>-d<span class="w"> </span>xfce<span class="w"> </span>--with-calamares<span class="w"> </span>--mode<span class="w"> </span>real
-</pre></div>
-</div>
-</section>
-<hr class="docutils" />
-<section id="example-10-custom-repository-included-directory-overlay">
-<h3>Example 10: Custom Repository &amp; Included Directory Overlay<a class="headerlink" href="#example-10-custom-repository-included-directory-overlay" title="Link to this heading"></a></h3>
-<p>Build an ISO with custom XBPS packages from an external repository and overlay local configuration files:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>x86_64<span class="w"> </span>-d<span class="w"> </span>awesome<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-R<span class="w"> </span>https://my-custom-repo.org/voidlinux<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-I<span class="w"> </span>/home/user/custom_skel:/etc/skel<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-p<span class="w"> </span>dev-tools<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--mode<span class="w"> </span>real
 </pre></div>
 </div>
 </section>
@@ -376,8 +402,8 @@ sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="getting_started.html" class="btn btn-neutral float-left" title="Getting Started &amp; System Preparation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="cli_reference.html" class="btn btn-neutral float-right" title="CLI Complete Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="getting_started.html" class="btn btn-neutral float-left" title="Getting Started &amp; Total Build Isolation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="cli_reference.html" class="btn btn-neutral float-right" title="CLI Complete Technical Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

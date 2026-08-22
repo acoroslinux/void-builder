@@ -7,21 +7,21 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Configuration Guide &amp; JSON Schemas &mdash; Void-Builder</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=f5127f15" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/custom.css?v=75d58705" />
 
   
-      <script src="_static/jquery.js?v=8dae8fb0"></script>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="_static/documentation_options.js?v=8d563738"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Dynamic Package Rules &amp; Resolution" href="package_rules.html" />
-    <link rel="prev" title="CLI Complete Reference" href="cli_reference.html" /> 
+    <link rel="prev" title="CLI Complete Technical Reference" href="cli_reference.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -45,9 +45,9 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started &amp; System Preparation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started &amp; Total Build Isolation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Comprehensive Usage Manual &amp; Examples</a></li>
-<li class="toctree-l1"><a class="reference internal" href="cli_reference.html">CLI Complete Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli_reference.html">CLI Complete Technical Reference</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Configuration Guide &amp; JSON Schemas</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#directory-layout-profile-roles">1. Directory Layout &amp; Profile Roles</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#master-manifest-global-build-json">2. Master Manifest: <code class="docutils literal notranslate"><span class="pre">global_build.json</span></code></a><ul>
@@ -63,12 +63,26 @@
 <li class="toctree-l3"><a class="reference internal" href="#example-configs-desktops-xfce-json">Example: <code class="docutils literal notranslate"><span class="pre">configs/desktops/xfce.json</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#package-bundle-profiles-configs-packages">4. Package Bundle Profiles (<code class="docutils literal notranslate"><span class="pre">configs/packages/</span></code>)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#automatic-profile-defaults">Automatic Profile Defaults</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#package-profile-json-schema-packages-optional-packages">Package Profile JSON Schema (<code class="docutils literal notranslate"><span class="pre">packages</span></code> + <code class="docutils literal notranslate"><span class="pre">optional_packages</span></code>)</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#runit-service-profiles-configs-services">5. Runit Service Profiles (<code class="docutils literal notranslate"><span class="pre">configs/services/</span></code>)</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#example-configs-services-ssh-json">Example: <code class="docutils literal notranslate"><span class="pre">configs/services/ssh.json</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#how-to-create-a-brand-new-desktop-profile">6. How to Create a Brand New Desktop Profile</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#file-overlays-configs-custom-files">7. File Overlays (<code class="docutils literal notranslate"><span class="pre">configs/custom_files/</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#presets-edition-profiles-configs-presets">8. Presets &amp; Edition Profiles (<code class="docutils literal notranslate"><span class="pre">configs/presets/</span></code>)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#example-configs-presets-rescue-sysadmin-json">Example: <code class="docutils literal notranslate"><span class="pre">configs/presets/rescue-sysadmin.json</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#lifecycle-hooks-engine-configs-hooks">9. Lifecycle Hooks Engine (<code class="docutils literal notranslate"><span class="pre">configs/hooks/</span></code>)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#hook-example-configs-hooks-post-install-example-sh">Hook Example (<code class="docutils literal notranslate"><span class="pre">configs/hooks/post-install.example.sh</span></code>):</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#security-actions-service-conflict-resolution">10. Security Actions &amp; Service Conflict Resolution</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="package_rules.html">Dynamic Package Rules &amp; Resolution</a></li>
@@ -115,19 +129,21 @@
 <h2>1. Directory Layout &amp; Profile Roles<a class="headerlink" href="#directory-layout-profile-roles" title="Link to this heading"></a></h2>
 <p>All configuration files reside in the <code class="docutils literal notranslate"><span class="pre">configs/</span></code> directory:</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>configs/
-├── global_build.json     # Master build manifest (repositories, defaults, services)
-├── package_rules.json    # Dynamic package matching and injection rules
+├── global_build.json        # Master build manifest (repositories, defaults, services)
+├── package_rules.json       # Dynamic package matching and injection rules
 ├── base_customizations.json # System customization baseline (hostname, timezone, locale)
-├── architectures/        # Target architecture profiles (x86_64.json, rpi-aarch64.json)
-├── desktops/             # Desktop environment package bundles (gnome.json, xfce.json)
-├── kernels/              # Kernel package selection profiles (linux-lts.json)
-├── bootloaders/          # Bootloader installation profiles (grub.json)
-├── packages/             # Optional package bundle profiles (dev-tools.json)
-├── services/             # Runit service activation profiles (ssh.json, bluetooth.json)
-├── live-users/           # Live environment account profiles (admin.json, guest.json)
-├── platforms/            # Single-board hardware platform overrides (pinebookpro.json)
-├── assets/               # Artwork, isolinux configuration templates, GRUB fonts
-└── custom_files/         # Overlay file tree copied directly into rootfs at /
+├── presets/                 # Unified build presets (minimal.json, gaming.json, developer.json)
+├── hooks/                   # Lifecycle hook script templates (pre-install, post-install, pre-iso)
+├── architectures/           # Target architecture profiles (x86_64.json, rpi-aarch64.json)
+├── desktops/                # Desktop environment package bundles (gnome.json, xfce.json)
+├── kernels/                 # Kernel package selection profiles (linux-lts.json)
+├── bootloaders/             # Bootloader installation profiles (grub.json)
+├── packages/                # Modular package bundle profiles (dev-tools.json, gaming.json)
+├── services/                # Runit service activation profiles (ssh.json, bluetooth.json)
+├── live-users/              # Live environment account profiles (admin.json, guest.json)
+├── platforms/               # Single-board hardware platform overrides (pinebookpro.json)
+├── assets/                  # Artwork, isolinux configuration templates, GRUB fonts
+└── custom_files/            # Overlay file tree copied directly into rootfs at /
 </pre></div>
 </div>
 </section>
@@ -138,98 +154,98 @@
 <section id="complete-annotated-schema">
 <h3>Complete Annotated Schema<a class="headerlink" href="#complete-annotated-schema" title="Link to this heading"></a></h3>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;system&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;iso_label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;VOID_MODERN&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;workdir_base&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;workdir&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;xbps_cache&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;workdir/cache/xbps&quot;</span>
+<span class="w">  </span><span class="nt">"system"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"iso_label"</span><span class="p">:</span><span class="w"> </span><span class="s2">"VOID_MODERN"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"workdir_base"</span><span class="p">:</span><span class="w"> </span><span class="s2">"workdir"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"xbps_cache"</span><span class="p">:</span><span class="w"> </span><span class="s2">"workdir/cache/xbps"</span>
 <span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;iso&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;compression_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;xz&quot;</span>
+<span class="w">  </span><span class="nt">"iso"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"compression_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"xz"</span>
 <span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;initramfs&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;compression&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;xz&quot;</span>
+<span class="w">  </span><span class="nt">"initramfs"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"compression"</span><span class="p">:</span><span class="w"> </span><span class="s2">"xz"</span>
 <span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;boot_title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Void Modern Live&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;boot_cmdline&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;quiet splash live.user=live live.autologin rd.live.overlay.overlayfs=1&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;splash_image&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;configs/assets/data/splash.png&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;repositories&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">    </span><span class="s2">&quot;https://repo-default.voidlinux.org/current&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="s2">&quot;https://repo-default.voidlinux.org/current/musl&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="s2">&quot;https://repo-default.voidlinux.org/current/aarch64&quot;</span>
+<span class="w">  </span><span class="nt">"boot_title"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Void Modern Live"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"boot_cmdline"</span><span class="p">:</span><span class="w"> </span><span class="s2">"quiet splash live.user=live live.autologin rd.live.overlay.overlayfs=1"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"splash_image"</span><span class="p">:</span><span class="w"> </span><span class="s2">"configs/assets/data/splash.png"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"repositories"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s2">"https://repo-default.voidlinux.org/current"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"https://repo-default.voidlinux.org/current/musl"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"https://repo-default.voidlinux.org/current/aarch64"</span>
 <span class="w">  </span><span class="p">],</span>
-<span class="w">  </span><span class="nt">&quot;custom_repositories&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<span class="w">  </span><span class="nt">&quot;customizations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;hostname&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;void-modern&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;timezone&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;UTC&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;locale&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;en_US.UTF-8&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;keymap&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;us&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;users&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">  </span><span class="nt">"custom_repositories"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">  </span><span class="nt">"customizations"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"hostname"</span><span class="p">:</span><span class="w"> </span><span class="s2">"void-modern"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"timezone"</span><span class="p">:</span><span class="w"> </span><span class="s2">"UTC"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"locale"</span><span class="p">:</span><span class="w"> </span><span class="s2">"en_US.UTF-8"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"keymap"</span><span class="p">:</span><span class="w"> </span><span class="s2">"us"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"users"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">      </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;live&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;groups&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">          </span><span class="s2">&quot;wheel&quot;</span><span class="p">,</span>
-<span class="w">          </span><span class="s2">&quot;audio&quot;</span><span class="p">,</span>
-<span class="w">          </span><span class="s2">&quot;video&quot;</span><span class="p">,</span>
-<span class="w">          </span><span class="s2">&quot;storage&quot;</span><span class="p">,</span>
-<span class="w">          </span><span class="s2">&quot;network&quot;</span>
+<span class="w">        </span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"live"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"groups"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">          </span><span class="s2">"wheel"</span><span class="p">,</span>
+<span class="w">          </span><span class="s2">"audio"</span><span class="p">,</span>
+<span class="w">          </span><span class="s2">"video"</span><span class="p">,</span>
+<span class="w">          </span><span class="s2">"storage"</span><span class="p">,</span>
+<span class="w">          </span><span class="s2">"network"</span>
 <span class="w">        </span><span class="p">],</span>
-<span class="w">        </span><span class="nt">&quot;password&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;live&quot;</span>
+<span class="w">        </span><span class="nt">"password"</span><span class="p">:</span><span class="w"> </span><span class="s2">"live"</span>
 <span class="w">      </span><span class="p">}</span>
 <span class="w">    </span><span class="p">],</span>
-<span class="w">    </span><span class="nt">&quot;services&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">      </span><span class="s2">&quot;dbus&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;NetworkManager&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;polkitd&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;bluetoothd&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;cupsd&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;avahi-daemon&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;sshd&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;chronyd&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;alsa&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;acpid&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;elogind&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;wpa_supplicant&quot;</span>
+<span class="w">    </span><span class="nt">"services"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">"dbus"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"NetworkManager"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"polkitd"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"bluetoothd"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"cupsd"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"avahi-daemon"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"sshd"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"chronyd"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"alsa"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"acpid"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"elogind"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"wpa_supplicant"</span>
 <span class="w">    </span><span class="p">]</span>
 <span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;common_desktop_packages&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">    </span><span class="s2">&quot;NetworkManager&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="s2">&quot;alsa-firmware&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="s2">&quot;alsa-pipewire&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="s2">&quot;alsa-utils&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="s2">&quot;avahi&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="s2">&quot;blueman&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="s2">&quot;bluez&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="s2">&quot;dbus&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="s2">&quot;elogind&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="s2">&quot;flatpak&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="s2">&quot;git&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="s2">&quot;nano&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="s2">&quot;pipewire&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="s2">&quot;plymouth&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="s2">&quot;polkit&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="s2">&quot;python3&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="s2">&quot;sudo&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="s2">&quot;vim&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="s2">&quot;wpa_supplicant&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="s2">&quot;xorg&quot;</span>
+<span class="w">  </span><span class="nt">"common_desktop_packages"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s2">"NetworkManager"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"alsa-firmware"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"alsa-pipewire"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"alsa-utils"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"avahi"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"blueman"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"bluez"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"dbus"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"elogind"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"flatpak"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"git"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"nano"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"pipewire"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"plymouth"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"polkit"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"python3"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"sudo"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"vim"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"wpa_supplicant"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"xorg"</span>
 <span class="w">  </span><span class="p">],</span>
-<span class="w">  </span><span class="nt">&quot;package_sources&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;official&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">      </span><span class="s2">&quot;base-system&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;vim&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;git&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;curl&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;bash-completion&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;mtools&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;gptfdisk&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;efibootmgr&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;dosfstools&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;binutils&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;xz&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;device-mapper&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;dhclient&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;dracut-network&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;openresolv&quot;</span>
+<span class="w">  </span><span class="nt">"package_sources"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"official"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">"base-system"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"vim"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"git"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"curl"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"bash-completion"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"mtools"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"gptfdisk"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"efibootmgr"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"dosfstools"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"binutils"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"xz"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"device-mapper"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"dhclient"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"dracut-network"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"openresolv"</span>
 <span class="w">    </span><span class="p">]</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
@@ -256,17 +272,17 @@
 <section id="example-configs-architectures-rpi-aarch64-json">
 <h3>Example: <code class="docutils literal notranslate"><span class="pre">configs/architectures/rpi-aarch64.json</span></code><a class="headerlink" href="#example-configs-architectures-rpi-aarch64-json" title="Link to this heading"></a></h3>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;architecture&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;rpi-aarch64&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;xbps_arch&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;aarch64&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;engine&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;PlatformEngine&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;repositories&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">    </span><span class="s2">&quot;https://repo-default.voidlinux.org/current/aarch64&quot;</span>
+<span class="w">  </span><span class="nt">"architecture"</span><span class="p">:</span><span class="w"> </span><span class="s2">"rpi-aarch64"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"xbps_arch"</span><span class="p">:</span><span class="w"> </span><span class="s2">"aarch64"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"engine"</span><span class="p">:</span><span class="w"> </span><span class="s2">"PlatformEngine"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"repositories"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s2">"https://repo-default.voidlinux.org/current/aarch64"</span>
 <span class="w">  </span><span class="p">],</span>
-<span class="w">  </span><span class="nt">&quot;package_sources&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;official&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">      </span><span class="s2">&quot;rpi-base&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;rpi-kernel&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;raspberrypi-userland&quot;</span>
+<span class="w">  </span><span class="nt">"package_sources"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"official"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">"rpi-base"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"rpi-kernel"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"raspberrypi-userland"</span>
 <span class="w">    </span><span class="p">]</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
@@ -281,30 +297,89 @@
 <section id="example-configs-desktops-xfce-json">
 <h3>Example: <code class="docutils literal notranslate"><span class="pre">configs/desktops/xfce.json</span></code><a class="headerlink" href="#example-configs-desktops-xfce-json" title="Link to this heading"></a></h3>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;desktop_environment&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;xfce&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;display_manager&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;lightdm&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;package_sources&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;official&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">      </span><span class="s2">&quot;xfce4&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;xfce4-panel&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;xfce4-settings&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;xfce4-session&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;xfwm4&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;xfdesktop&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;thunar&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;lightdm&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;lightdm-gtk-greeter&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;network-manager-applet&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;pavucontrol&quot;</span>
+<span class="w">  </span><span class="nt">"desktop_environment"</span><span class="p">:</span><span class="w"> </span><span class="s2">"xfce"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"display_manager"</span><span class="p">:</span><span class="w"> </span><span class="s2">"lightdm"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"package_sources"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"official"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">"xfce4"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"xfce4-panel"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"xfce4-settings"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"xfce4-session"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"xfwm4"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"xfdesktop"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"thunar"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"lightdm"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"lightdm-gtk-greeter"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"network-manager-applet"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"pavucontrol"</span>
 <span class="w">    </span><span class="p">]</span>
 <span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;customizations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;services&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">      </span><span class="s2">&quot;lightdm&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;dbus&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;NetworkManager&quot;</span>
+<span class="w">  </span><span class="nt">"customizations"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"services"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">"lightdm"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"dbus"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"NetworkManager"</span>
 <span class="w">    </span><span class="p">]</span>
 <span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="package-bundle-profiles-configs-packages">
+<h2>4. Package Bundle Profiles (<code class="docutils literal notranslate"><span class="pre">configs/packages/</span></code>)<a class="headerlink" href="#package-bundle-profiles-configs-packages" title="Link to this heading"></a></h2>
+<p>Package profiles allow modular bundle composition across 16 categories (<code class="docutils literal notranslate"><span class="pre">desktop-essentials</span></code>, <code class="docutils literal notranslate"><span class="pre">dev-tools</span></code>, <code class="docutils literal notranslate"><span class="pre">filesystems</span></code>, <code class="docutils literal notranslate"><span class="pre">multimedia</span></code>, <code class="docutils literal notranslate"><span class="pre">office</span></code>, <code class="docutils literal notranslate"><span class="pre">gaming</span></code>, <code class="docutils literal notranslate"><span class="pre">networking</span></code>, <code class="docutils literal notranslate"><span class="pre">virtualization</span></code>, <code class="docutils literal notranslate"><span class="pre">graphics</span></code>, <code class="docutils literal notranslate"><span class="pre">printing</span></code>, <code class="docutils literal notranslate"><span class="pre">xorg</span></code>, <code class="docutils literal notranslate"><span class="pre">wayland</span></code>, <code class="docutils literal notranslate"><span class="pre">internet</span></code>, <code class="docutils literal notranslate"><span class="pre">custom-user</span></code>, <code class="docutils literal notranslate"><span class="pre">base</span></code>, <code class="docutils literal notranslate"><span class="pre">installer</span></code>).</p>
+<section id="automatic-profile-defaults">
+<h3>Automatic Profile Defaults<a class="headerlink" href="#automatic-profile-defaults" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>Both <strong><code class="docutils literal notranslate"><span class="pre">base.json</span></code></strong> and <strong><code class="docutils literal notranslate"><span class="pre">filesystems.json</span></code></strong> are loaded automatically by default for <strong>all</strong> builds to guarantee base system utilities and filesystem driver compatibility (<code class="docutils literal notranslate"><span class="pre">btrfs-progs</span></code>, <code class="docutils literal notranslate"><span class="pre">xfsprogs</span></code>, <code class="docutils literal notranslate"><span class="pre">f2fs-tools</span></code>, <code class="docutils literal notranslate"><span class="pre">ext4</span></code>, <code class="docutils literal notranslate"><span class="pre">ntfs-3g</span></code>, <code class="docutils literal notranslate"><span class="pre">exfatprogs</span></code>, <code class="docutils literal notranslate"><span class="pre">dosfstools</span></code>, <code class="docutils literal notranslate"><span class="pre">parted</span></code>, <code class="docutils literal notranslate"><span class="pre">gptfdisk</span></code>, etc.).</p></li>
+</ul>
+</section>
+<section id="package-profile-json-schema-packages-optional-packages">
+<h3>Package Profile JSON Schema (<code class="docutils literal notranslate"><span class="pre">packages</span></code> + <code class="docutils literal notranslate"><span class="pre">optional_packages</span></code>)<a class="headerlink" href="#package-profile-json-schema-packages-optional-packages" title="Link to this heading"></a></h3>
+<p>All 16 package profile JSON files follow a clean, standardized schema:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"desktop-essentials"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Essential desktop GUI utilities, CLI networking tools, media codecs, archive tools, and rich typography"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"_comment"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Note: Core desktop utilities are active defaults in 'packages'. Additional desktop helpers (Picom, Feh, Dmenu, Rofi) are listed in 'optional_packages' for easy enablement."</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"packages"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s2">"git"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"curl"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"wget"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"octoxbps"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"gparted"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"keepassxc"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"file-roller"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"zip"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"unzip"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"p7zip"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"unar"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"tar"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"zstd"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"ffmpeg"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"gst-plugins-base1"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"gst-plugins-good1"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"gst-plugins-bad1"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"gst-plugins-ugly1"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"gst-libav"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"font-inter"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"noto-fonts-ttf"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"noto-fonts-cjk"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"noto-fonts-emoji"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"dejavu-fonts-ttf"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"liberation-fonts-ttf"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"font-awesome"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"cantarell-fonts"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"ttf-ubuntu-font-family"</span>
+<span class="w">  </span><span class="p">],</span>
+<span class="w">  </span><span class="nt">"optional_packages"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s2">"unrar"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"picom"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"feh"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"dmenu"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"rofi"</span>
+<span class="w">  </span><span class="p">]</span>
 <span class="p">}</span>
 </pre></div>
 </div>
@@ -317,15 +392,15 @@
 <section id="example-configs-services-ssh-json">
 <h3>Example: <code class="docutils literal notranslate"><span class="pre">configs/services/ssh.json</span></code><a class="headerlink" href="#example-configs-services-ssh-json" title="Link to this heading"></a></h3>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;service_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ssh&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;package_sources&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;official&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">      </span><span class="s2">&quot;openssh&quot;</span>
+<span class="w">  </span><span class="nt">"service_name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ssh"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"package_sources"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"official"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">"openssh"</span>
 <span class="w">    </span><span class="p">]</span>
 <span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;customizations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;services&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">      </span><span class="s2">&quot;sshd&quot;</span>
+<span class="w">  </span><span class="nt">"customizations"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"services"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">"sshd"</span>
 <span class="w">    </span><span class="p">]</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
@@ -340,19 +415,19 @@
 <ol class="arabic">
 <li><p>Create <code class="docutils literal notranslate"><span class="pre">configs/desktops/pantheon.json</span></code>:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;desktop_environment&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pantheon&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;package_sources&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;official&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">      </span><span class="s2">&quot;pantheon-desktop&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;lightdm&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;lightdm-pantheon-greeter&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;gsettings-desktop-schemas&quot;</span>
+<span class="w">  </span><span class="nt">"desktop_environment"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pantheon"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"package_sources"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"official"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">"pantheon-desktop"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"lightdm"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"lightdm-pantheon-greeter"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"gsettings-desktop-schemas"</span>
 <span class="w">    </span><span class="p">]</span>
 <span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;customizations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;services&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">      </span><span class="s2">&quot;lightdm&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="s2">&quot;dbus&quot;</span>
+<span class="w">  </span><span class="nt">"customizations"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"services"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">"lightdm"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"dbus"</span>
 <span class="w">    </span><span class="p">]</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
@@ -381,13 +456,87 @@
 <li><p><code class="docutils literal notranslate"><span class="pre">configs/custom_files/etc/skel/.config/xfce4/</span></code> -&gt; copied to <code class="docutils literal notranslate"><span class="pre">/etc/skel/.config/xfce4/</span></code> in target system.</p></li>
 </ul>
 </section>
+<hr class="docutils" />
+<section id="presets-edition-profiles-configs-presets">
+<h2>8. Presets &amp; Edition Profiles (<code class="docutils literal notranslate"><span class="pre">configs/presets/</span></code>)<a class="headerlink" href="#presets-edition-profiles-configs-presets" title="Link to this heading"></a></h2>
+<p>Presets define unified, all-in-one edition specifications that configure desktop environments, package bundle combinations, system defaults, services, and repositories simultaneously.</p>
+<section id="example-configs-presets-rescue-sysadmin-json">
+<h3>Example: <code class="docutils literal notranslate"><span class="pre">configs/presets/rescue-sysadmin.json</span></code><a class="headerlink" href="#example-configs-presets-rescue-sysadmin-json" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"rescue-sysadmin"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"System Rescue, Forensics, Network Troubleshooting, and Disk Partitioning Environment"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"boot_title"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Void Linux Rescue &amp; SysAdmin"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"desktop"</span><span class="p">:</span><span class="w"> </span><span class="s2">"xfce"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"package_profiles"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s2">"desktop-essentials"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"filesystems"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"networking"</span>
+<span class="w">  </span><span class="p">],</span>
+<span class="w">  </span><span class="nt">"additional_packages"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s2">"gparted"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"testdisk"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"ddrescue"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"smartmontools"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"wireshark"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"nmap"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"tcpdump"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"iperf3"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"chntpw"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"htop"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"glances"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"tmux"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"rsync"</span>
+<span class="w">  </span><span class="p">],</span>
+<span class="w">  </span><span class="nt">"customizations"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"hostname"</span><span class="p">:</span><span class="w"> </span><span class="s2">"void-rescue"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"services"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="s2">"sshd"</span><span class="p">,</span>
+<span class="w">      </span><span class="s2">"NetworkManager"</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="lifecycle-hooks-engine-configs-hooks">
+<h2>9. Lifecycle Hooks Engine (<code class="docutils literal notranslate"><span class="pre">configs/hooks/</span></code>)<a class="headerlink" href="#lifecycle-hooks-engine-configs-hooks" title="Link to this heading"></a></h2>
+<p>Lifecycle hooks allow executing custom shell scripts at four deterministic points during the build:</p>
+<ol class="arabic simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">pre-install</span></code></strong>: Executed outside the chroot before XBPS installs packages.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">post-install</span></code></strong>: Executed directly inside the chroot environment after package installation and service configuration. Ideal for generating custom version tags, modifying <code class="docutils literal notranslate"><span class="pre">/etc/os-release</span></code>, or cloning custom dotfiles.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">pre-iso</span></code></strong>: Executed outside the chroot before SquashFS or disk image compression.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">post-iso</span></code></strong>: Executed after the final image, tarball, and checksums are generated.</p></li>
+</ol>
+<section id="hook-example-configs-hooks-post-install-example-sh">
+<h3>Hook Example (<code class="docutils literal notranslate"><span class="pre">configs/hooks/post-install.example.sh</span></code>):<a class="headerlink" href="#hook-example-configs-hooks-post-install-example-sh" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/bin/sh</span>
+<span class="c1"># Hook executed inside the chroot</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">"=&gt; Branding custom Void build..."</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">"Void-Builder Custom Workstation v1.0"</span><span class="w"> </span>&gt;<span class="w"> </span>/etc/void-custom-release
+chmod<span class="w"> </span><span class="m">0644</span><span class="w"> </span>/etc/void-custom-release
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="security-actions-service-conflict-resolution">
+<h2>10. Security Actions &amp; Service Conflict Resolution<a class="headerlink" href="#security-actions-service-conflict-resolution" title="Link to this heading"></a></h2>
+<p>The system configurator (<code class="docutils literal notranslate"><span class="pre">SystemConfigurator</span></code>) automatically manages:</p>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">RootPasswordAction</span></code></strong>: Ingests <code class="docutils literal notranslate"><span class="pre">--root-password</span> <span class="pre">&lt;pass&gt;</span></code> or <code class="docutils literal notranslate"><span class="pre">--lock-root</span></code> to secure administrative accounts.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">SSHKeyAction</span></code></strong>: Provisions authorized keys into <code class="docutils literal notranslate"><span class="pre">/root/.ssh/authorized_keys</span></code> and <code class="docutils literal notranslate"><span class="pre">/home/&lt;live_user&gt;/.ssh/authorized_keys</span></code> with strict permissions (<code class="docutils literal notranslate"><span class="pre">0700</span></code> directory, <code class="docutils literal notranslate"><span class="pre">0600</span></code> file).</p></li>
+<li><p><strong>Service Conflict Engine</strong>: Automatically detects if <code class="docutils literal notranslate"><span class="pre">NetworkManager</span></code> is enabled and suppresses conflicting standalone services like <code class="docutils literal notranslate"><span class="pre">dhcpcd</span></code> to prevent race conditions during boot.</p></li>
+</ul>
+</section>
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="cli_reference.html" class="btn btn-neutral float-left" title="CLI Complete Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="cli_reference.html" class="btn btn-neutral float-left" title="CLI Complete Technical Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="package_rules.html" class="btn btn-neutral float-right" title="Dynamic Package Rules &amp; Resolution" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
