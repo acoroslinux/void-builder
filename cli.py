@@ -22,12 +22,15 @@ def _slugify_name(value: str, fallback: str) -> str:
     return normalized or fallback
 
 
-def _resolve_output_name(architecture: str, desktop: str = None, output: str = None) -> str:
+def _resolve_output_name(architecture: str, desktop: str = None, output: str = None, platform: str = None) -> str:
     if output:
         return output
 
     desktop_label = _slugify_name(desktop or "base", "base")
     arch_label = _slugify_name(architecture, "x86_64")
+    if platform and platform.lower() != architecture.lower():
+        plat_label = _slugify_name(platform, "")
+        return f"void-builder-{desktop_label}-{plat_label}-{arch_label}.iso"
     return f"void-builder-{desktop_label}-{arch_label}.iso"
 
 
@@ -619,6 +622,7 @@ def main():
         architecture=args.architecture,
         desktop=args.desktop or args.preset,
         output=args.output,
+        platform=args.platform,
     )
 
     config_root = resolve_from_project("configs")
