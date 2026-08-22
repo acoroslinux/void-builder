@@ -5,7 +5,6 @@
   "packages": [
     "network-manager-applet",
     "tcpdump",
-    "tshark",
     "wireguard-tools",
     "openvpn",
     "traceroute",
