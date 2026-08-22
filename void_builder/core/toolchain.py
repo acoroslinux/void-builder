@@ -134,7 +134,7 @@ class ToolchainManager:
         
         from void_builder.utils.lib import filter_repositories, is_target_native
         host_repos = filter_repositories(repos, host_arch)
-        host_pkgs = ["base-files", "libgcc", "dash", "coreutils", "sed", "tar", "gawk", "squashfs-tools", "xorriso"]
+        host_pkgs = ["base-files", "libgcc", "dash", "coreutils", "sed", "tar", "gawk", "squashfs-tools", "xorriso", "dosfstools", "mtools", "grub"]
         self._run_xbps_install(self.host_dir, host_arch, host_pkgs, host_repos)
 
         # 3. Install target bootloader packages into self.target_dir
