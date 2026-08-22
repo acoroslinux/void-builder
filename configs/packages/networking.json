@@ -5,7 +5,7 @@
   "packages": [
     "network-manager-applet",
     "tcpdump",
-    "wireshark",
+    "tshark",
     "wireguard-tools",
     "openvpn",
     "traceroute",
@@ -14,13 +14,11 @@
     "samba",
     "cifs-utils",
     "smbclient",
-    "sshfs",
+    "fuse-sshfs",
     "openssh",
-    "filezilla",
     "avahi",
     "nss-mdns",
     "ufw",
-    "gufw",
     "bind-utils",
     "net-tools"
   ],
