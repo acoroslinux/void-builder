@@ -332,6 +332,22 @@ def main():
         help="Validate configuration files, profile references, and package dependencies without building.",
     )
 
+    parser.add_argument(
+        "--verify",
+        type=str,
+        default=None,
+        metavar="IMAGE_PATH",
+        help="Deeply verify an existing ISO, disk image (.img), or rootfs tarball (.tar.xz), then exit.",
+    )
+
+    parser.add_argument(
+        "--verify-platform",
+        type=str,
+        default=None,
+        metavar="PLATFORM_NAME",
+        help="Verify platform-specific image, DTB, and bootloader integration for a given platform (e.g. pinebookpro, x13s, rpi-aarch64).",
+    )
+
     # Output Format & Compression
     parser.add_argument(
         "--format",
@@ -567,13 +583,19 @@ def main():
         print(f"[Calamares] Binary repository generated at: {binpkgs_dir}\n")
         return binpkgs_dir
 
-    if args.build_calamares:
-        build_calamares_package(args.architecture)
-        sys.exit(0)
-        
-    if args.with_calamares:
-        bin_repo = build_calamares_package(args.architecture)
-        args.repository.append(str(bin_repo))
+    if args.verify or args.verify_platform:
+        from void_builder.core.verifier import ImageVerifier
+        target_path = Path(args.verify) if args.verify else Path(args.output or "output")
+        if args.verify_platform:
+            report = ImageVerifier.verify_platform(args.verify_platform, target_path)
+        elif target_path.name.endswith(".iso"):
+            report = ImageVerifier.verify_iso(target_path, args.architecture)
+        elif target_path.name.endswith((".tar.xz", ".tar.gz", ".tar")):
+            report = ImageVerifier.verify_tarball(target_path, args.architecture)
+        else:
+            report = ImageVerifier.verify_iso(target_path, args.architecture)
+        report.print_summary()
+        sys.exit(0 if report.all_passed else 1)
 
     VALID_ARCHS = (
         "x86_64", "x86_64-musl",
