@@ -22,17 +22,24 @@ echo "========================================================"
 if command -v emerge &> /dev/null; then
     echo "=> Gentoo Linux (Portage) detected."
     
-    # Configure QEMU user targets modularly in /etc/portage/package.use without touching make.conf
+    # Configure QEMU user targets and static library dependencies in package.use
     mkdir -p /etc/portage/package.use
     QEMU_USE="/etc/portage/package.use/qemu-cross-build"
-    if [ ! -f "$QEMU_USE" ]; then
-        echo "=> Creating ${QEMU_USE} (app-emulation/qemu static-user QEMU_USER_TARGETS: aarch64 arm riscv64)..."
-        echo "app-emulation/qemu static-user" > "$QEMU_USE"
-        echo "app-emulation/qemu QEMU_USER_TARGETS: aarch64 arm riscv64" >> "$QEMU_USE"
-    fi
     
-    echo "=> Ensuring app-emulation/qemu is installed..."
-    emerge -uDN --noreplace app-emulation/qemu || true
+    echo "=> Configuring ${QEMU_USE} with required static-libs flags..."
+    cat << 'PORTAGE_EOF' > "$QEMU_USE"
+# void-builder cross-compilation dependencies
+app-emulation/qemu static-user
+app-emulation/qemu QEMU_USER_TARGETS: aarch64 arm riscv64
+dev-libs/glib static-libs
+sys-libs/zlib static-libs
+dev-libs/libpcre2 static-libs
+sys-apps/attr static-libs
+sys-libs/libcap static-libs
+PORTAGE_EOF
+
+    echo "=> Installing app-emulation/qemu via emerge..."
+    emerge -uDN --autounmask-write=y --autounmask-continue=y --noreplace app-emulation/qemu || true
 
 elif command -v xbps-install &> /dev/null; then
     echo "=> Void Linux (XBPS) detected."
