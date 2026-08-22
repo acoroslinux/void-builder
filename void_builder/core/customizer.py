@@ -281,7 +281,7 @@ class DracutAction(SystemAction):
             omit = ["systemd"]
 
             cmd = ["dracut", "-N", comp]
-            cmd.extend(["--add-drivers", "overlay"])
+            cmd.extend(["--add-drivers", "overlay nvme ahci sd_mod sr_mod loop xhci_pci xhci_hcd uas usb_storage"])
             for mod in force_add:
                 cmd.extend(["--force-add", mod])
             for mod in omit:
