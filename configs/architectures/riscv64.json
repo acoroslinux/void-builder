@@ -1,0 +1,6 @@
+{
+  "platform_specific": {
+    "architecture": "riscv64",
+    "bootloader": "grub"
+  }
+}

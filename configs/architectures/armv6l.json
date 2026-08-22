@@ -1,0 +1,6 @@
+{
+  "platform_specific": {
+    "architecture": "armv6l",
+    "bootloader": "grub"
+  }
+}

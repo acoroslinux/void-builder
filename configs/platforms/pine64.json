@@ -1,0 +1,6 @@
+{
+  "name": "Pine A64",
+  "packages": [],
+  "cmdline": "console=tty1 console=ttyS0,115200n8",
+  "dtb": "allwinner/sun50i-a64-pine64.dtb"
+}

@@ -605,8 +605,9 @@ def main():
         "aarch64", "aarch64-musl",
         "armv7l", "armv7l-musl",
         "armv6l", "armv6l-musl",
+        "riscv64", "riscv64-musl",
         "rpi-aarch64", "rpi-armv7l", "rpi-armv6l",
-        "pinebookpro", "asahi",
+        "pinebookpro", "asahi", "x13s", "rockpro64", "pine64", "odroid-c4", "odroid-n2", "visionfive2",
     )
     arch_lower = args.architecture.lower()
     if arch_lower not in VALID_ARCHS:

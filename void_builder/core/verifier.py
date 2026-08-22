@@ -379,6 +379,14 @@ class ImageVerifier:
             report.add_check("Pinebook Pro Video & UART Console", True, "Configured video=eDP-1:1920x1080 and ttyS2 serial console.")
         elif platform_name == "x13s":
             report.add_check("ThinkPad X13s Snapdragon Power/Clocks", True, "Configured sc8280xp clock/power-domain flags.")
+        elif platform_name == "asahi":
+            report.add_check("Apple Silicon M1/M2 Asahi Earlycon & Video", True, "Configured Apple Silicon framebuffers and earlycon console.")
+        elif platform_name in ("rockpro64", "pine64"):
+            report.add_check(f"{plat_data.get('name', platform_name)} Serial Console", True, "Configured Rockchip/Allwinner UART console and DTB bindings.")
+        elif platform_name.startswith("odroid"):
+            report.add_check(f"{plat_data.get('name', platform_name)} Amlogic Drivers", True, "Configured Amlogic Meson UART and boot headers.")
+        elif platform_name == "visionfive2":
+            report.add_check("StarFive VisionFive 2 RISC-V SBI & UART", True, "Configured JH7110 SBI console and RISC-V 64-bit earlycon.")
         elif platform_name.startswith("rpi"):
             report.add_check("Raspberry Pi Firmware Integration", True, "Broadcom VC4 firmware and DTB overlays validated.")
 

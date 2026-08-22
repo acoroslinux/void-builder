@@ -1,0 +1,6 @@
+{
+  "name": "Hardkernel ODROID-C4",
+  "packages": [],
+  "cmdline": "console=tty1 console=ttyAML0,115200n8",
+  "dtb": "amlogic/meson-sm1-odroid-c4.dtb"
+}
