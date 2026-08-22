@@ -9,6 +9,9 @@
     "hostname": "void-dev"
   },
   "package_profiles": [
+    "hardware",
+    "networking",
+    "printing",
     "desktop-essentials",
     "dev-tools",
     "internet"

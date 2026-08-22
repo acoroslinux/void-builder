@@ -321,8 +321,12 @@ class ConfigAssembler:
             if bootloader_data:
                 self._deep_merge(self.master_config, bootloader_data)
 
-        # Always load the base and filesystems package profiles as they are common to all builds.
-        for default_profile in ("base", "filesystems"):
+        # Always load base, filesystems, hardware, and networking package profiles as default foundations.
+        default_profiles = ["base", "filesystems", "hardware", "networking"]
+        if target_desktop and target_desktop != "base":
+            default_profiles.extend(["printing", "desktop-essentials"])
+
+        for default_profile in default_profiles:
             prof_data = self._load_optional_profile("packages", default_profile)
             if prof_data:
                 self._deep_merge(self.master_config, prof_data)
@@ -352,7 +356,7 @@ class ConfigAssembler:
             return flattened
 
         for profile_name in flatten_profiles(package_profiles):
-            if profile_name in ("base", "filesystems"):
+            if profile_name in default_profiles:
                 continue
             package_data = self._load_optional_profile("packages", profile_name)
             if package_data:

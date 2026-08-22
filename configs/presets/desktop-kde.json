@@ -9,6 +9,9 @@
     "hostname": "void-plasma"
   },
   "package_profiles": [
+    "hardware",
+    "networking",
+    "printing",
     "desktop-essentials",
     "internet",
     "multimedia",

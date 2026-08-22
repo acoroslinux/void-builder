@@ -9,6 +9,7 @@
     "hostname": "void-rescue"
   },
   "package_profiles": [
+    "hardware",
     "filesystems",
     "networking",
     "dev-tools"

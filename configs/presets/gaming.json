@@ -9,6 +9,9 @@
     "hostname": "void-gaming"
   },
   "package_profiles": [
+    "hardware",
+    "networking",
+    "printing",
     "desktop-essentials",
     "gaming",
     "multimedia",

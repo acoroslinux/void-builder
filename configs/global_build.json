@@ -35,7 +35,14 @@
           "audio",
           "video",
           "storage",
-          "network"
+          "network",
+          "input",
+          "dialout",
+          "kvm",
+          "lp",
+          "lpadmin",
+          "scanner",
+          "users"
         ],
         "password": "live"
       }
