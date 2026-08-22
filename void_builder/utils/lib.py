@@ -36,7 +36,7 @@ def is_target_native(target_arch):
     """Check whether target binaries can run natively on the host."""
     host = get_host_arch()
     hb = host.replace('-musl', '')
-    tb = target_arch.replace('-musl', '')
+    tb = map_xbps_arch(target_arch).replace('-musl', '')
     if hb == tb:
         return True
     if hb == 'ppc64le':
@@ -52,7 +52,7 @@ def is_target_native(target_arch):
 
 def _qemu_cpu_name(target_arch):
     """Map XBPS target arch to QEMU CPU name."""
-    base = target_arch.replace('-musl', '')
+    base = map_xbps_arch(target_arch).replace('-musl', '')
     m = {
         'i686': 'i386', 'armv5tel': 'arm', 'armv6l': 'arm',
         'armv7l': 'arm', 'aarch64': 'aarch64', 'mipsel': 'mipsel',

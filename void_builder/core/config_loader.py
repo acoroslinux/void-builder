@@ -532,6 +532,8 @@ class ConfigAssembler:
                     p for p in package_sources["official"]
                     if str(p) not in X86_EXCLUSIVE_PACKAGES
                 ]
+                if "rpi-kernel" in package_sources["official"] and "linux" in package_sources["official"]:
+                    package_sources["official"].remove("linux")
             elif is_x86:
                 package_sources["official"] = [
                     p for p in package_sources["official"]

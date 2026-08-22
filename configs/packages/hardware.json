@@ -19,7 +19,7 @@
     "iw",
     "iwd",
     "ModemManager",
-    "usb_modeswitch",
+    "usb-modeswitch",
     "brightnessctl",
     "upower",
     "acpid",
