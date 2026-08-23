@@ -278,7 +278,7 @@ class DracutAction(SystemAction):
             comp = comp_flags.get(self.compression, "--xz")
 
             force_add = ["vmklive", "dmsquash-live"] + self.extra_modules
-            omit = ["systemd"]
+            omit = ["systemd", "plymouth"]
 
             cmd = ["dracut", "-N", comp]
             drivers = [
