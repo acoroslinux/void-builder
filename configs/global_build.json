@@ -16,7 +16,9 @@
   "_comment_repositories": "Default official repositories used by void-mklive to resolve different architectures. Only these three should be active by default.",
   "repositories": [
     "https://repo-default.voidlinux.org/current",
+    "https://repo-default.voidlinux.org/current/nonfree",
     "https://repo-default.voidlinux.org/current/musl",
+    "https://repo-default.voidlinux.org/current/musl/nonfree",
     "https://repo-default.voidlinux.org/current/aarch64"
   ],
   "_comment_custom_repositories": "To add your own repositories, insert them in the 'custom_repositories' array. Example: [\"https://my-repo.com/voidlinux\"]",

@@ -139,9 +139,10 @@ class ChrootManager:
                 internal_repos.append("https://repo-default.voidlinux.org/current")
 
         # Auto-enable nonfree repository if requested by packages
-        if any(p in packages for p in ("void-repo-nonfree", "unrar")):
+        nonfree_pkgs = ("void-repo-nonfree", "unrar", "intel-ucode", "amd-ucode", "nvidia", "broadcom-wl")
+        if any(any(p.startswith(n) for n in nonfree_pkgs) for p in packages):
             nonfree_repo = "https://repo-default.voidlinux.org/current/nonfree"
-            if self.arch.endswith("-musl"):
+            if self.arch.endswith("-musl") or "musl" in self.arch:
                 nonfree_repo = "https://repo-default.voidlinux.org/current/musl/nonfree"
             if nonfree_repo not in internal_repos:
                 internal_repos.append(nonfree_repo)
