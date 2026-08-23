@@ -135,6 +135,12 @@ class UserAction(SystemAction):
         logger.info(f"  [User] Creating user: {name}")
 
         if chroot.mode == "real":
+            # Ensure standard and system groups exist
+            for sys_grp in ("rpc", "_rpc", "kvm", "input", "lpadmin", "scanner"):
+                chroot.run_command(f"getent group {sys_grp} >/dev/null 2>&1 || groupadd -r {sys_grp} 2>/dev/null || groupadd {sys_grp}")
+            chroot.run_command("getent passwd rpc >/dev/null 2>&1 || useradd -r -M -g rpc -d /var/empty -s /bin/false rpc 2>/dev/null || true")
+            chroot.run_command("getent passwd _rpc >/dev/null 2>&1 || useradd -r -M -g _rpc -d /var/empty -s /bin/false _rpc 2>/dev/null || true")
+
             for group in groups:
                 chroot.run_command(f"getent group {group} >/dev/null 2>&1 || groupadd {group}")
 
