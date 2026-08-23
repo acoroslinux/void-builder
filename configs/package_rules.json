@@ -28,7 +28,6 @@
       "spice-vdagent",
       "open-vm-tools",
       "wireless-regdb",
-      "crda",
       "brightnessctl",
       "nvme-cli",
       "smartmontools",
@@ -61,7 +60,6 @@
       "xf86-video-vesa",
       "xf86-input-wacom",
       "wireless-regdb",
-      "crda",
       "brightnessctl",
       "nvme-cli",
       "smartmontools",
@@ -91,7 +89,6 @@
       "xf86-video-vesa",
       "xf86-input-wacom",
       "wireless-regdb",
-      "crda",
       "brightnessctl",
       "nvme-cli",
       "smartmontools",
@@ -103,7 +100,6 @@
       "grub-arm64-efi",
       "alsa-ucm-conf",
       "wireless-regdb",
-      "crda",
       "pciutils",
       "usbutils",
       "dmidecode"
@@ -112,7 +108,6 @@
       "grub-arm64-efi",
       "alsa-ucm-conf",
       "wireless-regdb",
-      "crda",
       "pciutils",
       "usbutils",
       "dmidecode"
@@ -121,7 +116,6 @@
       "grub-arm64-efi",
       "alsa-ucm-conf",
       "wireless-regdb",
-      "crda",
       "pciutils",
       "usbutils"
     ],
@@ -129,7 +123,6 @@
       "grub-arm64-efi",
       "alsa-ucm-conf",
       "wireless-regdb",
-      "crda",
       "pciutils",
       "usbutils"
     ]

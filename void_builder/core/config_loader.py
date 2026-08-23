@@ -521,7 +521,7 @@ class ConfigAssembler:
             "intel-ucode", "amd-ucode", "linux-firmware-amd", "sof-firmware", "alsa-firmware",
             "intel-media-driver", "libva-intel-driver", "mesa-vulkan-intel",
             "xf86-video-intel", "xf86-video-vmware", "xf86-video-vesa", "xf86-video-ati",
-            "open-vm-tools", "thermald", "crda", "syslinux",
+            "open-vm-tools", "thermald", "syslinux",
             "grub-i386-efi", "grub-x86_64-efi", "memtest86+", "virtualbox-ose-guest-dkms"
         }
 
