@@ -518,7 +518,7 @@ class ConfigAssembler:
         }
 
         X86_EXCLUSIVE_PACKAGES = {
-            "intel-ucode", "amd-ucode", "sof-firmware", "alsa-firmware",
+            "intel-ucode", "amd-ucode", "linux-firmware-amd", "sof-firmware", "alsa-firmware",
             "intel-media-driver", "libva-intel-driver", "mesa-vulkan-intel",
             "xf86-video-intel", "xf86-video-vmware", "xf86-video-vesa", "xf86-video-ati",
             "open-vm-tools", "thermald", "crda", "syslinux",
