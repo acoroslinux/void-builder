@@ -802,8 +802,8 @@ class StructuredCopyAction(SystemAction):
                 # Apply custom mode if specified
                 if custom_mode:
                     chroot.run_command(f"chmod -R {custom_mode} {dest_rel}", check=False)
-                elif dest_rel.startswith(("/usr/bin/", "/usr/local/bin/", "/etc/cron.")) or dest_rel.endswith(".sh"):
-                    # Automatically enforce execution permissions for scripts
+                elif dest_rel.startswith(("/usr/bin", "/usr/local/bin", "/etc/cron.", "/usr/libexec")) or dest_rel.endswith(".sh"):
+                    # Automatically enforce execution permissions for scripts and binaries
                     chroot.run_command(f"chmod -R 755 {dest_rel}", check=False)
                 elif dest_rel.startswith("/etc/sudoers.d"):
                     # Automatically enforce strict 0440 for sudoers.d
