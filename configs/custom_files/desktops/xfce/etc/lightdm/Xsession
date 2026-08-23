@@ -1,0 +1,10 @@
+#!/bin/sh
+# /etc/lightdm/Xsession - Launch X session with D-Bus environment
+[ -f /etc/profile ] && . /etc/profile
+[ -f "$HOME/.profile" ] && . "$HOME/.profile"
+
+if [ -z "$DBUS_SESSION_BUS_ADDRESS" ] && command -v dbus-run-session >/dev/null 2>&1; then
+    exec dbus-run-session -- "$@"
+else
+    exec "$@"
+fi

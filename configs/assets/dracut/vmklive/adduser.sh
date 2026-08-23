@@ -31,9 +31,11 @@ if ! grep -q "^${USERSHELL}$" ${NEWROOT}/etc/shells 2>/dev/null; then
 fi
 
 # Ensure user groups exist
-for grp in wheel audio video storage network input dialout kvm lp lpadmin scanner users; do
-    chroot ${NEWROOT} sh -c "getent group $grp >/dev/null 2>&1 || groupadd $grp"
+for grp in wheel audio video storage network input dialout kvm lp lpadmin scanner users rpc _rpc; do
+    chroot ${NEWROOT} sh -c "getent group $grp >/dev/null 2>&1 || groupadd -r $grp 2>/dev/null || groupadd $grp"
 done
+chroot ${NEWROOT} sh -c "getent passwd rpc >/dev/null 2>&1 || useradd -r -M -g rpc -d /var/empty -s /bin/false rpc 2>/dev/null || true"
+chroot ${NEWROOT} sh -c "getent passwd _rpc >/dev/null 2>&1 || useradd -r -M -g _rpc -d /var/empty -s /bin/false _rpc 2>/dev/null || true"
 
 # Create new user if not exists, and set password with SHA512
 if ! chroot ${NEWROOT} id -u $USERNAME >/dev/null 2>&1; then
