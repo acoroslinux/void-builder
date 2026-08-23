@@ -147,6 +147,12 @@ class ChrootManager:
             if nonfree_repo not in internal_repos:
                 internal_repos.append(nonfree_repo)
 
+        # Auto-enable multilib repositories if requested by packages on x86_64
+        if self.arch == "x86_64" and any(p in packages for p in ("void-repo-multilib", "void-repo-multilib-nonfree", "steam", "wine")):
+            for mrepo in ("https://repo-default.voidlinux.org/current/multilib", "https://repo-default.voidlinux.org/current/multilib/nonfree"):
+                if mrepo not in internal_repos:
+                    internal_repos.append(mrepo)
+
         # Filter repos to only use compatible ones for target arch
         from void_builder.utils.lib import filter_repositories
         internal_repos = filter_repositories(internal_repos, self.arch)
