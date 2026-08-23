@@ -511,6 +511,11 @@ class ConfigAssembler:
         # 4e. Architecture Compatibility Sanitizer: filter out foreign arch packages
         is_arm = target_arch.startswith(("aarch64", "arm", "rpi", "pinebook", "asahi"))
         is_x86 = target_arch.startswith(("x86_64", "i686"))
+        is_musl = "musl" in target_arch
+
+        GLIBC_EXCLUSIVE_PACKAGES = {
+            "nss-mdns", "glibc-locales"
+        }
 
         X86_EXCLUSIVE_PACKAGES = {
             "intel-ucode", "amd-ucode", "sof-firmware", "alsa-firmware",
@@ -531,6 +536,8 @@ class ConfigAssembler:
             res = []
             for p in pkg_list:
                 p_str = p.get("name") if isinstance(p, dict) else str(p)
+                if is_musl and p_str in GLIBC_EXCLUSIVE_PACKAGES:
+                    continue
                 if is_arm and p_str in X86_EXCLUSIVE_PACKAGES:
                     continue
                 if is_x86 and p_str in ARM_EXCLUSIVE_PACKAGES:
