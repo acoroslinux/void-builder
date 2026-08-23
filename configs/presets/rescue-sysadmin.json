@@ -22,7 +22,6 @@
       "smartmontools",
       "nvme-cli",
       "hdparm",
-      "wipefs",
       "nmap",
       "tcpdump",
       "wireshark-qt",
