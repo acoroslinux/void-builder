@@ -514,7 +514,7 @@ class ConfigAssembler:
         is_musl = "musl" in target_arch
 
         GLIBC_EXCLUSIVE_PACKAGES = {
-            "nss-mdns", "glibc-locales"
+            "nss-mdns", "glibc-locales", "xf86-video-vmware", "open-vm-tools", "spice-vdagent"
         }
 
         X86_EXCLUSIVE_PACKAGES = {
