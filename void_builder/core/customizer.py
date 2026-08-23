@@ -603,8 +603,25 @@ class LoginManagerAction(SystemAction):
 
             # 1. LIGHTDM Configuration
             if self.display_manager == "lightdm":
-                write_chroot_file("etc/lightdm/.session", self.session_name + "\n")
+                session = self.session_name
+                if session == "xfce4":
+                    session = "xfce"
+                elif session == "kde5":
+                    session = "plasma"
+
+                write_chroot_file("etc/lightdm/.session", session + "\n")
                 
+                autologin_conf = (
+                    "[Seat:*]\n"
+                    f"autologin-user={self.username}\n"
+                    "autologin-user-timeout=0\n"
+                    f"autologin-session={session}\n"
+                    f"user-session={session}\n"
+                    "greeter-session=lightdm-gtk-greeter\n"
+                    'display-setup-script=sh -c "command -v plymouth >/dev/null 2>&1 && plymouth --quit || true"\n'
+                )
+                write_chroot_file("etc/lightdm/lightdm.conf.d/10-autologin.conf", autologin_conf)
+
                 greeter_content = (
                     "[greeter]\n"
                     "indicators = ~host;~spacer;~clock;~spacer;~layout;~session;~a11y;~power\n"
@@ -708,6 +725,10 @@ class PlymouthAction(SystemAction):
                 logger.info(f"  [Plymouth] Setting theme to '{theme_name}'.")
                 try:
                     chroot.run_command(f"sh -c 'echo \"[Daemon]\nTheme={theme_name}\nShowDelay=0\n\" > /etc/plymouth/plymouthd.conf'", check=False)
+                    # Add runit core-service hook so plymouth stops cleanly when transitioning to display manager
+                    core_services = chroot.chroot_path / "etc" / "runit" / "core-services"
+                    if core_services.exists():
+                        chroot.run_command("sh -c 'echo \"[ -x /usr/bin/plymouth ] && /usr/bin/plymouth --quit || true\" > /etc/runit/core-services/99-plymouth.sh && chmod 755 /etc/runit/core-services/99-plymouth.sh'", check=False)
                 except Exception as e:
                     logger.warning(f"  [Plymouth] Failed to set default theme: {e}")
             else:
