@@ -1,0 +1,397 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Void-Builder: Hardware, Architecture &amp; Platform Compatibility Matrix &mdash; Void-Builder</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=75d58705" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #E31937" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Void-Builder
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started &amp; Total Build Isolation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Comprehensive Usage Manual &amp; Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli_reference.html">CLI Complete Technical Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration Guide &amp; JSON Schemas</a></li>
+<li class="toctree-l1"><a class="reference internal" href="package_rules.html">Dynamic Package Rules &amp; Resolution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="custom_packages.html">Custom Packages &amp; Local XBPS Repositories</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Architecture &amp; Bootloaders</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architectural Blueprint &amp; Engine Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bootloaders.html">Bootloaders &amp; Hardware Boot Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="calamares.html">Calamares Installer Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">Python API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting &amp; FAQ</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #E31937" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Void-Builder</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Void-Builder: Hardware, Architecture &amp; Platform Compatibility Matrix</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/PEPPERMINT_HARDWARE_SPEC.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="void-builder-hardware-architecture-platform-compatibility-matrix">
+<h1>Void-Builder: Hardware, Architecture &amp; Platform Compatibility Matrix<a class="headerlink" href="#void-builder-hardware-architecture-platform-compatibility-matrix" title="Link to this heading"></a></h1>
+<p><strong>Document Version:</strong> 1.0.0<br />
+<strong>Project:</strong> Void-Builder / PeppermintOS Next-Gen Build Infrastructure<br />
+<strong>Author:</strong> AçorOS Linux / PeppermintOS Team</p>
+<hr class="docutils" />
+<section id="executive-summary">
+<h2>1. Executive Summary<a class="headerlink" href="#executive-summary" title="Link to this heading"></a></h2>
+<p><strong><code class="docutils literal notranslate"><span class="pre">void-builder</span></code></strong> is a high-performance, modular, and dynamic operating system image builder. Engineered with clean separation of concerns, hermetic build-host isolation, and cross-architecture virtualization (QEMU User Static + binfmt_misc), it builds production-ready bootable images, flashable disk images, and rootfs stage seeds across a wide spectrum of computing architectures—ranging from high-end x86_64 servers to ARM64 single-board computers (SBCs), Snapdragon/Apple Silicon laptops, and open-source RISC-V 64-bit platforms.</p>
+</section>
+<hr class="docutils" />
+<section id="supported-cpu-architectures">
+<h2>2. Supported CPU Architectures<a class="headerlink" href="#supported-cpu-architectures" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>Architecture</p></th>
+<th class="head text-left"><p>C Standard Library (<code class="docutils literal notranslate"><span class="pre">libc</span></code>)</p></th>
+<th class="head text-left"><p>Target Platform &amp; Device Category</p></th>
+<th class="head text-left"><p>Primary Bootloader Stack</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p><strong><code class="docutils literal notranslate"><span class="pre">x86_64</span></code></strong></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">glibc</span></code></p></td>
+<td class="text-left"><p>Standard 64-bit Desktop PCs, Laptops &amp; Servers</p></td>
+<td class="text-left"><p>Dual-Mode: ISOLINUX (BIOS) + GRUB2 (UEFI x86_64)</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><strong><code class="docutils literal notranslate"><span class="pre">x86_64-musl</span></code></strong></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">musl</span></code></p></td>
+<td class="text-left"><p>Ultra-lightweight, hardened &amp; high-security x86_64 systems</p></td>
+<td class="text-left"><p>Dual-Mode: ISOLINUX (BIOS) + GRUB2 (UEFI x86_64)</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><strong><code class="docutils literal notranslate"><span class="pre">i686</span></code></strong></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">glibc</span></code></p></td>
+<td class="text-left"><p>Legacy 32-bit PCs and older netbooks/industrial systems</p></td>
+<td class="text-left"><p>ISOLINUX (BIOS Legacy El-Torito)</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><strong><code class="docutils literal notranslate"><span class="pre">aarch64</span></code></strong></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">glibc</span></code></p></td>
+<td class="text-left"><p>Standard 64-bit ARM Servers, Laptops and Generic UEFI boards</p></td>
+<td class="text-left"><p>GRUB2 (UEFI <code class="docutils literal notranslate"><span class="pre">BOOTAA64.EFI</span></code> + <code class="docutils literal notranslate"><span class="pre">efiboot.img</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><strong><code class="docutils literal notranslate"><span class="pre">aarch64-musl</span></code></strong></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">musl</span></code></p></td>
+<td class="text-left"><p>High-efficiency, low-memory ARM64 embedded &amp; server systems</p></td>
+<td class="text-left"><p>GRUB2 (UEFI <code class="docutils literal notranslate"><span class="pre">BOOTAA64.EFI</span></code> + <code class="docutils literal notranslate"><span class="pre">efiboot.img</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><strong><code class="docutils literal notranslate"><span class="pre">armv7l</span></code></strong></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">glibc</span></code></p></td>
+<td class="text-left"><p>32-bit ARMv7-A devices (Cortex-A7 / A8 / A9 / A15)</p></td>
+<td class="text-left"><p>U-Boot / Broadcom VC4 Firmware</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><strong><code class="docutils literal notranslate"><span class="pre">armv7l-musl</span></code></strong></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">musl</span></code></p></td>
+<td class="text-left"><p>Lightweight 32-bit ARMv7 embedded targets</p></td>
+<td class="text-left"><p>U-Boot / Broadcom VC4 Firmware</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><strong><code class="docutils literal notranslate"><span class="pre">armv6l</span></code></strong></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">glibc</span></code></p></td>
+<td class="text-left"><p>Legacy 32-bit ARMv6 devices (Raspberry Pi 1 / Pi Zero)</p></td>
+<td class="text-left"><p>Broadcom VC4 Firmware Boot Tree</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><strong><code class="docutils literal notranslate"><span class="pre">armv6l-musl</span></code></strong></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">musl</span></code></p></td>
+<td class="text-left"><p>Ultra-compact 32-bit ARMv6 appliances</p></td>
+<td class="text-left"><p>Broadcom VC4 Firmware Boot Tree</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><strong><code class="docutils literal notranslate"><span class="pre">riscv64</span></code></strong></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">glibc</span></code></p></td>
+<td class="text-left"><p>Standard 64-bit RISC-V Open Architecture targets</p></td>
+<td class="text-left"><p>OpenSBI Firmware + GRUB2 RISC-V</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><strong><code class="docutils literal notranslate"><span class="pre">riscv64-musl</span></code></strong></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">musl</span></code></p></td>
+<td class="text-left"><p>Minimalist, standalone RISC-V appliances</p></td>
+<td class="text-left"><p>OpenSBI Firmware + GRUB2 RISC-V</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<hr class="docutils" />
+<section id="dedicated-hardware-profiles-single-board-computers-sbcs">
+<h2>3. Dedicated Hardware Profiles &amp; Single Board Computers (SBCs)<a class="headerlink" href="#dedicated-hardware-profiles-single-board-computers-sbcs" title="Link to this heading"></a></h2>
+<section id="raspberry-pi-family-compressed-img-xz-flashable-disk-images">
+<h3>🍓 Raspberry Pi Family (Compressed <code class="docutils literal notranslate"><span class="pre">.img.xz</span></code> Flashable Disk Images)<a class="headerlink" href="#raspberry-pi-family-compressed-img-xz-flashable-disk-images" title="Link to this heading"></a></h3>
+<p>Generates pre-partitioned dual-stage disk images (256MB FAT32 Boot with Broadcom VC4 firmware + Ext4 RootFS):</p>
+<ul class="simple">
+<li><p><strong>Raspberry Pi 5 / 500</strong> (<code class="docutils literal notranslate"><span class="pre">rpi-aarch64</span></code>): Broadcom BCM2712 Quad-Core Cortex-A76 &#64; 2.4GHz.</p></li>
+<li><p><strong>Raspberry Pi 4 Model B / 400 / Compute Module 4</strong> (<code class="docutils literal notranslate"><span class="pre">rpi-aarch64</span></code> / <code class="docutils literal notranslate"><span class="pre">rpi-armv7l</span></code>): Broadcom BCM2711 Quad-Core Cortex-A72.</p></li>
+<li><p><strong>Raspberry Pi 3 Model B/B+ / Compute Module 3 / Zero 2 W</strong> (<code class="docutils literal notranslate"><span class="pre">rpi-aarch64</span></code> / <code class="docutils literal notranslate"><span class="pre">rpi-armv7l</span></code>): Broadcom BCM2837/BCM2710 Quad-Core Cortex-A53.</p></li>
+<li><p><strong>Raspberry Pi 2 Model B</strong> (<code class="docutils literal notranslate"><span class="pre">rpi-armv7l</span></code>): Broadcom BCM2836/BCM2837 (ARMv7 32-bit).</p></li>
+<li><p><strong>Raspberry Pi 1 Model A/B / Zero / Zero W</strong> (<code class="docutils literal notranslate"><span class="pre">rpi-armv6l</span></code>): Broadcom BCM2835 (ARMv6 32-bit).</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="pine64-rockchip-family">
+<h3>🌲 Pine64 &amp; Rockchip Family<a class="headerlink" href="#pine64-rockchip-family" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Pinebook Pro</strong> (<code class="docutils literal notranslate"><span class="pre">--platform</span> <span class="pre">pinebookpro</span></code>):</p>
+<ul>
+<li><p><strong>SoC:</strong> Rockchip RK3399 (Dual-core Cortex-A72 + Quad-core Cortex-A53).</p></li>
+<li><p><strong>Hardware Features:</strong> 1080p eDP IPS Display, Mali-T860 MP4 GPU, Realtek Audio, dedicated <code class="docutils literal notranslate"><span class="pre">rk3399-pinebook-pro.dtb</span></code>.</p></li>
+</ul>
+</li>
+<li><p><strong>RockPro64</strong> (<code class="docutils literal notranslate"><span class="pre">--platform</span> <span class="pre">rockpro64</span></code>):</p>
+<ul>
+<li><p><strong>SoC:</strong> Rockchip RK3399 High-Performance SBC with PCIe slot, USB-C DisplayPort, and Gigabit Ethernet.</p></li>
+<li><p><strong>Hardware Features:</strong> <code class="docutils literal notranslate"><span class="pre">rk3399-rockpro64.dtb</span></code> + Serial UART diagnostic console (<code class="docutils literal notranslate"><span class="pre">ttyS2,1500000n8</span></code>).</p></li>
+</ul>
+</li>
+<li><p><strong>Pine A64 / Pinebook 11.6</strong> (<code class="docutils literal notranslate"><span class="pre">--platform</span> <span class="pre">pine64</span></code>):</p>
+<ul>
+<li><p><strong>SoC:</strong> Allwinner A64 Quad-Core Cortex-A53.</p></li>
+<li><p><strong>Hardware Features:</strong> <code class="docutils literal notranslate"><span class="pre">sun50i-a64-pine64.dtb</span></code> + Serial UART console (<code class="docutils literal notranslate"><span class="pre">ttyS0,115200n8</span></code>).</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="hardkernel-odroid-family-amlogic-meson-architecture">
+<h3>⚡ Hardkernel ODROID Family (Amlogic Meson Architecture)<a class="headerlink" href="#hardkernel-odroid-family-amlogic-meson-architecture" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>ODROID-N2 / ODROID-N2+</strong> (<code class="docutils literal notranslate"><span class="pre">--platform</span> <span class="pre">odroid-n2</span></code>):</p>
+<ul>
+<li><p><strong>SoC:</strong> Amlogic S922X Hexa-Core (Quad Cortex-A73 &#64; 2.4GHz + Dual Cortex-A53 &#64; 2.0GHz).</p></li>
+<li><p><strong>Hardware Features:</strong> Mali-G52 GPU, <code class="docutils literal notranslate"><span class="pre">meson-g12b-odroid-n2-plus.dtb</span></code>, native Amlogic UART (<code class="docutils literal notranslate"><span class="pre">ttyAML0,115200n8</span></code>).</p></li>
+</ul>
+</li>
+<li><p><strong>ODROID-C4</strong> (<code class="docutils literal notranslate"><span class="pre">--platform</span> <span class="pre">odroid-c4</span></code>):</p>
+<ul>
+<li><p><strong>SoC:</strong> Amlogic S905X3 Quad-Core Cortex-A55.</p></li>
+<li><p><strong>Hardware Features:</strong> Low power consumption, <code class="docutils literal notranslate"><span class="pre">meson-sm1-odroid-c4.dtb</span></code>, native Amlogic UART (<code class="docutils literal notranslate"><span class="pre">ttyAML0,115200n8</span></code>).</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="arm64-laptops-apple-silicon">
+<h3>💻 ARM64 Laptops &amp; Apple Silicon<a class="headerlink" href="#arm64-laptops-apple-silicon" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Lenovo ThinkPad X13s</strong> (<code class="docutils literal notranslate"><span class="pre">--platform</span> <span class="pre">x13s</span></code>):</p>
+<ul>
+<li><p><strong>SoC:</strong> Qualcomm Snapdragon SC8280XP (8-Core Kryo CPU &#64; 3.0GHz).</p></li>
+<li><p><strong>Hardware Features:</strong> Qualcomm Adreno 690 GPU, Wi-Fi 6E, 5G Sub-6/mmWave, power-domain management flags, <code class="docutils literal notranslate"><span class="pre">sc8280xp-lenovo-thinkpad-x13s.dtb</span></code>.</p></li>
+</ul>
+</li>
+<li><p><strong>Apple Silicon M1 / M2 Macs</strong> (<code class="docutils literal notranslate"><span class="pre">--platform</span> <span class="pre">asahi</span></code>):</p>
+<ul>
+<li><p><strong>SoC:</strong> Apple M1 / M2 / Pro / Max / Ultra.</p></li>
+<li><p><strong>Hardware Features:</strong> Apple Silicon framebuffer drivers, <code class="docutils literal notranslate"><span class="pre">earlycon</span></code> diagnostic telemetry, <code class="docutils literal notranslate"><span class="pre">t8103-j274.dtb</span></code> Device Tree bindings.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="risc-v-64-bit-architecture">
+<h3>🔮 RISC-V 64-bit Architecture<a class="headerlink" href="#risc-v-64-bit-architecture" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>StarFive VisionFive 2</strong> (<code class="docutils literal notranslate"><span class="pre">--platform</span> <span class="pre">visionfive2</span></code>):</p>
+<ul>
+<li><p><strong>SoC:</strong> StarFive JH7110 Quad-Core RISC-V 64-bit (SiFive U74 &#64; 1.5GHz).</p></li>
+<li><p><strong>Hardware Features:</strong> Imagination BXE-4-32 GPU, OpenSBI supervisor binary interface, <code class="docutils literal notranslate"><span class="pre">jh7110-starfive-visionfive-2-v1.3b.dtb</span></code>.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="pre-packaged-unified-presets-desktop-environments">
+<h2>4. Pre-Packaged Unified Presets &amp; Desktop Environments<a class="headerlink" href="#pre-packaged-unified-presets-desktop-environments" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>Preset Identifier</p></th>
+<th class="head text-left"><p>Description &amp; Included Components</p></th>
+<th class="head text-left"><p>Target Use-Case</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p><strong><code class="docutils literal notranslate"><span class="pre">desktop-xfce</span></code></strong></p></td>
+<td class="text-left"><p>Lightweight, modular XFCE 4.18/4.20 Desktop, LightDM greeter, PipeWire/ALSA audio stack, NetworkManager, CUPS printing, and modern GTK theme suite.</p></td>
+<td class="text-left"><p><strong>Default PeppermintOS Flagship Experience</strong></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><strong><code class="docutils literal notranslate"><span class="pre">desktop-gnome</span></code></strong></p></td>
+<td class="text-left"><p>Complete GNOME Desktop with Wayland compositor, GDM, PipeWire, GNOME Shell extensions, and full desktop app ecosystem.</p></td>
+<td class="text-left"><p>Modern workstation &amp; tablet computing</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><strong><code class="docutils literal notranslate"><span class="pre">desktop-kde</span></code></strong></p></td>
+<td class="text-left"><p>High-performance KDE Plasma 6 Desktop, SDDM, Wayland/X11, KWin compositor, and KDE Frameworks utilities.</p></td>
+<td class="text-left"><p>Power users, multi-monitor setups</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><strong><code class="docutils literal notranslate"><span class="pre">minimal</span></code></strong></p></td>
+<td class="text-left"><p>Pure headless/server base system with essential networking, SSH daemon, security hardening, and Void package management.</p></td>
+<td class="text-left"><p>Headless servers, IoT, edge gateways</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><strong><code class="docutils literal notranslate"><span class="pre">rescue-sysadmin</span></code></strong></p></td>
+<td class="text-left"><p>Comprehensive emergency toolkit with disk partition tools (GParted, TestDisk), network forensics (Wireshark, Nmap), filesystem repair, and hardware benchmarks.</p></td>
+<td class="text-left"><p>IT forensics, disaster recovery, sysadmin</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><strong><code class="docutils literal notranslate"><span class="pre">developer</span></code></strong></p></td>
+<td class="text-left"><p>Complete programming toolchain with GCC, Clang, Rust, Python 3, Git, CMake, Docker/Podman container runtime, and debugging suites.</p></td>
+<td class="text-left"><p>Software engineers, DevOps, builders</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><strong><code class="docutils literal notranslate"><span class="pre">gaming</span></code></strong></p></td>
+<td class="text-left"><p>Optimized low-latency gaming environment with 32-bit Multilib libraries, Mesa Vulkan drivers, MangoHud, Wine/Proton dependencies, and game controller support.</p></td>
+<td class="text-left"><p>Enthusiast gaming, Steam, emulation</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<hr class="docutils" />
+<section id="build-pipeline-technical-highlights">
+<h2>5. Build Pipeline &amp; Technical Highlights<a class="headerlink" href="#build-pipeline-technical-highlights" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p><strong>Hermetic Build-Host Isolation:</strong></p>
+<ul class="simple">
+<li><p>Tools like <code class="docutils literal notranslate"><span class="pre">xorriso</span></code>, <code class="docutils literal notranslate"><span class="pre">mksquashfs</span></code>, <code class="docutils literal notranslate"><span class="pre">grub-mkstandalone</span></code>, <code class="docutils literal notranslate"><span class="pre">mtools</span></code>, and <code class="docutils literal notranslate"><span class="pre">dosfstools</span></code> run from a segregated toolchain environment (<code class="docutils literal notranslate"><span class="pre">build_host</span></code>), preventing any pollution or dependency on host packages.</p></li>
+</ul>
+</li>
+<li><p><strong>Multi-Threaded Parallel Compression:</strong></p>
+<ul class="simple">
+<li><p>Utilizes multi-threaded Zstandard (<code class="docutils literal notranslate"><span class="pre">zstd</span></code> Level 3) across all available CPU cores (e.g., 20+ hardware threads), reducing 5.3 GB root filesystems down to 1.3 GB in under 3 seconds.</p></li>
+</ul>
+</li>
+<li><p><strong>Automated Static Verification Suite (<code class="docutils literal notranslate"><span class="pre">ImageVerifier</span></code>):</strong></p>
+<ul class="simple">
+<li><p>Every built image automatically undergoes 9 programmatic integrity checks:</p>
+<ol class="arabic simple">
+<li><p>Volume size and boundaries.</p></li>
+<li><p>Cryptographic hash calculation (SHA256, SHA512, MD5).</p></li>
+<li><p>JSON Manifest structural parsing.</p></li>
+<li><p>ISO9660 CD001 primary volume header validation.</p></li>
+<li><p>SquashFS internal compression integrity.</p></li>
+<li><p>GRUB2 UEFI configuration tree (<code class="docutils literal notranslate"><span class="pre">boot/grub/grub.cfg</span></code>).</p></li>
+<li><p>UEFI boot image inspection (<code class="docutils literal notranslate"><span class="pre">efiboot.img</span></code> / <code class="docutils literal notranslate"><span class="pre">BOOTAA64.EFI</span></code> / <code class="docutils literal notranslate"><span class="pre">BOOTX64.EFI</span></code>).</p></li>
+<li><p>Platform Device Tree Blob (DTB) verification.</p></li>
+<li><p>Hardware-specific serial/clocks/framebuffer runtime parameters.</p></li>
+</ol>
+</li>
+</ul>
+</li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="artifact-outputs-standards">
+<h2>6. Artifact Outputs &amp; Standards<a class="headerlink" href="#artifact-outputs-standards" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p><strong>Hybrid ISO9660 (<code class="docutils literal notranslate"><span class="pre">.iso</span></code>):</strong> Universal bootable image supporting BIOS (El-Torito / ISOLINUX) and UEFI (GRUB2) across x86_64, i686, ARM64, and RISC-V.</p></li>
+<li><p><strong>Flashable Disk Images (<code class="docutils literal notranslate"><span class="pre">.img.xz</span></code>):</strong> Pre-partitioned raw images ready for flashing to MicroSD/eMMC using <code class="docutils literal notranslate"><span class="pre">dd</span></code> or BalenaEtcher.</p></li>
+<li><p><strong>Stage Seeds (<code class="docutils literal notranslate"><span class="pre">.tar.xz</span></code>):</strong> Clean root filesystem tarballs for container bootstrapping (Docker, LXC, systemd-nspawn) or custom chroot installs.</p></li>
+<li><p><strong>Security Checksums:</strong> Auto-generated <code class="docutils literal notranslate"><span class="pre">.sha256</span></code>, <code class="docutils literal notranslate"><span class="pre">.sha512</span></code>, <code class="docutils literal notranslate"><span class="pre">.md5</span></code>, and <code class="docutils literal notranslate"><span class="pre">.manifest.json</span></code> files accompanying each release artifact.</p></li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="quick-cli-usage-examples">
+<h2>7. Quick CLI Usage Examples<a class="headerlink" href="#quick-cli-usage-examples" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 1. Build PeppermintOS XFCE Flagship for PC (x86_64)</span>
+sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>x86_64<span class="w"> </span>--preset<span class="w"> </span>desktop-xfce<span class="w"> </span>--fast<span class="w"> </span>--mode<span class="w"> </span>real<span class="w"> </span>--clean
+
+<span class="c1"># 2. Build Raspberry Pi 64-bit Disk Image (Pi 4/5/Zero 2W)</span>
+sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>rpi-aarch64<span class="w"> </span>--preset<span class="w"> </span>minimal<span class="w"> </span>--fast<span class="w"> </span>--mode<span class="w"> </span>real<span class="w"> </span>--clean
+
+<span class="c1"># 3. Build Pinebook Pro ARM64 Laptop ISO</span>
+sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>aarch64<span class="w"> </span>--platform<span class="w"> </span>pinebookpro<span class="w"> </span>--preset<span class="w"> </span>desktop-xfce<span class="w"> </span>--fast<span class="w"> </span>--mode<span class="w"> </span>real<span class="w"> </span>--clean
+
+<span class="c1"># 4. Build Hardkernel ODROID-N2+ ARM64 ISO</span>
+sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>aarch64<span class="w"> </span>--platform<span class="w"> </span>odroid-n2<span class="w"> </span>--preset<span class="w"> </span>minimal<span class="w"> </span>--fast<span class="w"> </span>--mode<span class="w"> </span>real<span class="w"> </span>--clean
+
+<span class="c1"># 5. Build Apple Silicon (M1/M2 Asahi) ARM64 ISO</span>
+sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>aarch64<span class="w"> </span>--platform<span class="w"> </span>asahi<span class="w"> </span>--preset<span class="w"> </span>minimal<span class="w"> </span>--fast<span class="w"> </span>--mode<span class="w"> </span>real<span class="w"> </span>--clean
+
+<span class="c1"># 6. Build StarFive VisionFive 2 RISC-V 64-bit ISO</span>
+sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>riscv64<span class="w"> </span>--platform<span class="w"> </span>visionfive2<span class="w"> </span>--preset<span class="w"> </span>minimal<span class="w"> </span>--fast<span class="w"> </span>--mode<span class="w"> </span>real<span class="w"> </span>--clean
+
+<span class="c1"># 7. Build Ultra-Lightweight Musl libc Image</span>
+sudo<span class="w"> </span>python3<span class="w"> </span>cli.py<span class="w"> </span>x86_64-musl<span class="w"> </span>--preset<span class="w"> </span>minimal<span class="w"> </span>--fast<span class="w"> </span>--mode<span class="w"> </span>real<span class="w"> </span>--clean
+
+<span class="c1"># 8. Verify Any Generated Image</span>
+python3<span class="w"> </span>cli.py<span class="w"> </span>--verify<span class="w"> </span>output/void-builder-desktop-xfce-x86_64.iso
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026-2026, Manuel Rosa.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
