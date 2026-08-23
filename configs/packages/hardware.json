@@ -6,7 +6,6 @@
     "alsa-ucm-conf",
     "alsa-utils",
     "mesa-dri",
-    "mesa-vaapi",
     "mesa-vulkan-radeon",
     "vulkan-loader",
     "xf86-video-fbdev",
