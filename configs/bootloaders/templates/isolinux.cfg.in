@@ -24,22 +24,22 @@ MENU COLOR sel          * #ffffffff #FF5255FF *
 LABEL linux
   MENU LABEL @@BOOT_TITLE@@ @@DESKTOP@@ (Standard Live)
   KERNEL /boot/vmlinuz
-  APPEND initrd=/boot/initrd root=live:CDLABEL=@@VOL_ID@@ ro init=/sbin/init rd.luks=0 rd.md=0 rd.dm=0 loglevel=3 gpt add_efi_memmap vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ splash quiet rd.plymouth=1 vt.global_cursor_default=0 @@BOOT_CMDLINE@@ @@KERNEL_PARAMS@@
+  APPEND initrd=/boot/initrd root=live:CDLABEL=@@VOL_ID@@ ro init=/sbin/init rd.luks=0 rd.md=0 rd.dm=0 loglevel=4 gpt add_efi_memmap vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ @@BOOT_CMDLINE@@ @@KERNEL_PARAMS@@
 
 LABEL linuxram
   MENU LABEL @@BOOT_TITLE@@ @@DESKTOP@@ (Copy to RAM)
   KERNEL /boot/vmlinuz
-  APPEND initrd=/boot/initrd root=live:CDLABEL=@@VOL_ID@@ ro init=/sbin/init rd.luks=0 rd.md=0 rd.dm=0 loglevel=3 gpt add_efi_memmap vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ splash quiet rd.plymouth=1 vt.global_cursor_default=0 rd.live.ram @@BOOT_CMDLINE@@ @@KERNEL_PARAMS@@
+  APPEND initrd=/boot/initrd root=live:CDLABEL=@@VOL_ID@@ ro init=/sbin/init rd.luks=0 rd.md=0 rd.dm=0 loglevel=4 gpt add_efi_memmap vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ rd.live.ram @@BOOT_CMDLINE@@ @@KERNEL_PARAMS@@
 
 LABEL linuxnogfx
   MENU LABEL @@BOOT_TITLE@@ @@DESKTOP@@ (Safe Graphics - nomodeset)
   KERNEL /boot/vmlinuz
-  APPEND initrd=/boot/initrd root=live:CDLABEL=@@VOL_ID@@ ro init=/sbin/init rd.luks=0 rd.md=0 rd.dm=0 loglevel=3 gpt add_efi_memmap vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ nomodeset @@BOOT_CMDLINE@@ @@KERNEL_PARAMS@@
+  APPEND initrd=/boot/initrd root=live:CDLABEL=@@VOL_ID@@ ro init=/sbin/init rd.luks=0 rd.md=0 rd.dm=0 loglevel=4 gpt add_efi_memmap vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ nomodeset @@BOOT_CMDLINE@@ @@KERNEL_PARAMS@@
 
 LABEL linuxa11y
   MENU LABEL @@BOOT_TITLE@@ @@DESKTOP@@ with Speech (Accessibility)
   KERNEL /boot/vmlinuz
-  APPEND initrd=/boot/initrd root=live:CDLABEL=@@VOL_ID@@ ro init=/sbin/init rd.luks=0 rd.md=0 rd.dm=0 loglevel=3 gpt add_efi_memmap vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ splash quiet live.accessibility live.autologin @@BOOT_CMDLINE@@ @@KERNEL_PARAMS@@
+  APPEND initrd=/boot/initrd root=live:CDLABEL=@@VOL_ID@@ ro init=/sbin/init rd.luks=0 rd.md=0 rd.dm=0 loglevel=4 gpt add_efi_memmap vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ live.accessibility live.autologin @@BOOT_CMDLINE@@ @@KERNEL_PARAMS@@
 
 LABEL c
   MENU LABEL Boot first HD found by BIOS
