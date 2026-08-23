@@ -8,7 +8,6 @@
     "epiphany",
     "thunderbird",
     "telegram-desktop",
-    "element-desktop",
     "hexchat",
     "qbittorrent",
     "transmission-gtk",
@@ -17,6 +16,7 @@
     "tor"
   ],
   "optional_packages": [
+    "element-desktop",
     "lynx",
     "irssi",
     "mosh"

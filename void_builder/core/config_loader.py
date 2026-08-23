@@ -512,6 +512,11 @@ class ConfigAssembler:
         is_arm = target_arch.startswith(("aarch64", "arm", "rpi", "pinebook", "asahi"))
         is_x86 = target_arch.startswith(("x86_64", "i686"))
         is_musl = "musl" in target_arch
+        is_32bit = target_arch.startswith(("i686", "armv7l", "armv6l", "rpi-armv7l", "rpi-armv6l"))
+
+        ARCH_64BIT_EXCLUSIVE_PACKAGES = {
+            "element-desktop", "intel-media-driver"
+        }
 
         GLIBC_EXCLUSIVE_PACKAGES = {
             "nss-mdns", "glibc-locales", "xf86-video-vmware", "open-vm-tools", "spice-vdagent"
@@ -536,6 +541,8 @@ class ConfigAssembler:
             res = []
             for p in pkg_list:
                 p_str = p.get("name") if isinstance(p, dict) else str(p)
+                if is_32bit and p_str in ARCH_64BIT_EXCLUSIVE_PACKAGES:
+                    continue
                 if is_musl and p_str in GLIBC_EXCLUSIVE_PACKAGES:
                     continue
                 if is_arm and p_str in X86_EXCLUSIVE_PACKAGES:
