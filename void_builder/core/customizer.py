@@ -281,7 +281,13 @@ class DracutAction(SystemAction):
             omit = ["systemd"]
 
             cmd = ["dracut", "-N", comp]
-            drivers = ["overlay", "nvme", "ahci", "sd_mod", "sr_mod", "loop", "xhci_pci", "xhci_hcd", "uas", "usb_storage"]
+            drivers = [
+                "overlay", "loop", "isofs", "squashfs", "cdrom", "sr_mod", "sd_mod",
+                "ata_piix", "ata_generic", "pata_acpi", "ahci", "nvme",
+                "xhci_pci", "xhci_hcd", "ehci_pci", "ehci_hcd", "uhci_hcd", "ohci_pci", "ohci_hcd", "uas", "usb_storage",
+                "virtio_pci", "virtio_blk", "virtio_scsi", "virtio_gpu",
+                "vboxvideo", "bochs_drm", "qxl"
+            ]
             for drv in drivers:
                 cmd.extend(["--add-drivers", drv])
             for mod in force_add:
