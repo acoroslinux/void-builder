@@ -675,6 +675,21 @@ def main():
             else:
                 hooks_dict.setdefault("post-install", []).append(h.strip())
 
+    if args.build_calamares:
+        binpkgs = build_calamares_package(args.architecture)
+        print(f"✅ Calamares package built successfully at: {binpkgs}")
+        sys.exit(0)
+
+    if args.with_calamares:
+        binpkgs = build_calamares_package(args.architecture)
+        if not args.repository:
+            args.repository = []
+        args.repository.insert(0, str(binpkgs))
+        if not args.package_profile:
+            args.package_profile = []
+        if "installer" not in args.package_profile:
+            args.package_profile.append("installer")
+
     # Initialize Orchestrator
     parsed_live_groups = None
     if args.live_groups:

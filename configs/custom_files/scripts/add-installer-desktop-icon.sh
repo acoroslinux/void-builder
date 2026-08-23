@@ -3,6 +3,11 @@
 # Void Modern Installer - Universal Desktop Icon Creation Script
 # ==============================================================================
 
+# Check if calamares binary is present on the system
+if ! command -v calamares >/dev/null 2>&1 && [ ! -x /usr/bin/calamares ] && [ ! -x /usr/local/bin/calamares ]; then
+    exit 0
+fi
+
 # Check if the system is in live mode
 if grep -qE "live\.user=|boot=live|rd\.live|live\.autologin" /proc/cmdline || [ -d /run/rootfsbase ] || [ -d /run/initramfs/live ] || [ -f /etc/default/live.conf ]; then
     LIVE_USER="live"

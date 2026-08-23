@@ -47,10 +47,6 @@
     {
       "source": "lightdm",
       "destination": "/etc/lightdm"
-    },
-    {
-      "source": "calamares",
-      "destination": "/etc/calamares"
     }
   ]
 }

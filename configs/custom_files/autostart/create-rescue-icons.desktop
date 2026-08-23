@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Create Rescue Desktop Icons
+Exec=/usr/local/bin/add-rescue-desktop-icons.sh
+Icon=utilities-system-monitor
+Terminal=false
+NoDisplay=true
