@@ -40,6 +40,16 @@ LABEL linuxa11y
   KERNEL /boot/vmlinuz
   APPEND initrd=/boot/initrd root=live:CDLABEL=@@VOL_ID@@ init=/sbin/init ro rd.luks=0 rd.md=0 rd.dm=0 loglevel=4 vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ live.accessibility live.autologin @@BOOT_CMDLINE@@
 
+LABEL linuxa11yram
+  MENU LABEL @@BOOT_TITLE@@ @@DESKTOP@@ with Speech (Accessibility, Copy to RAM)
+  KERNEL /boot/vmlinuz
+  APPEND initrd=/boot/initrd root=live:CDLABEL=@@VOL_ID@@ init=/sbin/init ro rd.luks=0 rd.md=0 rd.dm=0 loglevel=4 vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ live.accessibility live.autologin rd.live.ram @@BOOT_CMDLINE@@
+
+LABEL linuxa11ynogfx
+  MENU LABEL @@BOOT_TITLE@@ @@DESKTOP@@ with Speech (Accessibility, Safe Graphics)
+  KERNEL /boot/vmlinuz
+  APPEND initrd=/boot/initrd root=live:CDLABEL=@@VOL_ID@@ init=/sbin/init ro rd.luks=0 rd.md=0 rd.dm=0 loglevel=4 vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ live.accessibility live.autologin nomodeset @@BOOT_CMDLINE@@
+
 LABEL c
   MENU LABEL Boot first HD found by BIOS
   COM32 chain.c32

@@ -505,7 +505,7 @@ class VoidEngine(BaseEngine):
             syslinux.generate_boot_image(self.iso_staging, bootloader_chroot)
 
         # Set up GRUB2 (UEFI) - for all architectures
-        grub = Grub2Bootloader(self.config, root_device_id="VOID_LIVE", kernel_version=kernel_version)
+        grub = Grub2Bootloader(self.config, root_device_id="VOID_MODERN", kernel_version=kernel_version)
         grub.prepare_files(self.iso_staging)
         grub.generate_boot_image(self.iso_staging, bootloader_chroot)
 
@@ -627,7 +627,7 @@ class VoidEngine(BaseEngine):
         Path(output_abs).parent.mkdir(parents=True, exist_ok=True)
 
         is_mock = getattr(self.toolchain, "mode", "mock") == "mock"
-        iso_label = self._cfg_get("system.iso_label", "VOID_LIVE")
+        iso_label = self._cfg_get("system.iso_label", "VOID_MODERN")
 
         xorriso_bin = "xorriso"
         if not is_mock and hasattr(self.toolchain, "host_dir"):

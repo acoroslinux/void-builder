@@ -73,7 +73,7 @@ class Grub2Bootloader:
         boot_title = self._cfg_get("boot_title", "Void Linux")
         desktop = str(self._cfg_get("desktop", "")).upper()
         arch = self._cfg_get("platform_specific.architecture", "x86_64")
-        iso_label = self._cfg_get("system.iso_label", "VOID_LIVE")
+        iso_label = self._cfg_get("system.iso_label", "VOID_MODERN")
         live_user = self._cfg_get("live_user", "liveuser")
 
         return {
@@ -101,7 +101,7 @@ class Grub2Bootloader:
         arch = self._cfg_get("platform_specific.architecture", "x86_64")
         is_aarch64 = arch.lower().startswith("aarch64")
         kernel_file = "vmlinux" if is_aarch64 else "vmlinuz"
-        iso_label = self._cfg_get("system.iso_label", "VOID_LIVE")
+        iso_label = self._cfg_get("system.iso_label", "VOID_MODERN")
 
         base_append = (
             f"root=live:CDLABEL={iso_label} ro init=/sbin/init "

@@ -293,8 +293,11 @@ class DracutAction(SystemAction):
             }
             comp = comp_flags.get(self.compression, "--xz")
 
-            force_add = ["vmklive", "dmsquash-live"] + self.extra_modules
-            omit = ["systemd", "plymouth"]
+            # Build force-add list matching void-mklive: "vmklive autoinstaller" as space-separated string
+            # Note: dmsquash-live is auto-resolved via module-setup.sh depends(), NOT forced
+            force_add_modules = ["vmklive", "autoinstaller"] + self.extra_modules
+            # Only omit systemd (matching void-mklive exactly - plymouth is NOT omitted so splash works)
+            omit = ["systemd"]
 
             cmd = ["dracut", "-N", comp]
             drivers = [
@@ -306,7 +309,7 @@ class DracutAction(SystemAction):
             ]
             for drv in drivers:
                 cmd.extend(["--add-drivers", drv])
-            for mod in force_add:
+            for mod in force_add_modules:
                 cmd.extend(["--force-add", mod])
             for mod in omit:
                 cmd.extend(["--omit", mod])
@@ -980,6 +983,13 @@ class SystemConfigurator:
                 initramfs = initramfs._data
             if isinstance(initramfs, dict):
                 self.actions.append(DracutAction(initramfs))
+            else:
+                logger.warning("  [Dracut] initramfs config is not a dict — using safe default (xz compression)")
+                self.actions.append(DracutAction({"compression": "xz"}))
+        else:
+            # Always build the initramfs — fallback to xz if config is missing
+            logger.info("  [Dracut] No initramfs config found — using safe default (xz compression)")
+            self.actions.append(DracutAction({"compression": "xz"}))
         arch = _safe_get(config, "platform_specific.architecture", "x86_64")
 
         # 9. Pipewire configuration
