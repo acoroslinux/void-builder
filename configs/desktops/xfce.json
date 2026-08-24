@@ -3,6 +3,9 @@
     "official": [
       "xfce4",
       "xfce4-power-manager",
+      "xfce4-pulseaudio-plugin",
+      "gnome-themes-standard",
+      "gnome-keyring",
       "lightdm",
       "lightdm-gtk-greeter",
       "lightdm-gtk-greeter-settings",

@@ -231,8 +231,32 @@ class ChrootManager:
         except Exception as e:
             logger.warning(f"[Chroot] Reconfiguring base-files in chroot warned: {e}")
 
+        # Pass 2.5: Reconfigure DKMS beforehand if present (creates /var/lib/dkms before modules configure)
+        try:
+            self.run_command("env -i xbps-reconfigure dkms", check=False)
+        except Exception as e:
+            pass
+
         # Pass 3: Reconfigure all packages inside chroot
         try:
             self.run_command("xbps-reconfigure -a", check=False)
         except Exception as e:
             logger.warning(f"[Chroot] Reconfiguring all packages in chroot warned: {e}")
+
+        # Set default /bin/sh alternative to dash if installed (matches void-mklive)
+        try:
+            self.run_command("xbps-alternatives -s dash", check=False)
+        except Exception:
+            pass
+
+        # Autoload dm-raid if module is present (prevents boot failure on RAID disks)
+        try:
+            modules_load_dir = self.chroot_path / "etc" / "modules-load.d"
+            modules_load_dir.mkdir(parents=True, exist_ok=True)
+            modules_path = self.chroot_path / "usr" / "lib" / "modules"
+            if modules_path.exists():
+                for ko in modules_path.glob("*/kernel/drivers/md/dm-raid.ko*"):
+                    (modules_load_dir / "dm-raid.conf").write_text("dm-raid\n", encoding="utf-8")
+                    break
+        except Exception:
+            pass
