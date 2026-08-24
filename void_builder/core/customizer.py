@@ -301,7 +301,7 @@ class DracutAction(SystemAction):
             # Note: dmsquash-live is auto-resolved via module-setup.sh depends(), NOT forced.
             force_add_modules = ["vmklive", "dmsquash-live"] + self.extra_modules
             # Only omit systemd (matching void-mklive exactly - plymouth is NOT omitted so splash works)
-            omit = ["systemd"]
+            omit = ["systemd", "rpcbind"]
 
             cmd = ["dracut", "-N", comp]
             drivers = [
