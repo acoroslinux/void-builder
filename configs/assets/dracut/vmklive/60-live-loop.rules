@@ -1,0 +1,2 @@
+# Prevent udev from locking loop devices during live boot
+SUBSYSTEM=="block", KERNEL=="loop[0-9]*", ENV{SYSTEMD_READY}="1", OPTIONS+="nowatch"

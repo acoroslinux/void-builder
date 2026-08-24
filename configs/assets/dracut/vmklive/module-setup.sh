@@ -23,6 +23,10 @@ install() {
         inst_hook pre-udev 01 "$moddir/mtd.sh"
     fi
 
+    if [ -f "$moddir/60-live-loop.rules" ]; then
+        inst_rules "$moddir/60-live-loop.rules"
+    fi
+
     [ -f "$moddir/adduser.sh" ]                   && inst_hook pre-pivot 01 "$moddir/adduser.sh"
     [ -f "$moddir/display-manager-autologin.sh" ] && inst_hook pre-pivot 02 "$moddir/display-manager-autologin.sh"
     [ -f "$moddir/getty-serial.sh" ]              && inst_hook pre-pivot 02 "$moddir/getty-serial.sh"
