@@ -31,7 +31,7 @@ if ! grep -q "^${USERSHELL}$" ${NEWROOT}/etc/shells 2>/dev/null; then
 fi
 
 # Ensure user groups exist
-for grp in wheel audio video storage network input dialout kvm lp lpadmin scanner users rpc _rpc; do
+for grp in wheel audio video storage network input dialout kvm lp lpadmin scanner users autologin rpc _rpc; do
     chroot ${NEWROOT} sh -c "getent group $grp >/dev/null 2>&1 || groupadd -r $grp 2>/dev/null || groupadd $grp"
 done
 if ! grep -q "^rpc:" ${NEWROOT}/etc/passwd 2>/dev/null; then
@@ -49,9 +49,9 @@ fi
 
 # Create new user if not exists, and set password with SHA512
 if ! chroot ${NEWROOT} id -u $USERNAME >/dev/null 2>&1; then
-    chroot ${NEWROOT} useradd -m -c "$USERNAME" -G audio,video,wheel,storage,network,input,dialout,kvm,lp,lpadmin,scanner,users -s $USERSHELL $USERNAME
+    chroot ${NEWROOT} useradd -m -c "$USERNAME" -G audio,video,wheel,storage,network,input,dialout,kvm,lp,lpadmin,scanner,users,autologin -s $USERSHELL $USERNAME
 else
-    chroot ${NEWROOT} usermod -aG audio,video,wheel,storage,network,input,dialout,kvm,lp,lpadmin,scanner,users $USERNAME 2>/dev/null
+    chroot ${NEWROOT} usermod -aG audio,video,wheel,storage,network,input,dialout,kvm,lp,lpadmin,scanner,users,autologin $USERNAME 2>/dev/null
 fi
 
 # Explicitly set the live user password with SHA-512 hashing

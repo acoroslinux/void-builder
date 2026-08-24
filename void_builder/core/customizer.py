@@ -136,7 +136,7 @@ class UserAction(SystemAction):
 
         if chroot.mode == "real":
             # Ensure standard and system groups exist
-            for sys_grp in ("rpc", "_rpc", "kvm", "input", "lpadmin", "scanner"):
+            for sys_grp in ("rpc", "_rpc", "kvm", "input", "lpadmin", "scanner", "autologin"):
                 chroot.run_command(f"getent group {sys_grp} >/dev/null 2>&1 || groupadd -r {sys_grp} 2>/dev/null || groupadd {sys_grp}", check=False)
             chroot.run_command("getent passwd rpc >/dev/null 2>&1 || useradd -r -M -g root -d /var/empty -s /bin/false rpc 2>/dev/null || true", check=False)
             chroot.run_command("getent passwd _rpc >/dev/null 2>&1 || useradd -r -M -g root -d /var/empty -s /bin/false _rpc 2>/dev/null || true", check=False)
