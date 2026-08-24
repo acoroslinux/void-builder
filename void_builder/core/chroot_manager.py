@@ -183,7 +183,7 @@ class ChrootManager:
         if not is_native:
             setup_qemu_binfmt(self.arch)
             copy_qemu_user_binary(self.arch, self.chroot_path)
-            cmd.append("-U")
+        cmd.append("-U")
         cmd.extend(packages)
 
         cmd_env = os.environ.copy()

@@ -328,15 +328,15 @@ class VoidEngine(BaseEngine):
         # 1. Mount virtual systems
         chroot_manager.mount()
 
-        # 2. Run system configuration / customizations
-        self.logger.info("[post_install] Running customizations through configurator...")
+        # 2. 3-pass package reconfigure (must happen first when using xbps-install -U)
+        self.logger.info("[post_install] Running Void 3-pass package reconfiguration...")
+        chroot_manager.run_reconfigure()
+
+        # 3. Run system configuration / customizations & dracut
+        self.logger.info("[post_install] Running customizations and generating initramfs...")
         configurator = SystemConfigurator(chroot_manager)
         configurator.load_from_config(self.config)
         configurator.apply()
-
-        # 3. 3-pass package reconfigure
-        self.logger.info("[post_install] Running Void 3-pass reconfigure...")
-        chroot_manager.run_reconfigure()
 
         # 4. Cleanup rootfs before unmounting (cache, tmp, dracut modules)
         self.logger.info("[post_install] Cleaning up rootfs caches and temporary files...")
@@ -642,15 +642,22 @@ class VoidEngine(BaseEngine):
             "-omit-period", "-omit-version-number",
             "-relaxed-filenames", "-allow-lowercase",
             "-volid", iso_label,
-            "-pad",
-            "-partition_offset", "16",
         ]
 
         # Add BIOS boot options if ISOLINUX is present
         isolinux_dir = self.iso_staging / "boot" / "isolinux"
         if (isolinux_dir / "isolinux.bin").exists():
-            isohdpfx_path = self.chroot_path / "usr" / "lib" / "syslinux" / "isohdpfx.bin"
-            if isohdpfx_path.exists():
+            isohdpfx_path = None
+            if hasattr(self.toolchain, "target_dir"):
+                candidate = self.toolchain.target_dir / "usr" / "lib" / "syslinux" / "isohdpfx.bin"
+                if candidate.exists():
+                    isohdpfx_path = candidate
+            if not isohdpfx_path:
+                candidate = self.chroot_path / "usr" / "lib" / "syslinux" / "isohdpfx.bin"
+                if candidate.exists():
+                    isohdpfx_path = candidate
+
+            if isohdpfx_path and isohdpfx_path.exists():
                 command.extend([
                     "-isohybrid-mbr", str(isohdpfx_path)
                 ])
