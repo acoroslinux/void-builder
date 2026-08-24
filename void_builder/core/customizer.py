@@ -639,39 +639,14 @@ class LoginManagerAction(SystemAction):
                     session = "plasma"
 
                 write_chroot_file("etc/lightdm/.session", session + "\n")
-                
-                # Update native /etc/lightdm/lightdm.conf
-                lightdm_conf = chroot.chroot_path / "etc" / "lightdm" / "lightdm.conf"
-                if lightdm_conf.exists():
-                    try:
-                        import re
-                        txt = lightdm_conf.read_text(encoding="utf-8", errors="replace")
-                        txt = re.sub(r"^#?autologin-user=.*", f"autologin-user={self.username}", txt, flags=re.MULTILINE)
-                        txt = re.sub(r"^#?autologin-user-timeout=.*", "autologin-user-timeout=0", txt, flags=re.MULTILINE)
-                        txt = re.sub(r"^#?autologin-session=.*", f"autologin-session={session}", txt, flags=re.MULTILINE)
-                        txt = re.sub(r"^#?user-session=.*", f"user-session={session}", txt, flags=re.MULTILINE)
-                        lightdm_conf.write_text(txt, encoding="utf-8")
-                        logger.info(f"  [LoginManager] Updated /etc/lightdm/lightdm.conf for autologin user '{self.username}'")
-                    except Exception as e:
-                        logger.warning(f"Failed to update /etc/lightdm/lightdm.conf: {e}")
-
-                write_chroot_file("etc/X11/Xwrapper.config", "allowed_users = anybody\nneeds_root_rights = yes\n")
-
-                autologin_conf = (
-                    "[Seat:*]\n"
-                    f"autologin-user={self.username}\n"
-                    "autologin-user-timeout=0\n"
-                    f"autologin-session={session}\n"
-                    f"user-session={session}\n"
-                    "greeter-session=lightdm-gtk-greeter\n"
-                )
-                write_chroot_file("etc/lightdm/lightdm.conf.d/10-autologin.conf", autologin_conf)
+                write_chroot_file("etc/X11/Xwrapper.config", "allowed_users=anybody\nneeds_root_rights=yes\n")
 
                 greeter_content = (
                     "[greeter]\n"
                     "indicators = ~host;~spacer;~clock;~spacer;~layout;~session;~a11y;~power\n"
                 )
                 write_chroot_file("etc/lightdm/lightdm-gtk-greeter.conf", greeter_content)
+                logger.info(f"  [LoginManager] Configured LightDM session to '{session}'")
                 
             # 2. SDDM Configuration
             elif self.display_manager == "sddm":

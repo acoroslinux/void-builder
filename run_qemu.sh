@@ -17,7 +17,6 @@ SMP="${DEFAULT_SMP}"
 VGA="${DEFAULT_VGA}"
 BOOT_MODE="${DEFAULT_BIOS}"
 ENABLE_KVM=true
-SERIAL_DEBUG=false
 
 # Colors for terminal output
 BOLD="\033[1m"
@@ -45,14 +44,12 @@ usage() {
     echo "  -c, --smp <cores>      Number of CPU cores (default: 2)"
     echo "  -v, --vga <type>       Graphics adapter: std (default/compatible), virtio, qxl, vmware"
     echo "  -u, --uefi             Boot with UEFI (OVMF) instead of Legacy BIOS"
-    echo "  -s, --serial           Attach serial console to current terminal (captures early boot)"
     echo "  --no-kvm               Disable KVM acceleration"
     echo "  -h, --help             Show this help message"
     echo ""
     echo "Examples:"
     echo "  $0                                      # Boot newest ISO with Standard VGA"
     echo "  $0 -v virtio                            # Boot with VirtIO GPU driver"
-    echo "  $0 -s                                   # Boot and redirect serial to terminal"
     echo "  $0 -u                                   # Boot with UEFI"
     echo "  $0 -m 4G -c 4                           # Boot with 4GB RAM and 4 CPU cores"
     exit 0
@@ -79,10 +76,6 @@ while [[ $# -gt 0 ]]; do
             ;;
         -u|--uefi)
             BOOT_MODE="uefi"
-            shift
-            ;;
-        -s|--serial)
-            SERIAL_DEBUG=true
             shift
             ;;
         --no-kvm)
@@ -143,16 +136,12 @@ QEMU_ARGS=(
     "-boot" "d"
     "-vga" "$VGA"
     "-display" "gtk"
+    "-serial" "mon:stdio"
     "-net" "nic,model=virtio"
     "-net" "user"
     "-usb"
     "-device" "usb-tablet"
 )
-
-if [ "$SERIAL_DEBUG" = true ]; then
-    echo -e "${GREEN}Serial:${RESET}    Attached to stdio"
-    QEMU_ARGS+=("-serial" "stdio")
-fi
 
 # KVM Acceleration check
 if [ "$ENABLE_KVM" = true ]; then
@@ -192,7 +181,7 @@ if [ "$BOOT_MODE" = "uefi" ]; then
 fi
 
 echo -e "${BLUE}------------------------------------------------------------------------------${RESET}"
-echo -e "${BOLD}Launching QEMU...${RESET}"
+echo -e "${BOLD}Launching QEMU (Serial console attached to this terminal)...${RESET}"
 echo -e "${BLUE}------------------------------------------------------------------------------${RESET}"
 
 # Execute QEMU
