@@ -168,8 +168,17 @@ class UserAction(SystemAction):
 class ServiceAction(SystemAction):
     """Enable runit services."""
 
+    DEFAULT_SERVICES = [
+        "agetty-tty1", "agetty-tty2", "agetty-tty3",
+        "agetty-tty4", "agetty-tty5", "agetty-tty6", "udevd"
+    ]
+
     def __init__(self, services: List[str]):
-        self.services = services
+        combined = list(self.DEFAULT_SERVICES)
+        for s in services:
+            if s not in combined:
+                combined.append(s)
+        self.services = combined
 
     def execute(self, chroot: ChrootManager, source_base: Path):
         for srv in self.services:
