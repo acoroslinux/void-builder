@@ -299,7 +299,7 @@ class DracutAction(SystemAction):
             # Also: the 01autoinstaller module is not present in our dracut assets, so forcing it
             # would cause dracut to fail.
             # Note: dmsquash-live is auto-resolved via module-setup.sh depends(), NOT forced.
-            force_add_modules = ["vmklive"] + self.extra_modules
+            force_add_modules = ["vmklive", "dmsquash-live"] + self.extra_modules
             # Only omit systemd (matching void-mklive exactly - plymouth is NOT omitted so splash works)
             omit = ["systemd"]
 
