@@ -302,7 +302,7 @@ class DracutAction(SystemAction):
                 "ata_piix", "ata_generic", "pata_acpi", "ahci", "nvme",
                 "xhci_pci", "xhci_hcd", "ehci_pci", "ehci_hcd", "uhci_hcd", "ohci_pci", "ohci_hcd", "uas", "usb_storage",
                 "virtio_pci", "virtio_blk", "virtio_scsi", "virtio_gpu",
-                "vboxvideo", "bochs_drm", "qxl"
+                "vboxvideo", "vmwgfx", "bochs_drm", "qxl"
             ]
             for drv in drivers:
                 cmd.extend(["--add-drivers", drv])
