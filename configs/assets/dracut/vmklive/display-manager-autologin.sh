@@ -31,7 +31,7 @@ _EOF
 fi
 
 # Configure lightdm autologin.
-if [ -r "${NEWROOT}/etc/lightdm/lightdm.conf" ] || [ -d "${NEWROOT}/etc/lightdm" ]; then
+if [ -r "${NEWROOT}/etc/lightdm/lightdm.conf" ]; then
     SESSION_NAME="xfce"
     if [ -f "${NEWROOT}/etc/lightdm/.session" ]; then
         SESSION_NAME=$(cat "${NEWROOT}/etc/lightdm/.session" 2>/dev/null | tr -d '\r\n')
@@ -40,23 +40,14 @@ if [ -r "${NEWROOT}/etc/lightdm/lightdm.conf" ] || [ -d "${NEWROOT}/etc/lightdm"
     [ "$SESSION_NAME" = "xfce4" ] && SESSION_NAME="xfce"
     [ "$SESSION_NAME" = "kde5" ] && SESSION_NAME="plasma"
 
-    if [ -r "${NEWROOT}/etc/lightdm/lightdm.conf" ]; then
-        sed -i -e "s|^\#\(autologin-user=\).*|\1$USERNAME|" "${NEWROOT}/etc/lightdm/lightdm.conf"
-        sed -i -e "s|^\#\(autologin-user-timeout=\).*|\10|" "${NEWROOT}/etc/lightdm/lightdm.conf"
-        sed -i -e "s|^\#\(autologin-session=\).*|\1$SESSION_NAME|" "${NEWROOT}/etc/lightdm/lightdm.conf"
-        sed -i -e "s|^\#\(user-session=\).*|\1$SESSION_NAME|" "${NEWROOT}/etc/lightdm/lightdm.conf"
-    fi
-
-    # Ensure /etc/lightdm/lightdm.conf.d/10-autologin.conf is present and accurate
-    mkdir -p "${NEWROOT}/etc/lightdm/lightdm.conf.d"
-    cat << _EOF > "${NEWROOT}/etc/lightdm/lightdm.conf.d/10-autologin.conf"
-[Seat:*]
-autologin-user=$USERNAME
-autologin-user-timeout=0
-autologin-session=$SESSION_NAME
-user-session=$SESSION_NAME
-greeter-session=lightdm-gtk-greeter
-_EOF
+    sed -i -e "s|^\#\(autologin-user=\).*|\1$USERNAME|" \
+        "${NEWROOT}/etc/lightdm/lightdm.conf"
+    sed -i -e "s|^\#\(autologin-user-timeout=\).*|\10|" \
+        "${NEWROOT}/etc/lightdm/lightdm.conf"
+    sed -i -e "s|^\#\(autologin-session=\).*|\1$SESSION_NAME|" \
+        "${NEWROOT}/etc/lightdm/lightdm.conf"
+    sed -i -e "s|^\#\(user-session=\).*|\1$SESSION_NAME|" \
+        "${NEWROOT}/etc/lightdm/lightdm.conf"
 fi
 
 # Configure lxdm autologin.

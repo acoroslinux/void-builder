@@ -34,8 +34,18 @@ fi
 for grp in wheel audio video storage network input dialout kvm lp lpadmin scanner users rpc _rpc; do
     chroot ${NEWROOT} sh -c "getent group $grp >/dev/null 2>&1 || groupadd -r $grp 2>/dev/null || groupadd $grp"
 done
-chroot ${NEWROOT} sh -c "getent passwd rpc >/dev/null 2>&1 || useradd -r -M -g rpc -d /var/empty -s /bin/false rpc 2>/dev/null || true"
-chroot ${NEWROOT} sh -c "getent passwd _rpc >/dev/null 2>&1 || useradd -r -M -g _rpc -d /var/empty -s /bin/false _rpc 2>/dev/null || true"
+if ! grep -q "^rpc:" ${NEWROOT}/etc/passwd 2>/dev/null; then
+    echo "rpc:x:99:99:RPC user:/var/empty:/bin/false" >> ${NEWROOT}/etc/passwd
+fi
+if ! grep -q "^_rpc:" ${NEWROOT}/etc/passwd 2>/dev/null; then
+    echo "_rpc:x:98:98:RPC user:/var/empty:/bin/false" >> ${NEWROOT}/etc/passwd
+fi
+if ! grep -q "^rpc:" ${NEWROOT}/etc/group 2>/dev/null; then
+    echo "rpc:x:99:" >> ${NEWROOT}/etc/group
+fi
+if ! grep -q "^_rpc:" ${NEWROOT}/etc/group 2>/dev/null; then
+    echo "_rpc:x:98:" >> ${NEWROOT}/etc/group
+fi
 
 # Create new user if not exists, and set password with SHA512
 if ! chroot ${NEWROOT} id -u $USERNAME >/dev/null 2>&1; then

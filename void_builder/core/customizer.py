@@ -624,6 +624,20 @@ class LoginManagerAction(SystemAction):
 
                 write_chroot_file("etc/lightdm/.session", session + "\n")
                 
+                # Update native /etc/lightdm/lightdm.conf
+                lightdm_conf = chroot_dir / "etc" / "lightdm" / "lightdm.conf"
+                if lightdm_conf.exists():
+                    try:
+                        import re
+                        txt = lightdm_conf.read_text(encoding="utf-8", errors="replace")
+                        txt = re.sub(r"^#?autologin-user=.*", f"autologin-user={self.username}", txt, flags=re.MULTILINE)
+                        txt = re.sub(r"^#?autologin-user-timeout=.*", "autologin-user-timeout=0", txt, flags=re.MULTILINE)
+                        txt = re.sub(r"^#?autologin-session=.*", f"autologin-session={session}", txt, flags=re.MULTILINE)
+                        txt = re.sub(r"^#?user-session=.*", f"user-session={session}", txt, flags=re.MULTILINE)
+                        lightdm_conf.write_text(txt, encoding="utf-8")
+                    except Exception as e:
+                        logger.warning(f"Failed to update /etc/lightdm/lightdm.conf: {e}")
+
                 autologin_conf = (
                     "[Seat:*]\n"
                     f"autologin-user={self.username}\n"
@@ -631,7 +645,6 @@ class LoginManagerAction(SystemAction):
                     f"autologin-session={session}\n"
                     f"user-session={session}\n"
                     "greeter-session=lightdm-gtk-greeter\n"
-                    'display-setup-script=sh -c "command -v plymouth >/dev/null 2>&1 && plymouth --quit || true"\n'
                 )
                 write_chroot_file("etc/lightdm/lightdm.conf.d/10-autologin.conf", autologin_conf)
 
@@ -1059,34 +1072,20 @@ class SystemConfigurator:
             arch = _safe_get(config, "platform_specific.architecture", "x86_64")
             self.actions.append(StructuredCopyAction(custom_path, final_copy_list, arch))
 
-        # 11c. Automatic Desktop-Specific Overlay Discovery from configs/custom_files/desktops/<name>/
-        desktop_candidates = []
+        # 11c. Explicit Desktop-Specific Overlay Discovery from configs/custom_files/desktops/<name>/
+        active_desktop = None
         desktop_val = _safe_get(config, "desktop") or _safe_get(config, "desktop_environment.name") or _safe_get(config, "preset_name")
         if desktop_val:
-            desktop_candidates.append(str(desktop_val).lower())
-        
-        off_pkgs = _safe_get(pkg_sources, "official", [])
-        for desk_kw in ("xfce", "kde", "gnome", "cinnamon", "mate", "lxqt", "i3", "bspwm", "awesome", "openbox", "hyprland", "budgie", "deepin", "sway", "enlightenment", "fluxbox", "icewm", "qtile"):
-            if any(desk_kw in str(p) for p in off_pkgs):
-                desktop_candidates.append(desk_kw)
+            raw_d = str(desktop_val).lower()
+            for desk_kw in ("xfce", "kde", "plasma", "gnome", "cinnamon", "mate", "lxqt", "i3", "bspwm", "awesome", "openbox", "hyprland", "budgie", "deepin", "sway", "enlightenment", "fluxbox", "icewm", "qtile"):
+                if desk_kw in raw_d:
+                    active_desktop = "kde" if desk_kw in ("kde", "plasma") else desk_kw
+                    break
 
-        normalized_desktops = set()
-        for d in desktop_candidates:
-            if "xfce" in d:
-                normalized_desktops.add("xfce")
-            elif "kde" in d or "plasma" in d:
-                normalized_desktops.add("kde")
-            elif "gnome" in d:
-                normalized_desktops.add("gnome")
-            else:
-                for k in ("cinnamon", "mate", "lxqt", "i3", "bspwm", "awesome", "openbox", "hyprland", "budgie", "deepin", "sway", "enlightenment", "fluxbox", "icewm", "qtile"):
-                    if k in d:
-                        normalized_desktops.add(k)
-
-        for d_name in sorted(normalized_desktops):
-            desktop_overlay = resolve_from_project(f"configs/custom_files/desktops/{d_name}")
+        if active_desktop:
+            desktop_overlay = resolve_from_project(f"configs/custom_files/desktops/{active_desktop}")
             if desktop_overlay.exists():
-                logger.info(f"Auto-applying desktop custom files overlay for '{d_name}': {desktop_overlay}")
+                logger.info(f"Auto-applying desktop custom files overlay for '{active_desktop}': {desktop_overlay}")
                 self.actions.append(OverlayAction(str(desktop_overlay)))
 
         # 11d. Workstation / Profile-Specific Overlay Discovery
