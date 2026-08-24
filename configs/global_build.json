@@ -173,7 +173,6 @@
     "xorg-input-drivers",
     "xorg-minimal",
     "xorg-video-drivers",
-    "xf86-video-vmware",
     "xterm",
     "xtools",
     "xtools-minimal",
