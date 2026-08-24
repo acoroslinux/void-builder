@@ -1,16 +1,8 @@
-2026-08-22 17:19:21,166 - ISOBuilder - INFO - === Step 5: Bootloaders ===
-2026-08-22 17:19:21,167 - ISOBuilder - INFO - Platform image (rpi) relies on native firmware from rpi-base. Skipping GRUB/Syslinux.
-2026-08-22 17:19:21,167 - ISOBuilder - INFO - === Step 6: Finalizing Platform .img File ===
-2026-08-22 17:19:21,291 - ISOBuilder - INFO - [finalize] Dynamically calculated image size: 2633M (rootfs is ~1627MB)
-2026-08-22 17:19:21,291 - ISOBuilder - INFO - [finalize] Creating platform image: /home/manuel/void-builder/output/void-builder-minimal-rpi-aarch64.img (2633M)
-2026-08-22 17:19:21,575 - ISOBuilder - INFO - [finalize] Formatting partitions on /dev/loop0...
-2026-08-22 17:19:21,785 - ISOBuilder - INFO - [finalize] Copying RootFS to image (This may take a moment)...
-2026-08-22 17:19:32,781 - ISOBuilder - INFO - [finalize] Successfully created platform image: /home/manuel/void-builder/output/void-builder-minimal-rpi-aarch64.img
-2026-08-22 17:19:32,781 - ISOBuilder - INFO - [finalize] Compressing image with xz (This will take a while but will drastically reduce size)...
-2026-08-22 17:20:37,666 - ISOBuilder - INFO - [finalize] Successfully compressed image: /home/manuel/void-builder/output/void-builder-minimal-rpi-aarch64.img.xz
-2026-08-22 17:20:37,670 - ISOBuilder - INFO - [manifest] Generating checksums and manifest for void-builder-minimal-rpi-aarch64.img.xz...
-2026-08-22 17:20:41,342 - ISOBuilder - INFO - [manifest] Generated SHA256: void-builder-minimal-rpi-aarch64.img.xz.sha256
-2026-08-22 17:20:41,342 - ISOBuilder - INFO - [manifest] Generated SHA512: void-builder-minimal-rpi-aarch64.img.xz.sha512
-2026-08-22 17:20:41,342 - ISOBuilder - INFO - [manifest] Generated MD5: void-builder-minimal-rpi-aarch64.img.xz.md5
-2026-08-22 17:20:41,342 - ISOBuilder - INFO - [manifest] Generated Manifest: void-builder-minimal-rpi-aarch64.img.xz.manifest.json
-2026-08-22 17:20:41,342 - ISOBuilder - INFO - === Build completed in 447.44s ===
+2026-08-24 15:43:04,359 - Grub2Bootloader - INFO - [GRUB2] GRUB EFI configured
+2026-08-24 15:43:04,359 - Grub2Bootloader - INFO - [GRUB2] Generating UEFI boot image (efiboot.img)...
+2026-08-24 15:43:04,371 - Grub2Bootloader - INFO - [GRUB2] Copied unicode.pf2 from chroot to enable graphical boot
+2026-08-24 15:43:04,537 - Grub2Bootloader - INFO - [GRUB2] Building EFI loader for i386-efi (BOOTIA32.EFI)...
+2026-08-24 15:43:04,857 - Grub2Bootloader - INFO - [GRUB2] Successfully built and embedded BOOTIA32.EFI into efiboot.img
+2026-08-24 15:43:04,857 - Grub2Bootloader - INFO - [GRUB2] Building EFI loader for x86_64-efi (BOOTX64.EFI)...
+2026-08-24 15:43:05,049 - Grub2Bootloader - INFO - [GRUB2] Successfully built and embedded BOOTX64.EFI into efiboot.img
+2026-08-24 15:43:05,049 - Grub2Bootloader - INFO - [GRUB2] efiboot.img created successfully: /home/manuel/void-builder/workdir/i686/iso-staging/boot/grub/efiboot.img

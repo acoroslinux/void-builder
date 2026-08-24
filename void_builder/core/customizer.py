@@ -137,9 +137,10 @@ class UserAction(SystemAction):
         if chroot.mode == "real":
             # Ensure standard and system groups exist
             for sys_grp in ("rpc", "_rpc", "kvm", "input", "lpadmin", "scanner"):
-                chroot.run_command(f"getent group {sys_grp} >/dev/null 2>&1 || groupadd -r {sys_grp} 2>/dev/null || groupadd {sys_grp}")
-            chroot.run_command("getent passwd rpc >/dev/null 2>&1 || useradd -r -M -g rpc -d /var/empty -s /bin/false rpc 2>/dev/null || true")
-            chroot.run_command("getent passwd _rpc >/dev/null 2>&1 || useradd -r -M -g _rpc -d /var/empty -s /bin/false _rpc 2>/dev/null || true")
+                chroot.run_command(f"getent group {sys_grp} >/dev/null 2>&1 || groupadd -r {sys_grp} 2>/dev/null || groupadd {sys_grp}", check=False)
+            chroot.run_command("getent passwd rpc >/dev/null 2>&1 || useradd -r -M -g root -d /var/empty -s /bin/false rpc 2>/dev/null || true", check=False)
+            chroot.run_command("getent passwd _rpc >/dev/null 2>&1 || useradd -r -M -g root -d /var/empty -s /bin/false _rpc 2>/dev/null || true", check=False)
+            chroot.run_command("usermod -a -G rpc,_rpc,root rpc 2>/dev/null || true", check=False)
 
             for group in groups:
                 chroot.run_command(f"getent group {group} >/dev/null 2>&1 || groupadd {group}")
@@ -737,10 +738,6 @@ class PlymouthAction(SystemAction):
                 logger.info(f"  [Plymouth] Setting theme to '{theme_name}'.")
                 try:
                     chroot.run_command(f"sh -c 'echo \"[Daemon]\nTheme={theme_name}\nShowDelay=0\n\" > /etc/plymouth/plymouthd.conf'", check=False)
-                    # Add runit core-service hook so plymouth stops cleanly when transitioning to display manager
-                    core_services = chroot.chroot_path / "etc" / "runit" / "core-services"
-                    if core_services.exists():
-                        chroot.run_command("sh -c 'echo \"[ -x /usr/bin/plymouth ] && /usr/bin/plymouth --quit || true\" > /etc/runit/core-services/99-plymouth.sh && chmod 755 /etc/runit/core-services/99-plymouth.sh'", check=False)
                 except Exception as e:
                     logger.warning(f"  [Plymouth] Failed to set default theme: {e}")
             else:
