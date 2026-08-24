@@ -116,8 +116,8 @@ class Grub2Bootloader:
             cmd = f"{base_append} {extra_cmdline}".strip()
             ent = f'menuentry "{full_title}" --id "{entry_id}" {{\n'
             ent += '    set gfxpayload="keep"\n'
-            ent += f'    linux /boot/{kernel_file} {cmd}\n'
-            ent += f'    initrd /boot/initrd\n'
+            ent += f'    linux (${{voidlive}})/boot/{kernel_file} {cmd}\n'
+            ent += f'    initrd (${{voidlive}})/boot/initrd\n'
             ent += '}\n\n'
             return ent
 
@@ -138,7 +138,7 @@ class Grub2Bootloader:
                 p_cmdline = plat_info.get("cmdline", "")
                 p_dtb = plat_info.get("dtb", "")
                 
-                dtb_line = f"        devicetree /boot/dtbs/{p_dtb}\n" if p_dtb else ""
+                dtb_line = f"        devicetree (${{voidlive}})/boot/dtbs/{p_dtb}\n" if p_dtb else ""
                 
                 entries += f'\nsubmenu "{boot_title} for {p_name} >" --id platform-{platform} {{\n'
                 
@@ -147,8 +147,8 @@ class Grub2Bootloader:
                     cmd = f"{base_append} {p_cmdline} {extra_cmdline}".strip()
                     ent = f'    menuentry "{full_title}" --id "{entry_id}" {{\n'
                     ent += '        set gfxpayload="keep"\n'
-                    ent += f'        linux /boot/{kernel_file} {cmd}\n'
-                    ent += f'        initrd /boot/initrd\n'
+                    ent += f'        linux (${{voidlive}})/boot/{kernel_file} {cmd}\n'
+                    ent += f'        initrd (${{voidlive}})/boot/initrd\n'
                     ent += dtb_line
                     ent += '    }\n'
                     return ent
@@ -165,12 +165,12 @@ class Grub2Bootloader:
             entries += 'if [ "${grub_platform}" == "efi" ]; then\n'
             entries += '    menuentry "Run Memtest86+ (RAM test)" --id memtest {\n'
             entries += '        set gfxpayload="keep"\n'
-            entries += '        linux /boot/memtest.efi\n'
+            entries += '        linux (${voidlive})/boot/memtest.efi\n'
             entries += '    }\n'
             entries += 'else\n'
             entries += '    menuentry "Run Memtest86+ (RAM test)" --id memtest {\n'
             entries += '        set gfxpayload="keep"\n'
-            entries += '        linux /boot/memtest.bin\n'
+            entries += '        linux (${voidlive})/boot/memtest.bin\n'
             entries += '    }\n'
             entries += 'fi\n'
 

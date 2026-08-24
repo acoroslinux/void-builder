@@ -56,7 +56,6 @@ autologin-user-timeout=0
 autologin-session=$SESSION_NAME
 user-session=$SESSION_NAME
 greeter-session=lightdm-gtk-greeter
-display-setup-script=sh -c "command -v plymouth >/dev/null 2>&1 && plymouth --quit || true"
 _EOF
 fi
 
