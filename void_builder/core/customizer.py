@@ -293,9 +293,13 @@ class DracutAction(SystemAction):
             }
             comp = comp_flags.get(self.compression, "--xz")
 
-            # Build force-add list matching void-mklive: "vmklive autoinstaller" as space-separated string
-            # Note: dmsquash-live is auto-resolved via module-setup.sh depends(), NOT forced
-            force_add_modules = ["vmklive", "autoinstaller"] + self.extra_modules
+            # Build force-add list: only vmklive is needed for the live environment.
+            # autoinstaller (VAI) is void-mklive's unattended installer for CI/PXE deployments
+            # and is NOT needed here because void-builder uses Calamares as the graphical installer.
+            # Also: the 01autoinstaller module is not present in our dracut assets, so forcing it
+            # would cause dracut to fail.
+            # Note: dmsquash-live is auto-resolved via module-setup.sh depends(), NOT forced.
+            force_add_modules = ["vmklive"] + self.extra_modules
             # Only omit systemd (matching void-mklive exactly - plymouth is NOT omitted so splash works)
             omit = ["systemd"]
 
