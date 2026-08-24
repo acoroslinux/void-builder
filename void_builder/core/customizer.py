@@ -634,7 +634,7 @@ class LoginManagerAction(SystemAction):
                 write_chroot_file("etc/lightdm/.session", session + "\n")
                 
                 # Update native /etc/lightdm/lightdm.conf
-                lightdm_conf = chroot_dir / "etc" / "lightdm" / "lightdm.conf"
+                lightdm_conf = chroot.chroot_path / "etc" / "lightdm" / "lightdm.conf"
                 if lightdm_conf.exists():
                     try:
                         import re
@@ -644,8 +644,11 @@ class LoginManagerAction(SystemAction):
                         txt = re.sub(r"^#?autologin-session=.*", f"autologin-session={session}", txt, flags=re.MULTILINE)
                         txt = re.sub(r"^#?user-session=.*", f"user-session={session}", txt, flags=re.MULTILINE)
                         lightdm_conf.write_text(txt, encoding="utf-8")
+                        logger.info(f"  [LoginManager] Updated /etc/lightdm/lightdm.conf for autologin user '{self.username}'")
                     except Exception as e:
                         logger.warning(f"Failed to update /etc/lightdm/lightdm.conf: {e}")
+
+                write_chroot_file("etc/X11/Xwrapper.config", "allowed_users = anybody\nneeds_root_rights = yes\n")
 
                 autologin_conf = (
                     "[Seat:*]\n"
