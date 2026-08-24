@@ -553,11 +553,9 @@ class VoidEngine(BaseEngine):
             # 2. Truncate image file
             subprocess.run(["truncate", "-s", f"{img_size_mb}M", str(ext3_img)], check=True)
             
-            # 3. Run mkfs.ext3 with fast lazy init options
+            # 3. Run mkfs.ext3 matching void-mklive
             subprocess.run([
-                "mkfs.ext3", "-F", "-m", "0",
-                "-O", "has_journal,fast_commit",
-                "-E", "lazy_itable_init=1,lazy_journal_init=1",
+                "mkfs.ext3", "-F", "-m", "1",
                 str(ext3_img)
             ], check=True)
             
@@ -589,6 +587,10 @@ class VoidEngine(BaseEngine):
                     if res.returncode == 0:
                         break
                     time.sleep(1)
+                try:
+                    mount_point.rmdir()
+                except OSError:
+                    pass
 
             # 5. Generate squashfs from tmp_dir
             mksquashfs_bin = "mksquashfs"

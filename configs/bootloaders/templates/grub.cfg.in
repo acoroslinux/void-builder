@@ -14,7 +14,7 @@ menuentry 'Start @@BOOT_TITLE@@ @@DESKTOP@@ (Live)' --class void --class gnu-lin
     if [ -z "$root" ]; then
         search --no-floppy --set=root --file /boot/vmlinuz
     fi
-    linux /boot/vmlinuz root=live:CDLABEL=@@VOL_ID@@ ro init=/sbin/init rd.luks=0 rd.md=0 rd.dm=0 loglevel=4 gpt add_efi_memmap vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ @@BOOT_CMDLINE@@ @@KERNEL_PARAMS@@
+    linux /boot/vmlinuz root=live:CDLABEL=@@VOL_ID@@ ro init=/sbin/init rd.luks=0 rd.md=0 rd.dm=0 loglevel=4 gpt add_efi_memmap vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ @@BOOT_CMDLINE@@
     initrd /boot/initrd
 }
 
@@ -24,7 +24,7 @@ menuentry 'Start @@BOOT_TITLE@@ @@DESKTOP@@ (Copy to RAM)' --class void --class 
     if [ -z "$root" ]; then
         search --no-floppy --set=root --file /boot/vmlinuz
     fi
-    linux /boot/vmlinuz root=live:CDLABEL=@@VOL_ID@@ ro init=/sbin/init rd.luks=0 rd.md=0 rd.dm=0 loglevel=4 gpt add_efi_memmap vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ rd.live.ram @@BOOT_CMDLINE@@ @@KERNEL_PARAMS@@
+    linux /boot/vmlinuz root=live:CDLABEL=@@VOL_ID@@ ro init=/sbin/init rd.luks=0 rd.md=0 rd.dm=0 loglevel=4 gpt add_efi_memmap vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ rd.live.ram @@BOOT_CMDLINE@@
     initrd /boot/initrd
 }
 
@@ -34,7 +34,7 @@ menuentry 'Start @@BOOT_TITLE@@ @@DESKTOP@@ (Safe Graphics - nomodeset)' --class
     if [ -z "$root" ]; then
         search --no-floppy --set=root --file /boot/vmlinuz
     fi
-    linux /boot/vmlinuz root=live:CDLABEL=@@VOL_ID@@ ro init=/sbin/init rd.luks=0 rd.md=0 rd.dm=0 loglevel=4 gpt add_efi_memmap vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ nomodeset @@BOOT_CMDLINE@@ @@KERNEL_PARAMS@@
+    linux /boot/vmlinuz root=live:CDLABEL=@@VOL_ID@@ ro init=/sbin/init rd.luks=0 rd.md=0 rd.dm=0 loglevel=4 gpt add_efi_memmap vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ nomodeset @@BOOT_CMDLINE@@
     initrd /boot/initrd
 }
 
@@ -44,7 +44,7 @@ menuentry 'Start @@BOOT_TITLE@@ @@DESKTOP@@ with Speech (Accessibility)' --class
     if [ -z "$root" ]; then
         search --no-floppy --set=root --file /boot/vmlinuz
     fi
-    linux /boot/vmlinuz root=live:CDLABEL=@@VOL_ID@@ ro init=/sbin/init rd.luks=0 rd.md=0 rd.dm=0 loglevel=4 gpt add_efi_memmap vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ live.accessibility live.autologin @@BOOT_CMDLINE@@ @@KERNEL_PARAMS@@
+    linux /boot/vmlinuz root=live:CDLABEL=@@VOL_ID@@ ro init=/sbin/init rd.luks=0 rd.md=0 rd.dm=0 loglevel=4 gpt add_efi_memmap vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ live.accessibility live.autologin @@BOOT_CMDLINE@@
     initrd /boot/initrd
 }
 

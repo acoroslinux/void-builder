@@ -1,4 +1,4 @@
-#!/bin/sh -x
+#!/bin/sh
 # -*- mode: shell-script; indent-tabs-mode: nil; sh-basic-offset: 4; -*-
 # ex: ts=8 sw=4 sts=4 et filetype=sh
 
@@ -6,19 +6,14 @@ if ! type getarg >/dev/null 2>&1 && ! type getargbool >/dev/null 2>&1; then
     . /lib/dracut-lib.sh
 fi
 
-# Save hostname only if it's empty or not configured yet
 if [ ! -s ${NEWROOT}/etc/hostname ]; then
     echo void-live > ${NEWROOT}/etc/hostname
 fi
 
 USERNAME=$(getarg live.user)
 USERSHELL=$(getarg live.shell)
-PASSWORD=$(getarg live.password)
-ROOTPASSWORD=$(getarg live.rootpassword)
 
 [ -z "$USERNAME" ] && USERNAME=live
-[ -z "$PASSWORD" ] && PASSWORD=live
-[ -z "$ROOTPASSWORD" ] && ROOTPASSWORD=voidlinux
 [ -x $NEWROOT/bin/bash -a -z "$USERSHELL" ] && USERSHELL=/bin/bash
 [ -z "$USERSHELL" ] && USERSHELL=/bin/sh
 
@@ -30,66 +25,28 @@ if ! grep -q "^${USERSHELL}$" ${NEWROOT}/etc/shells 2>/dev/null; then
     echo ${USERSHELL} >> ${NEWROOT}/etc/shells
 fi
 
-# Ensure user groups exist
-for grp in wheel audio video storage network input dialout kvm lp lpadmin scanner users autologin rpc _rpc; do
-    chroot ${NEWROOT} sh -c "getent group $grp >/dev/null 2>&1 || groupadd -r $grp 2>/dev/null || groupadd $grp"
-done
-if ! grep -q "^rpc:" ${NEWROOT}/etc/passwd 2>/dev/null; then
-    echo "rpc:x:99:99:RPC user:/var/empty:/bin/false" >> ${NEWROOT}/etc/passwd
-fi
-if ! grep -q "^_rpc:" ${NEWROOT}/etc/passwd 2>/dev/null; then
-    echo "_rpc:x:98:98:RPC user:/var/empty:/bin/false" >> ${NEWROOT}/etc/passwd
-fi
-if ! grep -q "^rpc:" ${NEWROOT}/etc/group 2>/dev/null; then
-    echo "rpc:x:99:" >> ${NEWROOT}/etc/group
-fi
-if ! grep -q "^_rpc:" ${NEWROOT}/etc/group 2>/dev/null; then
-    echo "_rpc:x:98:" >> ${NEWROOT}/etc/group
-fi
+# Ensure autologin group exists
+chroot ${NEWROOT} groupadd -r autologin 2>/dev/null || true
 
-# Create new user if not exists, and set password with SHA512
+# Create new user and remove password. We'll use autologin by default.
 if ! chroot ${NEWROOT} id -u $USERNAME >/dev/null 2>&1; then
     chroot ${NEWROOT} useradd -m -c "$USERNAME" -G audio,video,wheel,storage,network,input,dialout,kvm,lp,lpadmin,scanner,users,autologin -s $USERSHELL $USERNAME
 else
-    chroot ${NEWROOT} usermod -aG audio,video,wheel,storage,network,input,dialout,kvm,lp,lpadmin,scanner,users,autologin $USERNAME 2>/dev/null
+    chroot ${NEWROOT} usermod -aG audio,video,wheel,storage,network,input,dialout,kvm,lp,lpadmin,scanner,users,autologin $USERNAME 2>/dev/null || true
 fi
+chroot ${NEWROOT} passwd -d $USERNAME >/dev/null 2>&1
 
-# Explicitly set the live user password with SHA-512 hashing
-chroot ${NEWROOT} sh -c "echo \"$USERNAME:$PASSWORD\" | chpasswd -c SHA512"
+# Setup default root/user password (voidlinux).
+chroot ${NEWROOT} sh -c 'echo "root:voidlinux" | chpasswd -c SHA512' 2>/dev/null || true
+chroot ${NEWROOT} sh -c "echo \"$USERNAME:voidlinux\" | chpasswd -c SHA512" 2>/dev/null || true
 
-# Setup root password with SHA-512 hashing
-chroot ${NEWROOT} sh -c "echo \"root:$ROOTPASSWORD\" | chpasswd -c SHA512"
-
-# Ensure user home permissions
-chroot ${NEWROOT} sh -c "mkdir -p /home/$USERNAME && chown -R $USERNAME:$USERNAME /home/$USERNAME"
-
-# Fix shadow and PAM permissions strictly
-chmod 600 ${NEWROOT}/etc/shadow 2>/dev/null
-chmod 644 ${NEWROOT}/etc/passwd 2>/dev/null
-chmod 644 ${NEWROOT}/etc/group 2>/dev/null
-[ -f ${NEWROOT}/etc/gshadow ] && chmod 600 ${NEWROOT}/etc/gshadow 2>/dev/null
-chown root:root ${NEWROOT}/etc/shadow ${NEWROOT}/etc/passwd ${NEWROOT}/etc/group 2>/dev/null
-[ -f ${NEWROOT}/etc/gshadow ] && chown root:root ${NEWROOT}/etc/gshadow 2>/dev/null
-
-# Fix SUID permissions on critical PAM / auth binaries
-for suid_bin in /usr/bin/passwd /usr/bin/su /usr/bin/sudo /usr/bin/chfn /usr/bin/chsh /usr/bin/newgrp /usr/bin/gpasswd /usr/bin/unix_chkpwd /sbin/unix_chkpwd /usr/libexec/polkit-1/polkit-agent-helper-1; do
-    if [ -f "${NEWROOT}${suid_bin}" ]; then
-        chmod 4755 "${NEWROOT}${suid_bin}" 2>/dev/null
-        chown root:root "${NEWROOT}${suid_bin}" 2>/dev/null
-    fi
-done
-
-# Enable sudo permission by default with correct strict permissions (0440)
-if [ -f ${NEWROOT}/etc/sudoers ]; then
-    chmod 440 ${NEWROOT}/etc/sudoers 2>/dev/null
-    chown root:root ${NEWROOT}/etc/sudoers 2>/dev/null
-    mkdir -p "${NEWROOT}/etc/sudoers.d"
-    chmod 750 "${NEWROOT}/etc/sudoers.d" 2>/dev/null
-    chown root:root "${NEWROOT}/etc/sudoers.d" 2>/dev/null
+# Enable sudo permission by default with correct 0440 mode
+if [ -d ${NEWROOT}/etc/sudoers.d ]; then
     echo "${USERNAME} ALL=(ALL:ALL) NOPASSWD: ALL" > "${NEWROOT}/etc/sudoers.d/99-void-live"
     echo "%wheel ALL=(ALL:ALL) NOPASSWD: ALL" >> "${NEWROOT}/etc/sudoers.d/99-void-live"
-    chmod 440 ${NEWROOT}/etc/sudoers.d/* 2>/dev/null
-    chown -R root:root "${NEWROOT}/etc/sudoers.d" 2>/dev/null
+    chmod 440 "${NEWROOT}/etc/sudoers.d/99-void-live" 2>/dev/null || true
+elif [ -f ${NEWROOT}/etc/sudoers ]; then
+    echo "${USERNAME} ALL=(ALL:ALL) NOPASSWD: ALL" >> "${NEWROOT}/etc/sudoers"
 fi
 
 if [ -d ${NEWROOT}/etc/polkit-1 ]; then
@@ -100,12 +57,12 @@ polkit.addAdminRule(function(action, subject) {
 });
 
 polkit.addRule(function(action, subject) {
-    if (subject.isInGroup("wheel")) {
+    if (subject.isInGroup("wheel") || subject.isInGroup("autologin")) {
         return polkit.Result.YES;
     }
 });
 _EOF
-    chroot ${NEWROOT} chown polkitd:polkitd /etc/polkit-1/rules.d/void-live.rules 2>/dev/null
+    chroot ${NEWROOT} chown polkitd:polkitd /etc/polkit-1/rules.d/void-live.rules 2>/dev/null || true
 fi
 
 if getargbool 0 live.autologin; then
