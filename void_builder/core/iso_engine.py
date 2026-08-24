@@ -1,3 +1,4 @@
+from __future__ import annotations
 from abc import ABC, abstractmethod
 from pathlib import Path
 import shutil
@@ -13,7 +14,7 @@ from void_builder.core.path_utils import resolve_from_project
 from void_builder.utils.logger import setup_logger
 
 logger = setup_logger("ISOBuilder")
-_ENGINE_REGISTRY: Dict[str, Type["BaseEngine"]] = {}
+_ENGINE_REGISTRY: Dict[str, Type[ISOEngine]] = {}
 
 class ISOBuilderError(Exception):
     """Raised when the build orchestration flow cannot proceed."""
@@ -25,7 +26,7 @@ class ISOEngine(ABC):
 
     @classmethod
     def register(cls, arch_name: str):
-        def decorator(engine_class: Type["BaseEngine"]):
+        def decorator(engine_class: Type[ISOEngine]):
             if arch_name in _ENGINE_REGISTRY:
                 raise TypeError(f"Architecture '{arch_name}' is already registered.")
             _ENGINE_REGISTRY[arch_name] = engine_class
