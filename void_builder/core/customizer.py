@@ -292,33 +292,23 @@ class DracutAction(SystemAction):
                 "zstd": "--zstd",
             }
             comp = comp_flags.get(self.compression, "--xz")
-
-            # Build force-add list: only vmklive is needed for the live environment.
-            # autoinstaller (VAI) is void-mklive's unattended installer for CI/PXE deployments
-            # and is NOT needed here because void-builder uses Calamares as the graphical installer.
-            # Also: the 01autoinstaller module is not present in our dracut assets, so forcing it
-            # would cause dracut to fail.
-            # Note: dmsquash-live is auto-resolved via module-setup.sh depends(), NOT forced.
-            force_add_modules = ["vmklive", "dmsquash-live"] + self.extra_modules
-            # Only omit systemd (matching void-mklive exactly - plymouth is NOT omitted so splash works)
-            omit = ["systemd", "rpcbind"]
-
-            cmd = ["dracut", "-N", comp]
-            drivers = [
-                "overlay", "loop", "isofs", "squashfs", "cdrom", "sr_mod", "sd_mod",
-                "ata_piix", "ata_generic", "pata_acpi", "ahci", "nvme",
-                "xhci_pci", "xhci_hcd", "ehci_pci", "ehci_hcd", "uhci_hcd", "ohci_pci", "ohci_hcd", "uas", "usb_storage",
-                "virtio_pci", "virtio_blk", "virtio_scsi", "virtio_gpu",
-                "vboxvideo", "vmwgfx", "bochs_drm", "qxl"
+            
+            initrd_path = "/boot/initrd"
+            kver = kernel_version
+            
+            # Match upstream void-mklive exactly, plus rpcbind omit
+            cmd = [
+                "dracut", "-N", comp,
+                "--add-drivers", "ahci",
+                "--force-add", "vmklive",
+                "--omit", "systemd",
+                "--omit", "rpcbind",
+                "--force",
+                str(initrd_path),
+                kver
             ]
-            for drv in drivers:
-                cmd.extend(["--add-drivers", drv])
-            for mod in force_add_modules:
-                cmd.extend(["--force-add", mod])
-            for mod in omit:
-                cmd.extend(["--omit", mod])
-            cmd.extend(["--force", "/boot/initrd", kernel_version])
 
+            # Convert list to string for execution inside chroot
             cmd_str = " ".join(cmd)
             logger.info(f"  [Dracut] Command: {cmd_str}")
             
