@@ -340,9 +340,10 @@ class VoidEngine(BaseEngine):
         configurator.apply()
 
         # 4. Cleanup rootfs before unmounting (cache, tmp, dracut modules)
-        self.logger.info("[post_install] Cleaning up rootfs caches and temporary files...")
-        chroot_manager.run_command("rm -rf /var/cache/xbps/*", check=False)
-        chroot_manager.run_command("rm -rf /var/tmp/* /tmp/* /run/*", check=False)
+        self.logger.info("[post_install] Cleaning up rootfs caches and temporary files to optimize ISO size...")
+        # Match void-mklive: rm -rf /var/cache/* /run/* /var/run/*
+        # Also clean /tmp and /var/tmp which void-mklive ignores but are safe to clear.
+        chroot_manager.run_command("rm -rf /var/cache/* /var/tmp/* /tmp/* /run/* /var/run/*", check=False)
         chroot_manager.run_command("rm -rf /usr/lib/dracut/modules.d/01vmklive", check=False)
         from void_builder.utils.lib import clean_qemu_user_binary
         clean_qemu_user_binary(self.arch, self.chroot_path)
