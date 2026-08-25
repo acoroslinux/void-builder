@@ -514,6 +514,25 @@ class VoidEngine(BaseEngine):
         """Create the squashed root filesystem (wrapped in ext3fs.img for dmsquash-live)."""
         self.logger.info("=== Step 4: Compressing Root Filesystem ===")
 
+        # CRITICAL: Unmount pseudofs BEFORE copying rootfs into ext3fs.img.
+        # Without this, /dev /proc /sys from the host get baked into the
+        # SquashFS image, causing dracut to crash with 'Signal caught!' on boot.
+        # This matches void-mklive's generate_squashfs() which starts with:
+        #   umount_pseudofs || exit 1
+        chroot_manager = getattr(self.toolchain, "chroot_manager", None)
+        if chroot_manager:
+            chroot_manager.umount()
+
+        # Also ensure the pseudofs mount points inside chroot are empty directories
+        # (safety net in case umount was already done but dirs have stale content)
+        import subprocess, os
+        chroot_cmd = [] if os.geteuid() == 0 else ["sudo"]
+        for d in ["dev", "proc", "sys", "run"]:
+            target = self.chroot_path / d
+            if target.is_mount():
+                self.logger.warning(f"[squashfs] {target} still mounted! Force unmounting...")
+                subprocess.run(chroot_cmd + ["umount", "-R", "-l", str(target)], check=False)
+
         liveos_dir = self.iso_staging / "LiveOS"
         liveos_dir.mkdir(parents=True, exist_ok=True)
         squashfs_img = liveos_dir / "squashfs.img"
