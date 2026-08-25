@@ -328,16 +328,18 @@ class Grub2Bootloader:
             for grub_arch, efi_name in builds:
                 logger.info(f"[GRUB2] Building EFI loader for {grub_arch} ({efi_name})...")
                 efi_out = workdir / "boot" / "grub" / efi_name
-                grub_mod_dir = chroot / "usr" / "lib" / "grub" / grub_arch
-                if not grub_mod_dir.exists():
-                    grub_mod_dir = Path(f"/usr/lib/grub/{grub_arch}")
-
-                host_grub_mk = shutil.which("grub-mkstandalone")
+                # Use void-target for modules and void-host for the binary, exactly like void-mklive
+                toolchain_target = workdir.parent / "build_host" / "void-target"
+                toolchain_host = workdir.parent / "build_host" / "void-host"
+                
+                grub_mod_dir = toolchain_target / "usr" / "lib" / "grub" / grub_arch
+                host_grub_mk = toolchain_host / "usr" / "bin" / "grub-mkstandalone"
+                
                 built = False
 
-                if host_grub_mk and grub_mod_dir.exists():
+                if host_grub_mk.exists() and grub_mod_dir.exists():
                     cmd_host = [
-                        host_grub_mk,
+                        str(host_grub_mk),
                         f"--directory={grub_mod_dir}",
                         f"--format={grub_arch}",
                         f"--output={efi_out}",
