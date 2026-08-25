@@ -556,7 +556,7 @@ class VoidEngine(BaseEngine):
 
         # 1. Determine rootfs size
         try:
-            res = subprocess.run(["du", "-sm", str(self.chroot_path)], capture_output=True, text=True, check=True)
+            res = subprocess.run(["du", "--apparent-size", "-sm", str(self.chroot_path)], capture_output=True, text=True, check=True)
             size_mb = int(res.stdout.split()[0])
         except Exception as e:
             self.logger.warning(f"Failed to determine rootfs size, using 4000MB fallback: {e}")
@@ -591,7 +591,7 @@ class VoidEngine(BaseEngine):
             subprocess.run(chroot_cmd + ["mount", "-o", "loop", str(ext3_img), str(mount_point)], check=True)
             try:
                 self.logger.info(f"Copying rootfs into ext3fs.img (Size: {img_size_mb}MB)...")
-                subprocess.run(chroot_cmd + ["cp", "-a", f"{self.chroot_path}/.", str(mount_point)], check=True)
+                subprocess.run(chroot_cmd + ["bash", "-c", f"shopt -s dotglob; cp -a {self.chroot_path}/* {mount_point}/"], check=True)
 
                 # Strictly ensure security permissions inside ext3fs.img
                 subprocess.run(chroot_cmd + ["chmod", "600", f"{mount_point}/etc/shadow"], check=False)
@@ -636,6 +636,7 @@ class VoidEngine(BaseEngine):
 
             self.logger.info(f"[squashfs] Command: {' '.join(cmd)}")
             subprocess.run(cmd, check=True, capture_output=False)
+            subprocess.run(["chmod", "444", str(squashfs_img)], check=True)
 
         self.logger.info(f"[squashfs] SquashFS created: {squashfs_img}")
 
@@ -862,7 +863,7 @@ class PlatformEngine(VoidEngine):
             img_size = img_size_config
         else:
             try:
-                du_res = subprocess.run(["du", "-sm", str(self.chroot_path)], capture_output=True, text=True, check=True)
+                du_res = subprocess.run(["du", "--apparent-size", "-sm", str(self.chroot_path)], capture_output=True, text=True, check=True)
                 used_mb = int(du_res.stdout.split()[0])
                 # Add 25% buffer + 600MB for Boot partition and fs overhead
                 required_mb = int(used_mb * 1.25) + 600
