@@ -173,9 +173,8 @@ def mount_pseudofs(rootfs):
         rc, _, _ = CommandRunner.run(['mountpoint', '-q', target], check=False, capture_output=True, silent_errors=True)
         if rc == 0:
             continue
-            
-        # Revert to -r (Read-Only) to strictly protect the host from rm -rf!
-        rc, _, stderr = CommandRunner.run(['mount', '-r', '--rbind', f'/{fs}', target], check=False)
+        # Match mklive.sh exactly: standard rbind (rw), no -r flag to ensure full compatibility
+        rc, _, stderr = CommandRunner.run(['mount', '--rbind', f'/{fs}', target], check=False)
         if rc != 0:
             error_msg(f"Failed to mount {fs}: {stderr}")
             return False
