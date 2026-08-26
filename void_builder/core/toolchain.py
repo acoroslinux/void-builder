@@ -82,28 +82,53 @@ class ToolchainManager:
             cache_dir = Path(tempfile.gettempdir()) / "void-builder-cache" / "xbps" / arch
             cache_dir.mkdir(parents=True, exist_ok=True)
 
-        cmd = [
-            str(self.xbps_install_static), "-S", "-r", str(rootdir),
-            "-c", str(cache_dir),
-            "-y"
-        ]
-        if unpack_only:
-            cmd.append("-U")
-        for repo in repos:
-            cmd.extend(["-R", repo])
-        cmd.extend(packages)
-
         from void_builder.utils.lib import map_xbps_arch
         xbps_arch = map_xbps_arch(arch)
 
         cmd_env = os.environ.copy()
         cmd_env["XBPS_ARCH"] = xbps_arch
 
-        logger.info(f"[TOOLCHAIN] Bootstrapping packages in {rootdir}: {', '.join(packages)}")
-        res = subprocess.run(cmd, env=cmd_env)
-        if res.returncode != 0:
-            logger.error(f"[TOOLCHAIN] Bootstrap failed (exit {res.returncode}).")
-            raise RuntimeError(f"Bootstrap failed with exit code {res.returncode}")
+        mirror_fallbacks = [
+            ("https://repo-default.voidlinux.org", "https://repo-fi.voidlinux.org"),
+            ("https://repo-default.voidlinux.org", "https://repo-de.voidlinux.org"),
+            ("https://repo-default.voidlinux.org", "https://repo-fastly.voidlinux.org"),
+        ]
+
+        current_repos = list(repos)
+        max_attempts = max(1, getattr(self, "retries", 3))
+        last_error_code = 1
+
+        import time
+        for attempt in range(1, max_attempts + 1):
+            cmd = [
+                str(self.xbps_install_static), "-S", "-r", str(rootdir),
+                "-c", str(cache_dir),
+                "-y"
+            ]
+            if unpack_only:
+                cmd.append("-U")
+            for repo in current_repos:
+                cmd.extend(["-R", repo])
+            cmd.extend(packages)
+
+            logger.info(f"[TOOLCHAIN] Bootstrapping packages (attempt {attempt}/{max_attempts}) in {rootdir}: {', '.join(packages)}")
+            res = subprocess.run(cmd, env=cmd_env)
+            if res.returncode == 0:
+                return
+
+            last_error_code = res.returncode
+            logger.warning(f"[TOOLCHAIN] Bootstrap attempt {attempt} failed with exit code {res.returncode}.")
+            if attempt < max_attempts:
+                # Try replacing primary mirror with a healthy mirror fallback
+                for old_m, new_m in mirror_fallbacks:
+                    if any(old_m in r for r in current_repos):
+                        current_repos = [r.replace(old_m, new_m) for r in current_repos]
+                        logger.info(f"[TOOLCHAIN] Retrying with alternative mirror: {new_m}")
+                        break
+                time.sleep(2 * attempt)
+
+        logger.error(f"[TOOLCHAIN] Bootstrap failed after {max_attempts} attempts (exit {last_error_code}).")
+        raise RuntimeError(f"Bootstrap failed with exit code {last_error_code}")
 
     def _bootstrap_toolchain_dirs(self):
         # 1. Copy keys

@@ -169,32 +169,58 @@ class ChrootManager:
             return
 
         xbps_install = str(self.toolchain.xbps_install_static)
-        cmd = [
-            xbps_install, "-S", "-r", str(self.chroot_path),
-            "-c", str(cache_dir),
-        ]
-        for repo in internal_repos:
-            cmd.extend(["-R", repo])
-        cmd.extend(["-y"])
         from void_builder.utils.lib import map_xbps_arch, is_target_native, setup_qemu_binfmt, copy_qemu_user_binary
         xbps_arch = map_xbps_arch(self.arch)
         is_native = is_target_native(self.arch)
         if not is_native:
             setup_qemu_binfmt(self.arch)
             copy_qemu_user_binary(self.arch, self.chroot_path)
-        cmd.append("-U")
-        cmd.extend(packages)
 
         cmd_env = os.environ.copy()
         cmd_env["XBPS_ARCH"] = xbps_arch
 
-        logger.info(f"[Chroot] Running host-side xbps-install.static for {xbps_arch}: {' '.join(cmd)}")
-        res = subprocess.run(cmd, env=cmd_env)
-        if res.returncode != 0:
-            logger.error(f"[Chroot] Package installation failed (exit {res.returncode}).")
-            raise ChrootError(f"Package installation failed with exit code {res.returncode}")
+        max_attempts = 3
+        if hasattr(self, "toolchain") and hasattr(self.toolchain, "retries"):
+            max_attempts = max(1, self.toolchain.retries)
 
-        logger.info("[Chroot] Package installation completed successfully.")
+        import time
+        mirror_fallbacks = [
+            ("https://repo-default.voidlinux.org", "https://repo-fi.voidlinux.org"),
+            ("https://repo-default.voidlinux.org", "https://repo-de.voidlinux.org"),
+            ("https://repo-default.voidlinux.org", "https://repo-fastly.voidlinux.org"),
+        ]
+
+        current_repos = list(internal_repos)
+        last_rc = 1
+
+        for attempt in range(1, max_attempts + 1):
+            cmd = [
+                xbps_install, "-S", "-r", str(self.chroot_path),
+                "-c", str(cache_dir),
+            ]
+            for repo in current_repos:
+                cmd.extend(["-R", repo])
+            cmd.extend(["-y", "-U"])
+            cmd.extend(packages)
+
+            logger.info(f"[Chroot] Running host-side xbps-install.static (attempt {attempt}/{max_attempts}) for {xbps_arch}...")
+            res = subprocess.run(cmd, env=cmd_env)
+            if res.returncode == 0:
+                logger.info("[Chroot] Package installation completed successfully.")
+                return
+
+            last_rc = res.returncode
+            logger.warning(f"[Chroot] Package installation attempt {attempt} failed with exit code {res.returncode}.")
+            if attempt < max_attempts:
+                for old_m, new_m in mirror_fallbacks:
+                    if any(old_m in r for r in current_repos):
+                        current_repos = [r.replace(old_m, new_m) for r in current_repos]
+                        logger.info(f"[Chroot] Retrying with alternative mirror: {new_m}")
+                        break
+                time.sleep(2 * attempt)
+
+        logger.error(f"[Chroot] Package installation failed after {max_attempts} attempts (exit {last_rc}).")
+        raise ChrootError(f"Package installation failed with exit code {last_rc}")
 
     def run_reconfigure(self) -> None:
         """Perform 3-pass package reconfiguration inside Void Linux rootfs."""
