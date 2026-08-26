@@ -19,13 +19,13 @@
     "geany",
     "strace",
     "jq",
-    "shellcheck",
     "pkg-config",
     "autoconf",
     "automake",
     "libtool"
   ],
   "optional_packages": [
+    "shellcheck",
     "clang",
     "lldb",
     "valgrind",
