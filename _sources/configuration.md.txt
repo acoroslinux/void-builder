@@ -40,7 +40,7 @@ configs/
   "system": {
     "iso_label": "VOID_MODERN",
     "workdir_base": "workdir",
-    "xbps_cache": "workdir/cache/xbps"
+    "xbps_cache": "cache/xbps"
   },
   "iso": {
     "compression_type": "xz"
