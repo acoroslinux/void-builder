@@ -38,6 +38,16 @@ menuentry 'Start @@BOOT_TITLE@@ @@DESKTOP@@ (Safe Graphics - nomodeset)' --class
     initrd /boot/initrd
 }
 
+menuentry 'Start @@BOOT_TITLE@@ @@DESKTOP@@ (Debug Mode)' --class void --class gnu-linux --class os --hotkey=d {
+    set gfxpayload="keep"
+    search --no-floppy --set=root --label @@VOL_ID@@
+    if [ -z "$root" ]; then
+        search --no-floppy --set=root --file /boot/vmlinuz
+    fi
+    linux /boot/vmlinuz root=live:CDLABEL=@@VOL_ID@@ ro init=/sbin/init rd.luks=0 rd.md=0 rd.dm=0 loglevel=7 rd.debug vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ @@BOOT_CMDLINE@@
+    initrd /boot/initrd
+}
+
 menuentry 'Start @@BOOT_TITLE@@ @@DESKTOP@@ with Speech (Accessibility)' --class void --class gnu-linux --class os --hotkey=s {
     set gfxpayload="keep"
     search --no-floppy --set=root --label @@VOL_ID@@

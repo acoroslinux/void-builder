@@ -1,8 +1,8 @@
 import shutil
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
-from void_builder.core.chroot_manager import ChrootError, ChrootManager
+from void_builder.core.chroot_manager import ChrootManager
 from void_builder.core.path_utils import project_root, resolve_from_base, resolve_from_project
 from void_builder.utils.logger import setup_logger
 
@@ -149,13 +149,13 @@ class UserAction(SystemAction):
 
             chroot.run_command(f"id -u {name} >/dev/null 2>&1 || useradd -m -s /bin/bash {name}")
             if groups_str:
-                chroot.run_command(f"usermod -G {groups_str} {name}")
+                chroot.run_command(f"usermod -a -G {groups_str} {name}")
 
             chroot.run_command(f"mkdir -p /home/{name}")
             chroot.run_command(f"chown -R {name}:{name} /home/{name}")
 
             if password:
-                chroot.run_command(f"sh -c \"echo '{name}:{password}' | chpasswd -c SHA512\"")
+                chroot.run_command(f"chpasswd -c SHA512 << 'EOF'\n{name}:{password}\nEOF")
 
             if "wheel" in groups:
                 chroot.run_command(
@@ -241,81 +241,88 @@ class CommandAction(SystemAction):
 
 
 class DracutAction(SystemAction):
-    """Configure initramfs generation through dracut."""
+    """Generate initramfs using dracut with standard live-ISO modules."""
+
+    # Standard dracut modules required for live squashfs boot
+    LIVE_MODULES = ["dmsquash-live"]
+    # Modules to omit (Void uses runit, not systemd)
+    OMIT_MODULES = ["systemd"]
+    # Extra kernel drivers to always include (storage, IDE/SATA controllers, CD-ROM, loop, filesystems)
+    ADD_DRIVERS = [
+        "ahci",
+        "ata_piix",
+        "ata_generic",
+        "pata_acpi",
+        "cdrom",
+        "sr_mod",
+        "sd_mod",
+        "loop",
+        "squashfs",
+        "overlay",
+        "isofs",
+        "virtio_pci",
+        "virtio_blk",
+        "virtio_scsi",
+    ]
+
+    COMPRESSION_FLAGS = {
+        "xz": "--xz",
+        "gzip": "--gzip",
+        "lz4": "--lz4",
+        "bzip2": "--bzip2",
+        "zstd": "--zstd",
+    }
 
     def __init__(self, initramfs_config: Dict[str, Any]):
         self.compression = initramfs_config.get("compression", "xz")
         self.extra_modules = initramfs_config.get("dracut_modules", [])
 
+    def _detect_kernel_version(self, chroot: ChrootManager) -> Optional[str]:
+        """Detect the newest kernel version installed in the chroot."""
+        modules_dir = chroot.chroot_path / "usr" / "lib" / "modules"
+        if not modules_dir.is_dir():
+            logger.error("  [Dracut] /usr/lib/modules not found in chroot!")
+            return None
+        versions = [d for d in modules_dir.iterdir() if d.is_dir()]
+        if not versions:
+            logger.error("  [Dracut] No kernel versions found in /usr/lib/modules!")
+            return None
+        versions.sort(key=lambda d: d.stat().st_mtime, reverse=True)
+        return versions[0].name
+
     def execute(self, chroot: ChrootManager, source_base: Path):
-        logger.info("  [Dracut] Running dracut for initramfs...")
-        if chroot.mode == "real":
-            import shutil
-            mklive_dir = project_root() / "configs" / "assets"
-            dracut_modules_dir = chroot.chroot_path / "usr" / "lib" / "dracut" / "modules.d"
-            dracut_modules_dir.mkdir(parents=True, exist_ok=True)
+        logger.info("  [Dracut] Generating initramfs...")
+        if chroot.mode != "real":
+            logger.info("    [Mock] dracut -N ... (initramfs generation skipped in mock mode)")
+            return
 
-            for module_name, dest_name in [("vmklive", "01vmklive")]:
-                src = mklive_dir / "dracut" / module_name
-                dest = dracut_modules_dir / dest_name
-                if src.is_dir():
-                    if dest.exists():
-                        shutil.rmtree(dest)
-                    import os
-                    import subprocess
-                    if os.geteuid() != 0:
-                        subprocess.run(["sudo", "cp", "-a", str(src), str(dest)], check=True)
-                    else:
-                        shutil.copytree(src, dest)
-                    logger.info(f"  [Dracut] Installed module: {module_name}")
-                else:
-                    logger.warning(f"  [Dracut] Module {module_name} not found at {src}")
+        kernel_version = self._detect_kernel_version(chroot)
+        if not kernel_version:
+            return
+        logger.info(f"  [Dracut] Detected kernel: {kernel_version}")
 
-            modules_dir = chroot.chroot_path / "usr" / "lib" / "modules"
-            if not modules_dir.is_dir():
-                logger.error("  [Dracut] No kernel modules directory found!")
-                return
-            versions_dirs = [d for d in modules_dir.iterdir() if d.is_dir()]
-            if not versions_dirs:
-                logger.error("  [Dracut] No kernel found in /usr/lib/modules!")
-                return
-            # Sort by modified time (newest first) to match mklive.sh's `ls -t` behavior
-            versions_dirs.sort(key=lambda d: d.stat().st_mtime, reverse=True)
-            kernel_version = versions_dirs[0].name
-            logger.info(f"  [Dracut] Detected kernel version: {kernel_version} (most recently modified)")
+        # Build the list of modules to force-add
+        force_modules = list(self.LIVE_MODULES)
+        if self.extra_modules:
+            force_modules.extend(self.extra_modules)
 
-            comp_flags = {
-                "xz": "--xz",
-                "gzip": "--gzip",
-                "lz4": "--lz4",
-                "bzip2": "--bzip2",
-                "zstd": "--zstd",
-            }
-            comp = comp_flags.get(self.compression, "--xz")
-            
-            initrd_path = "/boot/initrd"
-            kver = kernel_version
-            
-            # Match upstream void-mklive exactly, plus rpcbind omit
-            cmd = [
-                "dracut", "-N", comp,
-                "--add-drivers", "ahci",
-                "--force-add", "vmklive",
-                "--omit", "systemd",
-                "--omit", "rpcbind",
-                "--force",
-                str(initrd_path),
-                kver
-            ]
+        comp_flag = self.COMPRESSION_FLAGS.get(self.compression, "--xz")
+        initrd_path = "/boot/initrd"
 
-            # Convert list to string for execution inside chroot
-            cmd_str = " ".join(cmd)
-            logger.info(f"  [Dracut] Command: {cmd_str}")
-            
-            chroot.run_command(cmd_str)
-            logger.info("  [Dracut] Initramfs generated successfully")
-        else:
-            logger.info("    [Mock] dracut -N --xz --force-add vmklive --omit systemd ... /boot/initrd")
+        cmd_parts = [
+            "dracut", "-N", comp_flag,
+            "--add-drivers", f'"{" ".join(self.ADD_DRIVERS)}"',
+            "--force-add", f'"{" ".join(force_modules)}"',
+        ]
+        for omit in self.OMIT_MODULES:
+            cmd_parts.extend(["--omit", omit])
+        cmd_parts.extend(["--force", initrd_path, kernel_version])
+
+        cmd_str = " ".join(cmd_parts)
+        logger.info(f"  [Dracut] Command: {cmd_str}")
+        chroot.run_command(cmd_str)
+        logger.info(f"  [Dracut] Initramfs generated: {initrd_path} (kernel {kernel_version})")
+
 
 
 class LocaleAction(SystemAction):
@@ -391,13 +398,13 @@ class RootPasswordAction(SystemAction):
         elif self.password is not None:
             logger.info("  [Security] Setting root account password...")
             if chroot.mode == "real":
-                chroot.run_command(f"sh -c \"echo 'root:{self.password}' | chpasswd -c SHA512\"")
+                chroot.run_command(f"chpasswd -c SHA512 << 'EOF'\nroot:{self.password}\nEOF")
             else:
                 logger.info("    [Mock] Set root account password")
         else:
             logger.info("  [Security] Setting default root password ('voidlinux')...")
             if chroot.mode == "real":
-                chroot.run_command("sh -c \"echo 'root:voidlinux' | chpasswd -c SHA512\"")
+                chroot.run_command("chpasswd -c SHA512 << 'EOF'\nroot:voidlinux\nEOF")
             else:
                 logger.info("    [Mock] Set default root password ('voidlinux')")
 
@@ -420,8 +427,7 @@ class SecurityPermissionsAction(SystemAction):
 
             # 3. Sudoers permissions (must be strictly 0440 and owned by root:root)
             chroot.run_command("[ -f /etc/sudoers ] && chmod 440 /etc/sudoers && chown root:root /etc/sudoers", check=False)
-            chroot.run_command("mkdir -p /etc/sudoers.d && chmod 750 /etc/sudoers.d && chown root:root /etc/sudoers.d", check=False)
-            chroot.run_command("chmod 440 /etc/sudoers.d/* && chown -R root:root /etc/sudoers.d", check=False)
+            chroot.run_command("mkdir -p /etc/sudoers.d && chmod 750 /etc/sudoers.d && chown -R root:root /etc/sudoers.d && (chmod 440 /etc/sudoers.d/* 2>/dev/null || true)", check=False)
 
             # 4. SUID binaries for authentication
             suid_bins = [
@@ -721,8 +727,6 @@ class PlymouthAction(SystemAction):
     def execute(self, chroot: ChrootManager, source_base: Path):
         logger.info("  [Plymouth] Configuring default boot theme...")
         if chroot.mode == "real":
-            import shutil
-            from void_builder.core.path_utils import resolve_from_project
             # Check if our custom theme was injected by StructuredCopyAction
             dest = chroot.chroot_path / "usr/share/plymouth/themes/void-modern"
             theme_name = "bgrt"
@@ -734,7 +738,7 @@ class PlymouthAction(SystemAction):
             if plymouth_dir.exists():
                 logger.info(f"  [Plymouth] Setting theme to '{theme_name}'.")
                 try:
-                    chroot.run_command(f"sh -c 'echo \"[Daemon]\nTheme={theme_name}\nShowDelay=0\n\" > /etc/plymouth/plymouthd.conf'", check=False)
+                    chroot.run_command(f"printf '[Daemon]\\nTheme={theme_name}\\nShowDelay=0\\n' > /etc/plymouth/plymouthd.conf", check=False)
                 except Exception as e:
                     logger.warning(f"  [Plymouth] Failed to set default theme: {e}")
             else:
@@ -907,8 +911,7 @@ class SystemConfigurator:
         # 3b. Root password / security
         root_pwd = cust_config.get("root_password") or _safe_get(config, "root_password")
         lock_root = cust_config.get("lock_root") or _safe_get(config, "lock_root", False)
-        if root_pwd or lock_root:
-            self.actions.append(RootPasswordAction(password=root_pwd, lock=bool(lock_root)))
+        self.actions.append(RootPasswordAction(password=root_pwd, lock=bool(lock_root)))
 
         # 3c. SSH authorized keys
         ssh_keys = cust_config.get("ssh_keys") or _safe_get(config, "ssh_keys", [])
@@ -993,11 +996,12 @@ class SystemConfigurator:
                 username = "void"
                 users = cust_config.get("users", [])
                 if users:
-                    first_user = users[0]
-                    if hasattr(first_user, "_data"):
-                        first_user = first_user._data
-                    if isinstance(first_user, dict):
-                        username = first_user.get("name", "void")
+                    for u in users:
+                        if hasattr(u, "_data"):
+                            u = u._data
+                        if isinstance(u, dict) and u.get("name") not in ("root", ""):
+                            username = u.get("name")
+                            break
 
                 session_name = None
                 off_pkgs = _safe_get(pkg_sources, "official", [])

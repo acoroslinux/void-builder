@@ -2,10 +2,8 @@ import argparse
 import re
 import sys
 from pathlib import Path
-from typing import Any, Optional, Union, List, Dict
+from typing import Any, Optional
 
-from void_builder.core.config_loader import ConfigLoader
-from void_builder.core.iso_engine import Config
 from void_builder.core.orchestrator import BuildOrchestrator, BuildOrchestratorError
 from void_builder.core.path_utils import resolve_from_project
 
@@ -23,12 +21,24 @@ def _slugify_name(value: str, fallback: str) -> str:
     return normalized or fallback
 
 
-def _resolve_output_name(architecture: str, desktop: str = None, output: str = None, platform: Any = None) -> str:
+def _resolve_output_name(
+    architecture: str,
+    desktop: Optional[str] = None,
+    output: Optional[str] = None,
+    platform: Any = None,
+    output_format: str = "iso",
+) -> str:
     if output:
         return output
 
     desktop_label = _slugify_name(desktop or "base", "base")
     arch_label = _slugify_name(architecture, "x86_64")
+
+    ext = "iso"
+    if output_format == "tarball":
+        ext = "tar.xz"
+    elif output_format == "img":
+        ext = "img"
 
     plat_str = ""
     if isinstance(platform, list) and platform:
@@ -38,8 +48,8 @@ def _resolve_output_name(architecture: str, desktop: str = None, output: str = N
 
     if plat_str and plat_str.lower() != architecture.lower():
         plat_label = _slugify_name(plat_str, "")
-        return f"void-builder-{desktop_label}-{plat_label}-{arch_label}.iso"
-    return f"void-builder-{desktop_label}-{arch_label}.iso"
+        return f"void-builder-{desktop_label}-{plat_label}-{arch_label}.{ext}"
+    return f"void-builder-{desktop_label}-{arch_label}.{ext}"
 
 
 def main():
@@ -106,7 +116,9 @@ def main():
     )
 
     parser.add_argument(
+        "--toolchain-retries",
         "--toolchain-pacman-retries",
+        dest="toolchain_retries",
         type=int,
         default=3,
         help="Number of retry attempts for package operations.",
@@ -457,8 +469,9 @@ def main():
     if args.clean_cache:
         import shutil
         cache_dirs = [
-            resolve_from_project("workdir/cache/xbps"),
-            resolve_from_project("workdir/cache/tarballs"),
+            resolve_from_project("cache/xbps"),
+            resolve_from_project("cache/tarballs"),
+            resolve_from_project("cache"),
             resolve_from_project("workdir/cache"),
         ]
         print("🧹 Cleaning local package and stage seed caches...")
@@ -512,7 +525,6 @@ def main():
         import os
         import subprocess
         import shutil
-        import pwd
         from void_builder.utils.lib import ensure_static_xbps, get_tools_dir
         
         real_user = os.environ.get("SUDO_USER") or os.environ.get("USER")
@@ -536,8 +548,9 @@ def main():
         bin_dir = Path(tools_dir) / "usr" / "bin"
         for f in bin_dir.glob("*.static"):
             link_name = f.with_suffix("")
-            if not link_name.exists():
-                os.symlink(f.name, link_name)
+            if link_name.is_symlink() or link_name.exists():
+                link_name.unlink(missing_ok=True)
+            os.symlink(f.name, link_name)
                 
         # Fix permissions so the non-root user can traverse and execute the static tools
         if os.geteuid() == 0:
@@ -631,6 +644,7 @@ def main():
         desktop=args.desktop or args.preset,
         output=args.output,
         platform=args.platform,
+        output_format=args.format,
     )
 
     config_root = resolve_from_project("configs")
@@ -703,7 +717,7 @@ def main():
         force_isolated_toolchain=args.force_isolated_toolchain,
         toolchain_debug=args.toolchain_debug,
         toolchain_debug_log=args.toolchain_debug_log,
-        toolchain_pacman_retries=args.toolchain_pacman_retries,
+        toolchain_retries=args.toolchain_retries,
         desktop=args.desktop,
         kernel=args.kernel,
         bootloader=args.bootloader,

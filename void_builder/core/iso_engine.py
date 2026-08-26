@@ -2,13 +2,11 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from pathlib import Path
 import shutil
-import tempfile
 from typing import Any, Dict, List, Optional, Type, Union
 
 from void_builder.core.config_loader import Config
 from void_builder.core.bootloaders.grub2 import Grub2Bootloader
 from void_builder.core.bootloaders.syslinux import SyslinuxBootloader
-from void_builder.core.chroot_manager import ChrootManager
 from void_builder.core.customizer import SystemConfigurator
 from void_builder.core.path_utils import resolve_from_project
 from void_builder.utils.logger import setup_logger
@@ -102,7 +100,10 @@ class BaseEngine(ISOEngine):
         # Keep order while deduplicating.
         official_all = list(dict.fromkeys([*legacy, *official]))
 
-        if self.config.get("desktop_environment") or any(d in str(official_all) for d in ("xfce", "kde", "gnome", "mate")):
+        if self.config.get("desktop_environment") or self.config.get("desktop") or any(
+            any(pkg == d or pkg.startswith(f"{d}-") or pkg.startswith(f"{d}4-") or pkg.startswith(f"{d}4") for d in ("xfce", "kde", "gnome", "mate", "cinnamon", "lxde", "lxqt", "i3", "sway"))
+            for pkg in official_all
+        ):
             common_desktop = self._normalize_packages(self._cfg_get("common_desktop_packages", []))
             official_all.extend(pkg for pkg in common_desktop if pkg not in official_all)
 
@@ -305,13 +306,16 @@ class VoidEngine(BaseEngine):
         local_pkgs_dir = resolve_from_project("custom_packages")
         
         if local_pkgs_dir.exists() and local_pkgs_dir.is_dir():
-            xbps_files = list(local_pkgs_dir.glob("*.xbps"))
+            xbps_files = [str(p) for p in local_pkgs_dir.glob("*.xbps")]
             if len(xbps_files) > 0:
                 self.logger.info(f"[Packages] Found {len(xbps_files)} custom local packages in {local_pkgs_dir}. Indexing...")
                 import subprocess
                 try:
                     xbps_rindex_bin = str(self.toolchain.xbps_install_static).replace("xbps-install.static", "xbps-rindex.static")
-                    subprocess.run(f"{xbps_rindex_bin} -a {local_pkgs_dir}/*.xbps", shell=True, check=True)
+                    if Path(xbps_rindex_bin).exists():
+                        subprocess.run([xbps_rindex_bin, "-a"] + xbps_files, check=True)
+                    else:
+                        subprocess.run(["xbps-rindex", "-a"] + xbps_files, check=True)
                     repos.insert(0, str(local_pkgs_dir))  # Insert at priority 0
                     self.logger.info(f"[Packages] Added local repository to the front: {local_pkgs_dir}")
                 except Exception as e:
@@ -333,18 +337,18 @@ class VoidEngine(BaseEngine):
         self.logger.info("[post_install] Running Void 3-pass package reconfiguration...")
         chroot_manager.run_reconfigure()
 
-        # 3. Run system configuration / customizations & dracut
+        # 3. Run system configuration / customizations & dracut initramfs generation
         self.logger.info("[post_install] Running customizations and generating initramfs...")
         configurator = SystemConfigurator(chroot_manager)
         configurator.load_from_config(self.config)
         configurator.apply()
 
-        # 4. Cleanup rootfs before unmounting (cache, tmp, dracut modules)
+        # 4. Cleanup rootfs before unmounting (cache, tmp)
         self.logger.info("[post_install] Cleaning up rootfs caches and temporary files to optimize ISO size...")
         # Match void-mklive: rm -rf /var/cache/* /run/* /var/run/*
         # Also clean /tmp and /var/tmp which void-mklive ignores but are safe to clear.
         chroot_manager.run_command("rm -rf /var/cache/* /var/tmp/* /tmp/* /run/* /var/run/*", check=False)
-        chroot_manager.run_command("rm -rf /usr/lib/dracut/modules.d/01vmklive", check=False)
+        # No custom dracut modules to clean up (using standard dmsquash-live only)
         from void_builder.utils.lib import clean_qemu_user_binary
         clean_qemu_user_binary(self.arch, self.chroot_path)
 
@@ -423,12 +427,19 @@ class VoidEngine(BaseEngine):
                 break
 
         if not kernel_found or not initrd_found:
-            self.logger.warning("[bootloaders] Kernel or initramfs not found in chroot /boot. Using mock placeholders.")
             if getattr(self.toolchain, "mode", "mock") == "mock":
-                (staging_boot / kernel_name).write_text("mock-kernel")
-                (staging_boot / "initrd").write_text("mock-initrd")
+                self.logger.warning("[bootloaders] Kernel or initramfs not found in chroot /boot. Using mock placeholders.")
+                if not kernel_found:
+                    (staging_boot / kernel_name).write_text("mock-kernel")
+                if not initrd_found:
+                    (staging_boot / "initrd").write_text("mock-initrd")
             else:
-                raise ISOBuilderError("Real build failed: kernel or initramfs missing in target chroot.")
+                missing = []
+                if not kernel_found:
+                    missing.append("kernel")
+                if not initrd_found:
+                    missing.append("initramfs")
+                raise ISOBuilderError(f"Real build failed: {' and '.join(missing)} missing in target chroot /boot.")
 
         # Determine target bootloader chroot environment
         bootloader_chroot = self.chroot_path
@@ -552,7 +563,6 @@ class VoidEngine(BaseEngine):
         import subprocess
         import tempfile
         import time
-        import shutil
 
         # 1. Determine rootfs size
         try:
@@ -591,7 +601,7 @@ class VoidEngine(BaseEngine):
             subprocess.run(chroot_cmd + ["mount", "-o", "loop", str(ext3_img), str(mount_point)], check=True)
             try:
                 self.logger.info(f"Copying rootfs into ext3fs.img (Size: {img_size_mb}MB)...")
-                subprocess.run(chroot_cmd + ["bash", "-c", f"shopt -s dotglob; cp -a {self.chroot_path}/* {mount_point}/"], check=True)
+                subprocess.run(chroot_cmd + ["cp", "-a", f"{self.chroot_path}/.", f"{mount_point}/"], check=True)
 
                 # Strictly ensure security permissions inside ext3fs.img
                 subprocess.run(chroot_cmd + ["chmod", "600", f"{mount_point}/etc/shadow"], check=False)
@@ -599,15 +609,22 @@ class VoidEngine(BaseEngine):
                 subprocess.run(chroot_cmd + ["chmod", "644", f"{mount_point}/etc/group"], check=False)
                 if (mount_point / "etc" / "sudoers").exists():
                     subprocess.run(chroot_cmd + ["chmod", "440", f"{mount_point}/etc/sudoers"], check=False)
-                if (mount_point / "etc" / "sudoers.d").exists():
-                    subprocess.run(chroot_cmd + ["chmod", "750", f"{mount_point}/etc/sudoers.d"], check=False)
-                    subprocess.run(chroot_cmd + ["sh", "-c", f"chmod 440 {mount_point}/etc/sudoers.d/* 2>/dev/null || true"], check=False)
+                sudoers_d = mount_point / "etc" / "sudoers.d"
+                if sudoers_d.exists():
+                    subprocess.run(chroot_cmd + ["chmod", "750", str(sudoers_d)], check=False)
+                    for s_file in sudoers_d.glob("*"):
+                        if s_file.is_file():
+                            subprocess.run(chroot_cmd + ["chmod", "440", str(s_file)], check=False)
             finally:
+                unmounted = False
                 for _ in range(5):
                     res = subprocess.run(chroot_cmd + ["umount", "-f", str(mount_point)], capture_output=True)
                     if res.returncode == 0:
+                        unmounted = True
                         break
                     time.sleep(1)
+                if not unmounted:
+                    subprocess.run(chroot_cmd + ["umount", "-l", str(mount_point)], capture_output=True)
                 try:
                     mount_point.rmdir()
                 except OSError:
@@ -797,7 +814,7 @@ class ISOBuilder:
         if output_format == "tarball" or self.config.get("create_tarball"):
             final_tarball = self.engine.export_tarball(output_path)
             if self.config.get("create_tarball"):
-                cache_dest = resolve_from_project(f"workdir/cache/tarballs/void-base-{self.arch}.tar.xz")
+                cache_dest = resolve_from_project(f"cache/tarballs/void-base-{self.arch}.tar.xz")
                 stage_seed_dest = resolve_from_project(f"output/stage_seeds/void-base-{self.arch}.tar.xz")
                 for dest in (cache_dest, stage_seed_dest):
                     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -817,11 +834,11 @@ class ISOBuilder:
             if output_format == "tarball":
                 final_file = final_tarball
             else:
-                self.engine.finalize_isofile(output_path)
-                final_file = str(resolve_from_project(output_path))
+                res = self.engine.finalize_isofile(output_path)
+                final_file = str(res) if res else str(resolve_from_project(output_path))
         else:
-            self.engine.finalize_isofile(output_path)
-            final_file = str(resolve_from_project(output_path))
+            res = self.engine.finalize_isofile(output_path)
+            final_file = str(res) if res else str(resolve_from_project(output_path))
 
         self.timings["finalize_artifact"] = time.perf_counter() - t_step
         self.timings["total"] = time.perf_counter() - t_start
@@ -846,17 +863,18 @@ class PlatformEngine(VoidEngine):
         elif self.arch == "asahi":
             self.logger.info("Asahi requires GRUB EFI. Will be installed during image finalization.")
 
-    def finalize_isofile(self, output_path: str) -> None:
+    def finalize_isofile(self, output_path: str) -> Optional[str]:
         self.logger.info("=== Step 6: Finalizing Platform .img File ===")
         import subprocess
         import os
         from void_builder.core.path_utils import resolve_from_project
         
-        output_abs = str(resolve_from_project(output_path))
-        if output_abs.endswith(".iso"):
-            output_abs = output_abs.replace(".iso", ".img")
+        output_abs_path = resolve_from_project(output_path)
+        if output_abs_path.suffix == ".iso":
+            output_abs_path = output_abs_path.with_suffix(".img")
+        output_abs = str(output_abs_path)
             
-        Path(output_abs).parent.mkdir(parents=True, exist_ok=True)
+        output_abs_path.parent.mkdir(parents=True, exist_ok=True)
         # Calculate required size dynamically if not hardcoded in config
         img_size_config = self._cfg_get("system.img_size", None)
         if img_size_config:
@@ -902,6 +920,7 @@ class PlatformEngine(VoidEngine):
         # 3. Setup Loop
         res = subprocess.run(["losetup", "--show", "--find", "--partscan", output_abs], capture_output=True, text=True, check=True)
         loop_dev = res.stdout.strip()
+        subprocess.run(["udevadm", "settle"], check=False)
         
         try:
             # 4. Format
@@ -909,42 +928,44 @@ class PlatformEngine(VoidEngine):
             subprocess.run(["mkfs.vfat", "-I", "-F16", f"{loop_dev}p1"], check=True)
             subprocess.run(["mkfs.ext4", "-F", "-O", "^has_journal", f"{loop_dev}p2"], check=True)
             
-            # 5. Mount
-            import tempfile
-            mnt_root = Path(tempfile.mkdtemp(dir=Path(output_abs).parent))
+            # 5. Mount and Copy
+            mnt_root = Path(self.workdir) / "mnt_platform"
+            mnt_root.mkdir(parents=True, exist_ok=True)
+            
             subprocess.run(["mount", f"{loop_dev}p2", str(mnt_root)], check=True)
             (mnt_root / "boot").mkdir(parents=True, exist_ok=True)
             subprocess.run(["mount", f"{loop_dev}p1", str(mnt_root / "boot")], check=True)
             
             try:
-                # 6. Get UUIDs
-                boot_uuid = subprocess.run(["blkid", "-o", "value", "-s", "UUID", f"{loop_dev}p1"], capture_output=True, text=True).stdout.strip()
-                root_uuid = subprocess.run(["blkid", "-o", "value", "-s", "UUID", f"{loop_dev}p2"], capture_output=True, text=True).stdout.strip()
-                root_partuuid = subprocess.run(["blkid", "-o", "value", "-s", "PARTUUID", f"{loop_dev}p2"], capture_output=True, text=True).stdout.strip()
+                self.logger.info(f"[finalize] Copying target rootfs into platform partitions...")
+                subprocess.run(["cp", "-a", f"{self.chroot_path}/.", f"{mnt_root}/"], check=True)
                 
-                # 7. Copy RootFS
-                self.logger.info(f"[finalize] Copying RootFS to image (This may take a moment)...")
-                subprocess.run(["cp", "-a", f"{self.chroot_path}/.", str(mnt_root)], check=True)
+                # Fix fstab with UUIDs
+                self.logger.info(f"[finalize] Generating /etc/fstab for platform image...")
+                boot_uuid_res = subprocess.run(["blkid", "-s", "UUID", "-o", "value", f"{loop_dev}p1"], capture_output=True, text=True)
+                root_uuid_res = subprocess.run(["blkid", "-s", "UUID", "-o", "value", f"{loop_dev}p2"], capture_output=True, text=True)
                 
-                # 8. Setup Fstab
-                fstab = mnt_root / "etc" / "fstab"
-                with open(fstab, "a") as f:
-                    f.write(f"\nUUID={root_uuid} / ext4 defaults 0 1\n")
-                    f.write(f"UUID={boot_uuid} /boot vfat defaults 0 2\n")
-                    
-                # 9. Setup Bootloader specific logic
+                boot_uuid = boot_uuid_res.stdout.strip()
+                root_uuid = root_uuid_res.stdout.strip()
+                
+                fstab_content = f"UUID={root_uuid} / ext4 defaults 0 1\nUUID={boot_uuid} /boot vfat defaults 0 2\n"
+                (mnt_root / "etc" / "fstab").write_text(fstab_content)
+                
+                # Board-specific final adjustments
                 if self.arch.startswith("rpi"):
-                    cmdline = mnt_root / "boot" / "cmdline.txt"
-                    if cmdline.exists():
+                    self.logger.info(f"[finalize] Updating cmdline.txt for Raspberry Pi...")
+                    root_partuuid_res = subprocess.run(["blkid", "-s", "PARTUUID", "-o", "value", f"{loop_dev}p2"], capture_output=True, text=True)
+                    root_partuuid = root_partuuid_res.stdout.strip()
+                    
+                    cmdline_txt = mnt_root / "boot" / "cmdline.txt"
+                    if cmdline_txt.exists():
                         import re
-                        content = cmdline.read_text()
+                        content = cmdline_txt.read_text()
                         content = re.sub(r'root=[^ ]+', f'root=PARTUUID={root_partuuid}', content)
-                        cmdline.write_text(content)
-                    else:
-                        cmdline.write_text(f"root=PARTUUID={root_partuuid} rw rootwait console=ttyAMA0,115200 console=tty1\n")
+                        cmdline_txt.write_text(content)
                 
                 elif self.arch == "pinebookpro":
-                    self.logger.info(f"[finalize] Writing U-Boot to {loop_dev} for Pinebook Pro...")
+                    self.logger.info(f"[finalize] Flashing Pinebook Pro U-Boot...")
                     uboot_dir = mnt_root / "usr" / "lib" / "pinebookpro-uboot"
                     if uboot_dir.exists():
                         subprocess.run(["dd", f"if={uboot_dir}/idbloader.img", f"of={loop_dev}", "bs=512", "seek=64", "conv=notrunc,fsync"], check=True)
@@ -973,7 +994,10 @@ class PlatformEngine(VoidEngine):
             finally:
                 subprocess.run(["umount", "-f", str(mnt_root / "boot")], check=False)
                 subprocess.run(["umount", "-f", str(mnt_root)], check=False)
-                os.rmdir(str(mnt_root))
+                try:
+                    os.rmdir(str(mnt_root))
+                except OSError:
+                    pass
                 
         finally:
             subprocess.run(["partx", "-d", loop_dev], check=False)
@@ -985,8 +1009,11 @@ class PlatformEngine(VoidEngine):
         self.logger.info(f"[finalize] Compressing image with xz (This will take a while but will drastically reduce size)...")
         try:
             subprocess.run(["xz", "-z", "-T0", "-6", output_abs], check=True)
-            self.logger.info(f"[finalize] Successfully compressed image: {output_abs}.xz")
-            self._generate_manifest_and_checksums(f"{output_abs}.xz")
+            compressed_path = f"{output_abs}.xz"
+            self.logger.info(f"[finalize] Successfully compressed image: {compressed_path}")
+            self._generate_manifest_and_checksums(compressed_path)
+            return compressed_path
         except Exception as e:
             self.logger.error(f"[finalize] Failed to compress image: {e}")
             self._generate_manifest_and_checksums(output_abs)
+            return output_abs

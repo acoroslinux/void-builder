@@ -1,12 +1,12 @@
 import subprocess
-import os
 import sys
-from typing import Optional, List, Dict, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 
 class CommandRunner:
     @staticmethod
     def run(
-        command: List[str],
+        command: List[Union[str, Any]],
         cwd: Optional[str] = None,
         env: Optional[Dict[str, str]] = None,
         check: bool = True,
@@ -15,10 +15,10 @@ class CommandRunner:
         silent_errors: bool = False
     ) -> Tuple[int, str, str]:
         """
-        Runs a shell command and returns (returncode, stdout, stderr).
+        Runs a command and returns (returncode, stdout, stderr).
         
         Args:
-            command: Command and arguments as a list
+            command: Command and arguments as a list of strings/Paths
             cwd: Working directory
             env: Environment variables
             check: Raise exception on non-zero exit code
@@ -29,7 +29,8 @@ class CommandRunner:
         Returns:
             Tuple of (returncode, stdout, stderr)
         """
-        cmd_str = ' '.join(command)
+        command_str_list = [str(c) for c in command]
+        cmd_str = ' '.join(command_str_list)
         if not silent_errors:
             print(f"\033[1m[CMD]\033[0m {cmd_str}")
         
@@ -38,18 +39,18 @@ class CommandRunner:
                 import threading
                 # Stream output in real-time concurrently using threads to avoid pipe buffer deadlock
                 process = subprocess.Popen(
-                    command,
+                    command_str_list,
                     cwd=cwd,
                     env=env,
                     stdout=subprocess.PIPE if capture_output else None,
                     stderr=subprocess.PIPE if capture_output else None,
                     text=True,
-                    bufsize=1,
-                    universal_newlines=True
+                    errors="replace",
+                    bufsize=1
                 )
                 
-                stdout_lines = []
-                stderr_lines = []
+                stdout_lines: List[str] = []
+                stderr_lines: List[str] = []
                 
                 def _stream_reader(pipe, out_stream, lines_acc):
                     if not pipe:
@@ -75,11 +76,12 @@ class CommandRunner:
             else:
                 # Capture all output at once
                 result = subprocess.run(
-                    command,
+                    command_str_list,
                     cwd=cwd,
                     env=env,
-                    check=False,  # We'll handle check ourselves
+                    check=False,
                     text=True,
+                    errors="replace",
                     capture_output=capture_output
                 )
                 returncode = result.returncode
@@ -99,7 +101,8 @@ class CommandRunner:
             return (returncode, stdout, stderr)
             
         except FileNotFoundError as e:
-            print(f"\033[91m[ERROR]\033[0m Command not found: {command[0]}")
+            cmd_name = command_str_list[0] if command_str_list else '<empty>'
+            print(f"\033[91m[ERROR]\033[0m Command not found: {cmd_name}")
             if check:
                 raise
             return (127, '', str(e))
@@ -127,6 +130,7 @@ class CommandRunner:
                 env=env,
                 check=False,
                 text=True,
+                errors="replace",
                 capture_output=True
             )
             
@@ -145,4 +149,3 @@ class CommandRunner:
             if check:
                 raise
             return (1, '', str(e))
-

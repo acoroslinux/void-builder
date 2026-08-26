@@ -88,7 +88,7 @@ python3 cli.py [ARCHITECTURE] [OPTIONS]
 - **Exit Code**: `0` on success, `1` on validation failure.
 
 ### `--clean-cache`
-- **Description**: Clears downloaded XBPS packages and cached stage seed tarballs (`workdir/cache/xbps`, `workdir/cache/tarballs`), then exits.
+- **Description**: Clears downloaded XBPS packages and cached stage seed tarballs (`cache/xbps`, `cache/tarballs`), then exits.
 
 ---
 
@@ -159,7 +159,7 @@ python3 cli.py [ARCHITECTURE] [OPTIONS]
 - **Description**: Rapidly builds target ISO/image by unpacking a pre-built base system stage seed (`.tar.xz` / `.tar.zst`), running `xbps-install -Syu` inside the chroot, and layering requested desktop/delta package profiles.
 
 ### `--create-tarball`
-- **Description**: Saves the bootstrapped base rootfs as a reusable stage seed tarball in `output/stage_seeds/void-base-<arch>.tar.xz` and `workdir/cache/tarballs/void-base-<arch>.tar.xz`.
+- **Description**: Saves the bootstrapped base rootfs as a reusable stage seed tarball in `output/stage_seeds/void-base-<arch>.tar.xz` and `cache/tarballs/void-base-<arch>.tar.xz`.
 
 ### `--generate-manifest` / `--no-manifest`
 - **Description**: Enables/disables creation of `.sha256`, `.sha512`, `.md5`, and `.manifest.json` files alongside the output image. Default: enabled.

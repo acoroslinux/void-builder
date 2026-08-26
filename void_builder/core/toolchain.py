@@ -2,7 +2,7 @@ import os
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Optional, List, Dict, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from void_builder.core.path_utils import resolve_from_project
 from void_builder.utils.logger import setup_logger
@@ -15,18 +15,17 @@ class ToolchainManager:
         workdir_base: Path,
         mode: str = "mock",
         force_isolated: bool = False,
-        pacman_retries: int = 3,
-        diagnostics_enabled: bool = False,
-        diagnostics_log_path: Optional[Path] = None,
-        pacman_cache_dir: Optional[Path] = None,
         arch: Optional[str] = None,
         update_toolchain: bool = False,
+        retries: int = 3,
+        **kwargs: Any,
     ):
         self.mode = mode
         self.force_isolated = force_isolated
         self.toolchain_dir = workdir_base / "build_host"
         self.arch = arch or "x86_64"
         self.update_toolchain = update_toolchain
+        self.retries = retries
         self._is_ready = False
         
         # Tools directory path
@@ -48,45 +47,32 @@ class ToolchainManager:
             ensure_static_xbps(str(self.tools_dir), force_update=self.update_toolchain)
             ensure_proot(str(self.tools_dir), force_update=self.update_toolchain)
             
-            self.host_dir.mkdir(parents=True, exist_ok=True)
-            self.target_dir.mkdir(parents=True, exist_ok=True)
-            self._bootstrap_toolchain_dirs()
+            # Setup host tools
+            self._setup_host_tools()
             
-            self._is_ready = True
-            logger.info("[TOOLCHAIN] Static toolchain binaries and isolated chroots ready.")
-        else:
-            logger.info("[TOOLCHAIN] [MOCK] Toolchain setup simulated.")
-            self._is_ready = True
+            # Setup target root
+            self._setup_target_root()
+            
+        self._is_ready = True
+        logger.info("[TOOLCHAIN] Static toolchain binaries and isolated chroots ready.")
 
-    def _copy_void_keys(self, target_dir: Path):
-        key_dir = target_dir / "var" / "db" / "xbps" / "keys"
+    def _setup_keys(self, target_dir: Path):
+        key_dir = target_dir / "var/db/xbps/keys"
         key_dir.mkdir(parents=True, exist_ok=True)
+        
         mklive_keys = resolve_from_project("configs/assets/keys")
         if mklive_keys.exists():
             for f in mklive_keys.glob("*.plist"):
                 shutil.copy2(f, key_dir)
 
     def _get_host_arch(self) -> str:
-        try:
-            res = subprocess.run(["xbps-uhelper", "arch"], capture_output=True, text=True)
-            if res.returncode == 0 and res.stdout.strip():
-                return res.stdout.strip()
-        except Exception:
-            pass
-        import platform
-        m = platform.machine()
-        if m == "x86_64":
-            return "x86_64"
-        elif m in ("i386", "i686"):
-            return "i686"
-        elif m in ("aarch64", "arm64"):
-            return "aarch64"
-        return "x86_64"
+        from void_builder.utils.lib import get_host_arch
+        return get_host_arch()
 
     def _run_xbps_install(self, rootdir: Path, arch: str, packages: List[str], repos: List[str], unpack_only: bool = False):
         from void_builder.core.path_utils import resolve_from_project
         import tempfile
-        cache_dir = resolve_from_project("workdir/cache/xbps") / arch
+        cache_dir = resolve_from_project("cache/xbps") / arch
         try:
             cache_dir.mkdir(parents=True, exist_ok=True)
             probe = cache_dir / ".write_test"
@@ -172,9 +158,15 @@ class ToolchainManager:
                 
             # Check host UID to decide on native chroot vs proot
             import os
+            import shlex
+            if len(command) == 1:
+                cmd_to_run = command[0]
+            else:
+                cmd_to_run = shlex.join(command)
+
             if os.geteuid() == 0:
                 # Native chroot
-                chroot_cmd = ["chroot", str(chroot_path), "/bin/sh", "-c", " ".join(command)]
+                chroot_cmd = ["chroot", str(chroot_path), "/bin/sh", "-c", cmd_to_run]
                 cmd_env = os.environ.copy()
                 if env:
                     cmd_env.update(env)
@@ -187,7 +179,7 @@ class ToolchainManager:
                 proot_cmd = [
                     proot_bin, "-r", str(chroot_path), "-0", "-w", "/",
                     "-b", "/dev", "-b", "/sys", "-b", "/proc",
-                    "/bin/sh", "-c", " ".join(command)
+                    "/bin/sh", "-c", cmd_to_run
                 ]
                 cmd_env = os.environ.copy()
                 if env:

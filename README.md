@@ -42,7 +42,7 @@ The online manual covers:
   - Build specialized editions with a single command using `-P` / `--preset`: `minimal`, `desktop-xfce`, `desktop-kde`, `desktop-gnome`, `rescue-sysadmin`, `developer`, and `gaming`.
 - ⚡ **Stage Seed Tarball System (Gentoo-Style Rapid Builds)**:
   - `--use-tarball`: Unpacks a pre-built base system stage seed (`.tar.xz`), runs `xbps-install -Syu` to update base packages, and layers requested desktop/delta packages in seconds!
-  - `--create-tarball`: Generates reusable base system stage seeds and stores them in `output/stage_seeds/` and `workdir/cache/tarballs/`.
+  - `--create-tarball`: Generates reusable base system stage seeds and stores them in `output/stage_seeds/` and `cache/tarballs/`.
   - Flexible Sources: Accepts local files (`file:///...`), HTTP/HTTPS URLs (`https://...`), or automatic local cache lookup (`--use-tarball y`).
 - 🛡️ **Total Build Isolation & Auto-Recovery**: Zero host package manager dependencies! Downloads static `xbps-install.static` from official Void mirrors (`repo-default.voidlinux.org`) and uses native `chroot` or `proot`.
 - 🔑 **Security & SSH Injection**: Direct flags for `--root-password`, `--lock-root`, `--live-password`, and `--ssh-key` / `--ssh-pubkey` injection.

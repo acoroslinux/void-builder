@@ -1,8 +1,7 @@
-import os
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from void_builder.core.path_utils import resolve_from_project
 from void_builder.utils.logger import setup_logger
@@ -74,7 +73,16 @@ class Grub2Bootloader:
         desktop = str(self._cfg_get("desktop", "")).upper()
         arch = self._cfg_get("platform_specific.architecture", "x86_64")
         iso_label = self._cfg_get("system.iso_label", "VOID_MODERN")
-        live_user = self._cfg_get("live_user", "liveuser")
+        live_user = self._cfg_get("live_user")
+        if not live_user:
+            users = self._cfg_get("customizations.users", [])
+            for u in users:
+                if hasattr(u, "_data"):
+                    u = u._data
+                if isinstance(u, dict) and u.get("name") not in ("root", ""):
+                    live_user = u.get("name")
+                    break
+        live_user = live_user or "void"
 
         return {
             "@@VOL_ID@@": iso_label,
@@ -112,7 +120,8 @@ class Grub2Bootloader:
 
         # Helper to generate a single menuentry
         def write_entry(title_suffix: str, entry_id: str, extra_cmdline: str = "") -> str:
-            full_title = f"{boot_title} {kver} {title_suffix}({arch})"
+            suffix_str = f" {title_suffix}" if title_suffix else ""
+            full_title = f"{boot_title} {kver}{suffix_str} ({arch})"
             cmd = f"{base_append} {extra_cmdline}".strip()
             ent = f'menuentry "{full_title}" --id "{entry_id}" {{\n'
             ent += '    set gfxpayload="keep"\n'
@@ -126,6 +135,7 @@ class Grub2Bootloader:
         entries += write_entry("", "linux")
         entries += write_entry("(RAM)", "linuxram", "rd.live.ram")
         entries += write_entry("(graphics disabled)", "linuxnogfx", "nomodeset")
+        entries += write_entry("(Debug Mode)", "linuxdebug", "rd.debug loglevel=7")
         entries += write_entry("with speech", "linuxa11y", "live.accessibility live.autologin")
         entries += write_entry("with speech (RAM)", "linuxa11yram", "live.accessibility live.autologin rd.live.ram")
         entries += write_entry("with speech (graphics disabled)", "linuxa11ynogfx", "live.accessibility live.autologin nomodeset")
@@ -143,7 +153,8 @@ class Grub2Bootloader:
                 entries += f'\nsubmenu "{boot_title} for {p_name} >" --id platform-{platform} {{\n'
                 
                 def write_plat_entry(title_suffix: str, entry_id: str, extra_cmdline: str = "") -> str:
-                    full_title = f"{boot_title} {kver} {title_suffix}({arch})"
+                    suffix_str = f" {title_suffix}" if title_suffix else ""
+                    full_title = f"{boot_title} {kver}{suffix_str} ({arch})"
                     cmd = f"{base_append} {p_cmdline} {extra_cmdline}".strip()
                     ent = f'    menuentry "{full_title}" --id "{entry_id}" {{\n'
                     ent += '        set gfxpayload="keep"\n'
@@ -153,16 +164,16 @@ class Grub2Bootloader:
                     ent += '    }\n'
                     return ent
                 
-                entries += write_plat_entry(f"for {p_name} ", f"linux-{platform}")
-                entries += write_plat_entry(f"for {p_name} (RAM) ", f"linuxram-{platform}", "rd.live.ram")
-                entries += write_plat_entry(f"for {p_name} (graphics disabled) ", f"linuxnogfx-{platform}", "nomodeset")
-                entries += write_plat_entry(f"for {p_name} with speech ", f"linuxa11y-{platform}", "live.accessibility live.autologin")
+                entries += write_plat_entry(f"for {p_name}", f"linux-{platform}")
+                entries += write_plat_entry(f"for {p_name} (RAM)", f"linuxram-{platform}", "rd.live.ram")
+                entries += write_plat_entry(f"for {p_name} (graphics disabled)", f"linuxnogfx-{platform}", "nomodeset")
+                entries += write_plat_entry(f"for {p_name} with speech", f"linuxa11y-{platform}", "live.accessibility live.autologin")
                 entries += '}\n'
 
         # Memtest entry (only for x86 architectures)
         if not is_aarch64:
             entries += '\n'
-            entries += 'if [ "${grub_platform}" == "efi" ]; then\n'
+            entries += 'if [ "${grub_platform}" = "efi" ]; then\n'
             entries += '    menuentry "Run Memtest86+ (RAM test)" --id memtest {\n'
             entries += '        set gfxpayload="keep"\n'
             entries += '        linux (${voidlive})/boot/memtest.efi\n'
@@ -176,7 +187,7 @@ class Grub2Bootloader:
 
         # UEFI firmware and power entries
         entries += '\n'
-        entries += 'if [ "${grub_platform}" == "efi" ]; then\n'
+        entries += 'if [ "${grub_platform}" = "efi" ]; then\n'
         entries += "    menuentry 'UEFI Firmware Settings' --hotkey f --id uefifw {\n"
         entries += "        fwsetup\n"
         entries += "    }\n"
@@ -256,7 +267,7 @@ class Grub2Bootloader:
         logger.info("[GRUB2] GRUB EFI configured")
         return True
 
-    def generate_boot_image(self, workdir: Path, chroot_path: Path = None) -> bool:
+    def generate_boot_image(self, workdir: Path, chroot_path: Optional[Path] = None) -> bool:
         """Generate efiboot.img using grub-mkstandalone inside chroot (or simulation)."""
         logger.info("[GRUB2] Generating UEFI boot image (efiboot.img)...")
 

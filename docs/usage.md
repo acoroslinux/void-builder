@@ -55,12 +55,12 @@ Void-Builder incorporates a Stage Seed Tarball mechanism inspired by Gentoo Linu
    - Automatically runs `xbps-install -Syu` inside the chroot to bring base packages up to the latest Void Linux repository release.
    - Layers requested desktop environments and additional package profiles in seconds, bypassing redundant base downloads.
    - **Supported Sources**:
-     - `--use-tarball y` / `--use-tarball auto`: Automatically looks for cached stage seeds in `output/stage_seeds/` or `workdir/cache/tarballs/`.
+     - `--use-tarball y` / `--use-tarball auto`: Automatically looks for cached stage seeds in `output/stage_seeds/` or `cache/tarballs/`.
      - Local file: `/path/to/stage.tar.xz` or `file:///...`
      - Remote URL: `https://...` (downloads and caches the tarball automatically).
 
 2. **`--create-tarball`**:
-   - Saves the bootstrapped base rootfs as a reusable stage seed in `output/stage_seeds/void-base-<arch>.tar.xz` and `workdir/cache/tarballs/void-base-<arch>.tar.xz` alongside its SHA256 and MD5 checksums.
+   - Saves the bootstrapped base rootfs as a reusable stage seed in `output/stage_seeds/void-base-<arch>.tar.xz` and `cache/tarballs/void-base-<arch>.tar.xz` alongside its SHA256 and MD5 checksums.
 
 ---
 

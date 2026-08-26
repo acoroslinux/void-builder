@@ -85,7 +85,16 @@ class SyslinuxBootloader:
         boot_cmdline = self._cfg_get("boot_cmdline", "")
         arch = self._cfg_get("platform_specific.architecture", "x86_64")
         iso_label = self._cfg_get("system.iso_label", "VOID_MODERN")
-        live_user = self._cfg_get("live_user", "liveuser")
+        live_user = self._cfg_get("live_user")
+        if not live_user:
+            users = self._cfg_get("customizations.users", [])
+            for u in users:
+                if hasattr(u, "_data"):
+                    u = u._data
+                if isinstance(u, dict) and u.get("name") not in ("root", ""):
+                    live_user = u.get("name")
+                    break
+        live_user = live_user or "void"
 
         # Read template
         cfg = template_path.read_text(encoding="utf-8")
@@ -111,18 +120,17 @@ class SyslinuxBootloader:
         (isolinux_dir / "isolinux.cfg").write_text(cfg, encoding="utf-8")
         logger.info("[SYSLINUX] Generated isolinux.cfg")
 
-        # Copy splash image
+        # Copy splash image if present
         splash_image_path = self._cfg_get("splash_image", "")
         splash_src = Path(splash_image_path) if splash_image_path else mklive_dir / "data" / "splash.png"
-        
-        # Override for ISOLINUX due to strict 640x480 resolution limits
-        isolinux_specific_splash = mklive_dir / "data" / "splash_isolinux.png"
-        if isolinux_specific_splash.exists():
-            splash_src = isolinux_specific_splash
-            
+        if not splash_src.exists():
+            splash_src = resolve_from_project("configs/assets/data/splash.png")
+
         if splash_src.exists():
-            shutil.copy(splash_src, isolinux_dir / "splash.png")
-            logger.info("[SYSLINUX] Copied splash.png (resolution adapted)")
+            try:
+                shutil.copy2(splash_src, isolinux_dir / "splash.png")
+            except Exception as e:
+                logger.warning(f"[SYSLINUX] Failed to copy splash image: {e}")
 
         return True
 
@@ -132,6 +140,7 @@ class SyslinuxBootloader:
         isolinux_dir = workdir / "boot" / "isolinux"
         isolinux_dir.mkdir(parents=True, exist_ok=True)
 
+        # Copy syslinux binaries (c32 modules + isolinux.bin + isohdpfx.bin)
         copied_any = False
         if chroot_path and chroot_path.exists():
             # Check standard syslinux paths in Void Linux
@@ -142,8 +151,8 @@ class SyslinuxBootloader:
             
             binaries = [
                 "isolinux.bin", "ldlinux.c32", "libcom32.c32",
-                "vesamenu.c32", "libutil.c32", "chain.c32",
-                "reboot.c32", "poweroff.c32"
+                "vesamenu.c32", "menu.c32", "libutil.c32", "chain.c32",
+                "reboot.c32", "poweroff.c32", "isohdpfx.bin"
             ]
 
             for path in syslinux_paths:
@@ -151,8 +160,11 @@ class SyslinuxBootloader:
                     for bin_file in binaries:
                         src = path / bin_file
                         if src.exists():
-                            shutil.copy2(src, isolinux_dir / bin_file)
-                            copied_any = True
+                            try:
+                                shutil.copy2(src, isolinux_dir / bin_file)
+                                copied_any = True
+                            except Exception as e:
+                                logger.warning(f"[SYSLINUX] Failed to copy {bin_file}: {e}")
 
         if not copied_any:
             logger.warning("[SYSLINUX] syslinux was not found in the chroot. Simulating files instead.")

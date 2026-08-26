@@ -1,13 +1,11 @@
-import os
-import sys
-import shutil
-import struct
-import tarfile
 import hashlib
 import json
+import shutil
+import struct
 import subprocess
+import tarfile
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Any, Dict, List, Optional
 
 from void_builder.utils.logger import setup_logger
 
@@ -204,7 +202,7 @@ class ImageVerifier:
                 contents = res.stdout.splitlines()
             except Exception:
                 pass
-
+        
         if contents:
             out_text = "\n".join(contents)
             has_squashfs = "squashfs.img" in out_text or "LiveOS" in out_text
@@ -227,8 +225,10 @@ class ImageVerifier:
                 has_efiboot,
                 "Found UEFI efiboot.img / EFI binaries." if has_efiboot else "UEFI bootloader image missing.",
             )
+        elif not cmd_7z and not cmd_xorriso:
+            report.add_check("ISO Structure Inspection", True, "ISO file exists. (Deep inspection skipped: neither 7z nor xorriso is installed on host).")
         else:
-            report.add_check("ISO Structure Inspection", True, "ISO file created successfully.")
+            report.add_check("ISO Structure Inspection", False, "Could not read ISO archive contents with 7z/xorriso.")
 
         return report
 
@@ -240,53 +240,49 @@ class ImageVerifier:
         report.metadata["detected_format"] = f"Partitioned SBC Disk Image ({'Compressed ' if is_compressed else ''}{img_path.suffix})"
         cls.verify_file_checksums(img_path, report)
 
+        # Check for XZ or GZ magic bytes if compressed
         try:
             with open(img_path, "rb") as f:
-                magic = f.read(6)
+                header = f.read(512)
                 if is_compressed:
-                    if magic[:6] == b"\xfd7zXZ\x00":
-                        report.add_check("XZ Compression Stream Header", True, "Valid XZ magic bytes detected.")
-                    elif magic[:2] == b"\x1f\x8b":
-                        report.add_check("GZIP Compression Stream Header", True, "Valid GZIP magic bytes detected.")
-                    else:
-                        report.add_check("Compressed Stream Header", True, "Valid compression format.")
+                    if img_path.name.endswith(".xz"):
+                        has_magic = header.startswith(b"\xfd7zXZ\x00")
+                        report.add_check("XZ Compression Magic Bytes", has_magic, "Valid XZ archive header." if has_magic else "Invalid XZ magic bytes.")
+                    elif img_path.name.endswith(".gz"):
+                        has_magic = header.startswith(b"\x1f\x8b")
+                        report.add_check("GZIP Compression Magic Bytes", has_magic, "Valid GZIP archive header." if has_magic else "Invalid GZIP magic bytes.")
                 else:
-                    f.seek(510)
-                    mbr_sig = f.read(2)
-                    if mbr_sig == b"\x55\xaa":
-                        report.add_check("MBR Partition Table Signature", True, "Valid 0x55AA boot sector signature found.")
-                    else:
-                        report.add_check("Disk Image Header", True, "Raw disk image header verified.")
+                    # Check MBR boot signature 0x55AA at offset 510
+                    has_mbr = len(header) >= 512 and header[510:512] == b"\x55\xaa"
+                    report.add_check("MBR/GPT Partition Table Signature", has_mbr, "Found boot record signature (0x55AA)." if has_mbr else "MBR signature missing.")
         except Exception as e:
-            report.add_check("Image Header Read", False, f"Failed to read disk image header: {e}")
-
-        if "rpi" in img_path.name or "aarch64" in img_path.name:
-            report.add_check("Raspberry Pi Firmware & Boot Files", True, "Configured dual-partition layout (256MB FAT32 boot + Ext4 rootfs).")
-            report.metadata["architecture"] = "aarch64"
+            report.add_check("Disk Image Header Read", False, f"Could not read image header: {e}")
 
         return report
 
     @classmethod
     def verify_tarball(cls, tar_path: Path, expected_arch: Optional[str] = None) -> VerificationReport:
-        """Inspects rootfs stage seed tarball, permissions, ELF binaries, and XBPS pkgdb."""
+        """Inspects container rootfs tarball (.tar.xz, .tar.gz, .tar.zst) structure, XBPS db, and ELF header."""
         report = VerificationReport(tar_path)
-        report.metadata["detected_format"] = "Stage Rootfs Tarball (.tar.xz)"
+        report.metadata["detected_format"] = "Container RootFS Tarball"
         cls.verify_file_checksums(tar_path, report)
 
         try:
             with tarfile.open(tar_path, "r:*") as tar:
-                names = set(tar.getnames())
-                norm_names = {n.lstrip("./") for n in names}
+                names = [m.name for m in tar.getmembers()]
 
-                core_dirs = ["etc", "bin", "usr", "var", "root", "home", "proc", "sys", "dev"]
-                found_dirs = [d for d in core_dirs if any(n == d or n.startswith(f"{d}/") for n in norm_names)]
-                report.add_check(
-                    "Standard POSIX Hierarchy",
-                    len(found_dirs) >= 6,
-                    f"Rootfs contains essential directories ({len(found_dirs)}/{len(core_dirs)} verified).",
-                )
+                # Verify core POSIX filesystem directories
+                essential_dirs = ["etc", "bin", "usr", "var", "proc", "sys", "dev", "root"]
+                for ed in essential_dirs:
+                    present = any(n == ed or n == f"./{ed}" or n.startswith(f"{ed}/") or n.startswith(f"./{ed}/") for n in names)
+                    report.add_check(
+                        f"RootFS Directory: /{ed}",
+                        present,
+                        f"Found essential directory /{ed}" if present else f"Missing directory /{ed} in rootfs tarball.",
+                    )
 
-                has_pkgdb = any("var/db/xbps/pkgdb" in n for n in norm_names)
+                # Check XBPS Package DB
+                has_pkgdb = any("var/db/xbps/pkgdb" in n or "pkgdb" in n for n in names)
                 report.add_check(
                     "XBPS Package Database",
                     has_pkgdb,
@@ -300,6 +296,11 @@ class ImageVerifier:
                     match_name = [n for n in names if n.lstrip("./") == c]
                     if match_name:
                         member = tar.getmember(match_name[0])
+                        if member.issym() and member.linkname:
+                            target_link = member.linkname.lstrip("./")
+                            resolved = [n for n in names if n.lstrip("./") == target_link]
+                            if resolved:
+                                member = tar.getmember(resolved[0])
                         f_obj = tar.extractfile(member)
                         if f_obj:
                             header = f_obj.read(64)
@@ -322,7 +323,7 @@ class ImageVerifier:
                 shadow_members = [m for m in tar.getmembers() if m.name.lstrip("./") == "etc/shadow"]
                 if shadow_members:
                     shadow_mode = oct(shadow_members[0].mode)
-                    is_secure = shadow_mode.endswith("600") or shadow_mode.endswith("400") or shadow_mode.endswith("000")
+                    is_secure = any(shadow_mode.endswith(m) for m in ("600", "400", "000", "640", "440"))
                     report.add_check(
                         "/etc/shadow Security Mode",
                         is_secure,

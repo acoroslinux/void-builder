@@ -1,6 +1,4 @@
 import json
-import os
-import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
@@ -78,16 +76,25 @@ class ConfigAssembler:
     def _deep_merge(
         self, base: Dict[str, Any], update: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Recursively merge two dictionaries and combine lists without losing data."""
+        """Recursively merge two dictionaries and combine lists without losing or duplicating data."""
         for key, value in update.items():
             if isinstance(value, dict) and key in base and isinstance(base[key], dict):
                 base[key] = self._deep_merge(base[key], value)
             elif (
                 isinstance(value, list) and key in base and isinstance(base[key], list)
             ):
-                # Extend lists while avoiding duplicates where simple checks work.
+                # Extend lists while handling dictionary items by unique 'name' identifier
+                existing_dict_indices = {
+                    item["name"]: idx
+                    for idx, item in enumerate(base[key])
+                    if isinstance(item, dict) and "name" in item
+                }
                 for item in value:
-                    if item not in base[key]:
+                    if isinstance(item, dict) and "name" in item and item["name"] in existing_dict_indices:
+                        idx = existing_dict_indices[item["name"]]
+                        if isinstance(base[key][idx], dict):
+                            base[key][idx] = self._deep_merge(base[key][idx], item)
+                    elif item not in base[key]:
                         base[key].append(item)
             else:
                 base[key] = value
@@ -97,7 +104,7 @@ class ConfigAssembler:
         if not path.exists():
             return {}
         try:
-            with open(path, "r") as f:
+            with open(path, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
             logger.error(f"Error reading {path}: {e}")
@@ -115,7 +122,7 @@ class ConfigAssembler:
         return self._load_json_file(profile_path)
 
     def _apply_kernel_override(self, kernel_name: str) -> None:
-        """Set selected kernel and align related fields in platform_specific."""
+        """Set selected kernel and align related fields across all package lists."""
         platform = self.master_config.setdefault("platform_specific", {})
         platform["base_kernel"] = kernel_name
         platform["initramfs"] = "initrd"
@@ -129,6 +136,8 @@ class ConfigAssembler:
             )
 
         def replace_kernel_in_list(pkg_list):
+            if not isinstance(pkg_list, list):
+                return False
             replaced = False
             for idx, item in enumerate(pkg_list):
                 if isinstance(item, dict):
@@ -139,16 +148,13 @@ class ConfigAssembler:
                 elif isinstance(item, str) and is_kernel_package(item):
                     pkg_list[idx] = kernel_name
                     replaced = True
-            if not replaced:
-                if pkg_list and isinstance(pkg_list[0], dict):
-                    pkg_list.append({"name": kernel_name})
-                else:
-                    pkg_list.append(kernel_name)
             return replaced
 
-        platform_pkgs = platform.get("packages")
-        if isinstance(platform_pkgs, list):
-            replace_kernel_in_list(platform_pkgs)
+        replace_kernel_in_list(platform.get("packages"))
+        pkg_sources = self.master_config.get("package_sources", {})
+        if isinstance(pkg_sources, dict):
+            replace_kernel_in_list(pkg_sources.get("official"))
+        replace_kernel_in_list(self.master_config.get("packages"))
 
     def _apply_live_user_override(self, live_user: str, live_groups: Optional[List[str]]) -> None:
         """Apply live user overrides directly into system customizations and command targets."""
@@ -158,27 +164,25 @@ class ConfigAssembler:
             self.master_config["customizations"] = customizations
 
         users = customizations.get("users")
-        if not isinstance(users, list) or not users:
+        if not isinstance(users, list):
             users = []
             customizations["users"] = users
 
         target_idx = None
         for idx, user in enumerate(users):
-            if isinstance(user, dict) and user.get("name") == "live":
+            if isinstance(user, dict) and user.get("name") in ("live", live_user):
                 target_idx = idx
                 break
 
         if target_idx is None:
-            if users:
-                target_idx = 0
-            else:
-                users.append({"name": live_user, "password": "live", "groups": []})
-                target_idx = 0
-
-        target_user = users[target_idx]
-        if not isinstance(target_user, dict):
-            target_user = {}
-            users[target_idx] = target_user
+            new_user = {"name": live_user, "password": "live", "groups": []}
+            users.append(new_user)
+            target_user = new_user
+        else:
+            target_user = users[target_idx]
+            if not isinstance(target_user, dict):
+                target_user = {}
+                users[target_idx] = target_user
 
         target_user["name"] = live_user
         if live_groups is not None:
@@ -248,6 +252,7 @@ class ConfigAssembler:
         # 1b. Load Preset (if provided)
         if preset:
             preset_name = preset.replace(".json", "")
+            self.master_config["preset_name"] = preset_name
             preset_data = self._load_optional_profile("presets", preset_name)
             if preset_data:
                 logger.info(f"Applying preset profile '{preset_name}'...")
@@ -285,6 +290,7 @@ class ConfigAssembler:
 
         # 3. Desktop profile (if requested)
         if target_desktop:
+            self.master_config["desktop"] = target_desktop
             desktop_path = self.config_root / "desktops" / f"{target_desktop}.json"
             if desktop_path.exists():
                 desktop_data = self._load_json_file(desktop_path)
@@ -428,7 +434,7 @@ class ConfigAssembler:
                             content = sh_path.read_text(encoding="utf-8")
                             import re
                             name_match = re.search(r'PLATFORM_NAME=["\']?(.*?)["\']?$', content, re.M)
-                            pkgs_match = re.search(r'PLATFORM_PKGS=\((.*?)\)', content, re.M)
+                            pkgs_match = re.search(r'PLATFORM_PKGS=\((.*?)\)', content, re.DOTALL | re.M)
                             cmdline_match = re.search(r'PLATFORM_CMDLINE=["\']?(.*?)["\']?$', content, re.M)
                             dtb_match = re.search(r'PLATFORM_DTB=["\']?(.*?)["\']?$', content, re.M)
 

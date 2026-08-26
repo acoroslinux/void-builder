@@ -1,9 +1,8 @@
 from __future__ import annotations
 
+import glob
 import os
 import platform
-import glob
-from typing import Optional, List
 
 from void_builder.utils.command import CommandRunner
 

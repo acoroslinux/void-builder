@@ -3,7 +3,6 @@ import shutil
 import subprocess
 import urllib.request
 from pathlib import Path
-from typing import Any, Dict, Optional
 
 from void_builder.core.path_utils import resolve_from_project
 from void_builder.utils.logger import setup_logger
@@ -27,7 +26,7 @@ class StageManager:
         self.mode = mode.lower()
         self.arch = arch
         try:
-            self.cache_dir = resolve_from_project("workdir/cache/tarballs")
+            self.cache_dir = resolve_from_project("cache/tarballs")
             self.cache_dir.mkdir(parents=True, exist_ok=True)
             # Verify writable
             test_file = self.cache_dir / ".write_test"
@@ -58,7 +57,9 @@ class StageManager:
 
         # 2. Remote HTTP/HTTPS URL
         if tarball_str.startswith(("http://", "https://")):
-            filename = tarball_str.split("/")[-1] or f"void-base-{self.arch}.tar.xz"
+            from urllib.parse import urlparse
+            url_path = urlparse(tarball_str).path
+            filename = Path(url_path).name or f"void-base-{self.arch}.tar.xz"
             target_file = self.cache_dir / filename
             if not target_file.exists():
                 logger.info(f"Downloading base tarball from {tarball_str}...")
@@ -66,11 +67,15 @@ class StageManager:
                     logger.info(f"[MOCK STAGE] Downloading tarball from {tarball_str}")
                     target_file.touch()
                 else:
+                    tmp_file = target_file.with_suffix(".tmp")
                     try:
                         req = urllib.request.Request(tarball_str, headers={"User-Agent": "Void-Builder/1.0"})
-                        with urllib.request.urlopen(req) as resp, open(target_file, "wb") as out:
+                        with urllib.request.urlopen(req, timeout=60) as resp, open(tmp_file, "wb") as out:
                             shutil.copyfileobj(resp, out)
+                        os.replace(tmp_file, target_file)
                     except Exception as e:
+                        if tmp_file.exists():
+                            tmp_file.unlink(missing_ok=True)
                         raise StageManagerError(f"Failed to download tarball from {tarball_str}: {e}")
             return target_file
 
@@ -88,39 +93,37 @@ class StageManager:
                     logger.info(f"Found cached base tarball: {cand}")
                     return cand
 
-            # Fallback placeholder if in mock mode
             if self.mode == "mock":
-                mock_tar = self.cache_dir / f"void-base-{self.arch}.tar.xz"
-                mock_tar.touch()
-                logger.info(f"[MOCK STAGE] Auto-created mock base tarball: {mock_tar}")
-                return mock_tar
+                mock_tb = self.cache_dir / f"void-base-{self.arch}.tar.xz"
+                mock_tb.touch()
+                logger.info(f"[MOCK STAGE MANAGER] Auto-created mock base tarball: {mock_tb}")
+                return mock_tb
 
             raise StageManagerError(
-                f"No base tarball found for architecture '{self.arch}'. "
-                f"Checked: {', '.join(str(c) for c in candidates)}. "
-                "Use --create-tarball first to generate one."
+                f"Auto-tarball enabled ('{tarball_arg}'), but no pre-built base seed found in cache.\n"
+                f"Searched:\n  - " + "\n  - ".join(str(c) for c in candidates) + "\n"
+                f"Build a fresh image or specify an explicit URL/path."
             )
 
-        raise StageManagerError(f"Invalid tarball specification: '{tarball_str}'")
+        # 4. Fallback search inside cache directory
+        direct_cache = self.cache_dir / tarball_str
+        if direct_cache.exists():
+            return direct_cache
+
+        raise StageManagerError(f"Cannot resolve base tarball: '{tarball_arg}' does not exist.")
 
     def extract_tarball(self, tarball_path: Path, target_root: Path) -> None:
-        """
-        Extracts a base tarball into target_root (chroot / airootfs).
-        """
+        """Extract a base stage tarball into the target root directory with attribute preservation."""
         tarball_path = Path(tarball_path).resolve()
         target_root = Path(target_root).resolve()
-
-        if not tarball_path.exists() and self.mode != "mock":
-            raise StageManagerError(f"Tarball file does not exist: {tarball_path}")
-
-        logger.info(f"Extracting base tarball '{tarball_path.name}' into {target_root}...")
         target_root.mkdir(parents=True, exist_ok=True)
 
+        logger.info(f"Extracting base tarball '{tarball_path.name}' -> {target_root}...")
+
         if self.mode == "mock":
-            logger.info(f"[MOCK STAGE MANAGER] Extracting tarball {tarball_path} -> {target_root}")
-            (target_root / "etc").mkdir(parents=True, exist_ok=True)
-            (target_root / "bin").mkdir(parents=True, exist_ok=True)
-            (target_root / "var" / "db" / "xbps").mkdir(parents=True, exist_ok=True)
+            logger.info(f"[MOCK STAGE MANAGER] Extracted {tarball_path} -> {target_root}")
+            (target_root / "bin").mkdir(exist_ok=True)
+            (target_root / "etc").mkdir(exist_ok=True)
             return
 
         if os.geteuid() != 0:
@@ -134,13 +137,13 @@ class StageManager:
         tb_name = tarball_path.name.lower()
         if tb_name.endswith((".tar.xz", ".txz")):
             if shutil.which("pixz"):
-                decompressor_opt = ["-I", "pixz"]
+                decompressor_opt = ["--use-compress-program=pixz"]
         elif tb_name.endswith((".tar.zst", ".tzst")):
             if shutil.which("zstd"):
-                decompressor_opt = ["-I", "zstd -T0 -d"]
+                decompressor_opt = ["--use-compress-program=zstd -T0 -d"]
         elif tb_name.endswith((".tar.gz", ".tgz")):
             if shutil.which("pigz"):
-                decompressor_opt = ["-I", "pigz -d"]
+                decompressor_opt = ["--use-compress-program=pigz -d"]
 
         cmd = ["tar"] + decompressor_opt + ["-xpf", str(tarball_path), "-C", str(target_root), "--numeric-owner", "--xattrs-include=*.*"]
         res = subprocess.run(cmd, capture_output=True, text=True)
@@ -172,18 +175,18 @@ class StageManager:
         compressor_opt = []
         if compression == "zstd" or output_tarball.name.endswith((".tar.zst", ".zst")):
             if shutil.which("zstd"):
-                compressor_opt = ["-I", "zstd -T0 -3"]
+                compressor_opt = ["--use-compress-program=zstd -T0 -3"]
             else:
                 compressor_opt = ["--zstd"]
         elif compression == "gzip" or output_tarball.name.endswith((".tar.gz", ".gz")):
             if shutil.which("pigz"):
-                compressor_opt = ["-I", "pigz"]
+                compressor_opt = ["--use-compress-program=pigz"]
             else:
                 compressor_opt = ["-z"]
         else:
             # xz default
             if shutil.which("pixz"):
-                compressor_opt = ["-I", "pixz"]
+                compressor_opt = ["--use-compress-program=pixz"]
             else:
                 compressor_opt = ["-J"]
 

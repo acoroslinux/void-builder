@@ -1,5 +1,4 @@
 import os
-import shutil
 import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -102,7 +101,7 @@ class ChrootManager:
             cache_path_str = system_cfg.get("xbps_cache")
         
         if not cache_path_str:
-            cache_path_str = "workdir/cache/xbps"
+            cache_path_str = "cache/xbps"
             
         import tempfile
         cache_dir = resolve_from_project(cache_path_str) / self.arch
@@ -234,7 +233,7 @@ class ChrootManager:
         # Pass 2.5: Reconfigure DKMS beforehand if present (creates /var/lib/dkms before modules configure)
         try:
             self.run_command("env -i xbps-reconfigure dkms", check=False)
-        except Exception as e:
+        except Exception:
             pass
 
         # Pass 3: Reconfigure all packages inside chroot

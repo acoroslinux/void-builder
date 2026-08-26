@@ -35,6 +35,11 @@ LABEL linuxnogfx
   KERNEL /boot/vmlinuz
   APPEND initrd=/boot/initrd root=live:CDLABEL=@@VOL_ID@@ init=/sbin/init ro rd.luks=0 rd.md=0 rd.dm=0 loglevel=4 vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ nomodeset @@BOOT_CMDLINE@@
 
+LABEL linuxdebug
+  MENU LABEL @@BOOT_TITLE@@ @@DESKTOP@@ (Debug Mode)
+  KERNEL /boot/vmlinuz
+  APPEND initrd=/boot/initrd root=live:CDLABEL=@@VOL_ID@@ init=/sbin/init ro rd.luks=0 rd.md=0 rd.dm=0 loglevel=7 rd.debug vconsole.unicode=1 vconsole.keymap=@@KEYMAP@@ locale.LANG=@@LOCALE@@ @@BOOT_CMDLINE@@
+
 LABEL linuxa11y
   MENU LABEL @@BOOT_TITLE@@ @@DESKTOP@@ with Speech (Accessibility)
   KERNEL /boot/vmlinuz

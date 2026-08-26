@@ -2,11 +2,10 @@ import os
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
-from void_builder.core.chroot_manager import ChrootError, ChrootManager
-from void_builder.core.config_loader import ConfigLoader
-from void_builder.core.iso_engine import Config, ISOBuilder, ISOBuilderError
+from void_builder.core.chroot_manager import ChrootManager
+from void_builder.core.iso_engine import ISOBuilder, ISOBuilderError
 from void_builder.core.path_utils import resolve_from_project
 from void_builder.core.toolchain import ToolchainManager
 
@@ -31,7 +30,7 @@ class BuildOrchestrator:
         force_isolated_toolchain: bool = False,
         toolchain_debug: bool = False,
         toolchain_debug_log: Optional[str] = None,
-        toolchain_pacman_retries: int = 3,
+        toolchain_retries: int = 3,
         desktop: Optional[str] = None,
         kernel: Optional[str] = None,
         bootloader: Optional[str] = None,
@@ -127,7 +126,6 @@ class BuildOrchestrator:
         self.save_config_path = save_config_path
         self._tmpfs_mounted = False
 
-        self.config_loader = ConfigLoader()
         self.builder: Optional[ISOBuilder] = None
         self.chroot: Optional[ChrootManager] = None
         self.toolchain: Optional[ToolchainManager] = None
@@ -278,7 +276,7 @@ class BuildOrchestrator:
                             if line.startswith("MemTotal:") or line.startswith("SwapTotal:"):
                                 total_kb += int(line.split()[1])
                     total_gb = total_kb / (1024 * 1024)
-                    safe_gb = max(12, int(total_gb * 0.75))
+                    safe_gb = max(4, min(16, int(total_gb * 0.75)))
                     tmpfs_size = f"{safe_gb}G"
                 except Exception:
                     pass
@@ -296,8 +294,10 @@ class BuildOrchestrator:
                 workdir / "iso-staging",
                 workdir / "build_host",
             ]
+            from void_builder.utils.lib import umount_pseudofs
             for stale_dir in stale_paths:
                 if stale_dir.exists():
+                    umount_pseudofs(str(stale_dir))
                     shutil.rmtree(stale_dir, ignore_errors=True)
 
         self.toolchain = ToolchainManager(
@@ -350,7 +350,7 @@ class BuildOrchestrator:
             preset=self.preset,
         )
 
-    def run_build(self, output_iso: str, output_format: str = "iso") -> Path:
+    def run_build(self, output_iso: str, output_format: str = "iso") -> Union[str, Path]:
         try:
             self._setup()
 

@@ -26,7 +26,9 @@ COLOR_RESET = "\033[0m"
 
 
 def supports_color() -> bool:
-    """Return True if the current stdout supports colour sequences."""
+    """Return True if the current stdout supports colour sequences and NO_COLOR is not set."""
+    if os.environ.get("NO_COLOR") or os.environ.get("TERM") == "dumb":
+        return False
     return hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
 
 
@@ -62,7 +64,7 @@ def setup_logger(
 
     The logger writes to:
     • the console (colourised, INFO+ by default)
-    • a rotating file in ``~/logs/`` (DEBUG+ by default)
+    • a rotating file in ``workdir/logs/`` (DEBUG+ by default)
 
     Parameters
     ----------
@@ -100,7 +102,16 @@ def setup_logger(
     # ------------------------------------------------------------------
     # File handler (rotating, no colours)
     # ------------------------------------------------------------------
-    log_dir = Path(__file__).resolve().parents[2]
+    log_dir = Path.cwd() / "workdir" / "logs"
+    try:
+        log_dir.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        try:
+            log_dir = Path.home() / ".cache" / "void-builder" / "logs"
+            log_dir.mkdir(parents=True, exist_ok=True)
+        except Exception:
+            log_dir = Path("/tmp/void-builder-logs")
+            log_dir.mkdir(parents=True, exist_ok=True)
 
     try:
         file_handler = RotatingFileHandler(
@@ -114,7 +125,7 @@ def setup_logger(
             logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
         )
         logger.addHandler(file_handler)
-    except PermissionError:
+    except (PermissionError, OSError):
         pass
 
     # ------------------------------------------------------------------
