@@ -47,11 +47,9 @@ class ToolchainManager:
             ensure_static_xbps(str(self.tools_dir), force_update=self.update_toolchain)
             ensure_proot(str(self.tools_dir), force_update=self.update_toolchain)
             
-            # Setup host tools
-            self._setup_host_tools()
-            
-            # Setup target root
-            self._setup_target_root()
+            self.host_dir.mkdir(parents=True, exist_ok=True)
+            self.target_dir.mkdir(parents=True, exist_ok=True)
+            self._bootstrap_toolchain_dirs()
             
         self._is_ready = True
         logger.info("[TOOLCHAIN] Static toolchain binaries and isolated chroots ready.")
@@ -107,8 +105,8 @@ class ToolchainManager:
 
     def _bootstrap_toolchain_dirs(self):
         # 1. Copy keys
-        self._copy_void_keys(self.host_dir)
-        self._copy_void_keys(self.target_dir)
+        self._setup_keys(self.host_dir)
+        self._setup_keys(self.target_dir)
 
         # 2. Install host prereqs into self.host_dir
         host_arch = self._get_host_arch()
