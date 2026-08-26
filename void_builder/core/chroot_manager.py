@@ -162,7 +162,7 @@ class ChrootManager:
 
         # Copy repository public keys to the target chroot
         if self.mode == "real":
-            self.toolchain._copy_void_keys(self.chroot_path)
+            self.toolchain._setup_keys(self.chroot_path)
 
         if self.mode == "mock":
             logger.info(f"[Chroot] [MOCK] Would install packages: {packages}")

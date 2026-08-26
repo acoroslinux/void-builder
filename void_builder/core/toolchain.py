@@ -63,6 +63,8 @@ class ToolchainManager:
             for f in mklive_keys.glob("*.plist"):
                 shutil.copy2(f, key_dir)
 
+    _copy_void_keys = _setup_keys
+
     def _get_host_arch(self) -> str:
         from void_builder.utils.lib import get_host_arch
         return get_host_arch()

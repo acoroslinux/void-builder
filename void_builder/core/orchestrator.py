@@ -280,6 +280,17 @@ class BuildOrchestrator:
                     tmpfs_size = f"{safe_gb}G"
                 except Exception:
                     pass
+
+                # Check if workdir is already a mountpoint from an interrupted previous run
+                try:
+                    resolved_workdir = str(workdir.resolve())
+                    with open("/proc/mounts", "r") as f:
+                        if any(len(line.split()) >= 2 and line.split()[1] == resolved_workdir for line in f):
+                            import subprocess
+                            subprocess.run(["umount", "-f", resolved_workdir], check=False)
+                except Exception:
+                    pass
+
                 print(f"[ORCHESTRATOR] 🚀 Mounting tmpfs ({tmpfs_size} RAM disk) on {workdir}...")
                 import subprocess
                 subprocess.run(["mount", "-t", "tmpfs", "-o", f"size={tmpfs_size},mode=0755", "tmpfs", str(workdir)], check=True)
@@ -387,19 +398,27 @@ class BuildOrchestrator:
             raise BuildOrchestratorError(f"Pipeline failed: {e}")
 
         finally:
+            if self.workdir:
+                from void_builder.utils.lib import umount_pseudofs
+                umount_pseudofs(str(self.workdir / "airootfs"))
+                umount_pseudofs(str(self.workdir / "mnt"))
+
             if self.chroot:
                 self.chroot.umount()
 
-            if self._tmpfs_mounted and self.workdir:
+            if self.workdir:
                 try:
                     import subprocess
-                    subprocess.run(["umount", "-f", str(self.workdir)], check=True)
-                    self._tmpfs_mounted = False
+                    resolved_workdir = str(self.workdir.resolve())
+                    with open("/proc/mounts", "r") as f:
+                        if any(len(line.split()) >= 2 and line.split()[1] == resolved_workdir for line in f):
+                            subprocess.run(["umount", "-f", resolved_workdir], check=False)
+                            self._tmpfs_mounted = False
                 except Exception as e:
                     print(f"[ORCHESTRATOR] Warning: Could not unmount tmpfs: {e}")
             
             if self.workdir and self.workdir.exists():
-                # Safety check: verify no active mount points remain under self.workdir before running rmtree
+                # Safety check: verify no active child mount points remain under self.workdir before running rmtree
                 active_mount = False
                 try:
                     resolved_workdir = self.workdir.resolve()
@@ -408,7 +427,7 @@ class BuildOrchestrator:
                             parts = line.split()
                             if len(parts) >= 2:
                                 mp = Path(parts[1]).resolve()
-                                if mp == resolved_workdir or resolved_workdir in mp.parents:
+                                if mp != resolved_workdir and resolved_workdir in mp.parents:
                                     active_mount = True
                                     break
                 except Exception:
