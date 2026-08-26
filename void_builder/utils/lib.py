@@ -216,10 +216,12 @@ def umount_pseudofs(rootfs):
     for fs in ('sys', 'proc', 'dev'):
         target = os.path.join(rootfs, fs)
         if os.path.isdir(target):
-            rc, _, stderr = CommandRunner.run(['umount', '-R', '-l', target], check=False)
-            if rc != 0:
-                warn_msg(f"Failed to unmount {target}: {stderr}")
-                success = False
+            rc, _, _ = CommandRunner.run(['mountpoint', '-q', target], check=False, capture_output=True, silent_errors=True)
+            if rc == 0:
+                rc_u, _, stderr = CommandRunner.run(['umount', '-R', '-l', target], check=False)
+                if rc_u != 0:
+                    warn_msg(f"Failed to unmount {target}: {stderr}")
+                    success = False
     return success
 
 
