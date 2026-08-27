@@ -27,20 +27,27 @@ Void-Builder natively supports 12 target architectures and single-board computer
 
 ## 2. Output Formats Explained
 
-Void-Builder supports three primary output format types specified via `--format`:
+Void-Builder supports multiple production output format types specified via `--format`:
 
 ### A. Bootable ISO Image (`--format iso`)
 - **Extension**: `.iso`
-- **Use Case**: Bootable Live USB flash drives, DVDs, virtual machines (QEMU, KVM, VirtualBox, VMware).
+- **Use Case**: Bootable Live USB flash drives, DVDs, live virtual machine testing (QEMU, KVM, VirtualBox, VMware).
 - **Structure**: Hybrid ISO 9660 filesystem containing a SquashFS container image (`LiveOS/squashfs.img`), El Torito BIOS MBR boot code (SYSLINUX), and UEFI FAT boot image (`boot/grub/efiboot.img`).
 
-### B. Raw Platform Disk Image (`--format img`)
-- **Extension**: `.img` (or `.img.xz` compressed)
-- **Use Case**: Single-Board Computers (Raspberry Pi, Pinebook Pro, Asahi). Designed to be flashed directly to SD cards, eMMC drives, or NVMe storage using `dd`, Raspberry Pi Imager, or BalenaEtcher.
+### B. Virtual Machine Disk Images (`--format qcow2`, `--format vdi`, `--format vmdk`, `--format vhdx`)
+- **QEMU / KVM (`--format qcow2`)**: Compressed, sparse copy-on-write virtual disk image ready for `qemu-system-*`, `virt-manager`, `Proxmox VE`, or `OpenStack`.
+- **VirtualBox (`--format vdi`)**: Native VirtualBox disk image ready to attach directly to a VM.
+- **VMware (`--format vmdk`)**: Native VMware Workstation / Player / ESXi virtual machine disk.
+- **Hyper-V (`--format vhdx`)**: Native Microsoft Hyper-V virtual hard disk image.
+- **Structure**: Partitioned virtual disk (GPT: EFI System Partition + ext4 rootfs, pre-installed GRUB2 bootloader, `/etc/fstab` with UUIDs, kernel, and customized user stack).
+
+### C. Raw Platform & Flashable Disk Image (`--format img`, `--format raw`)
+- **Extension**: `.img` / `.raw`
+- **Use Case**: Single-Board Computers (Raspberry Pi, Pinebook Pro, Apple Silicon Asahi, ThinkPad X13s) and physical SSD/USB drive cloning. Designed to be flashed directly using `dd`, Raspberry Pi Imager, or BalenaEtcher.
 - **Structure**: Partitioned disk image (Partition 1: VFAT `/boot` partition; Partition 2: EXT4 root `/` partition).
 
-### C. RootFS Container Tarball (`--format tarball`)
-- **Extension**: `.tar.xz`
+### D. RootFS Container Tarball (`--format tarball`)
+- **Extension**: `.tar.xz` or `.tar.zst`
 - **Use Case**: Docker container base images, Podman containers, LXC/Proxmox templates, systemd-nspawn containers, chroot bootstrap environments.
 - **Structure**: Compressed tar archive containing the exact customized root directory structure (`/bin`, `/etc`, `/usr`, `/var`).
 

@@ -34,11 +34,18 @@ def _resolve_output_name(
     desktop_label = _slugify_name(desktop or "base", "base")
     arch_label = _slugify_name(architecture, "x86_64")
 
-    ext = "iso"
-    if output_format == "tarball":
-        ext = "tar.xz"
-    elif output_format == "img":
-        ext = "img"
+    format_map = {
+        "tarball": "tar.xz",
+        "img": "img",
+        "raw": "raw",
+        "qcow2": "qcow2",
+        "vdi": "vdi",
+        "vmdk": "vmdk",
+        "vhdx": "vhdx",
+        "vhd": "vhdx",
+        "iso": "iso",
+    }
+    ext = format_map.get(output_format.lower(), "iso")
 
     plat_str = ""
     if isinstance(platform, list) and platform:
@@ -374,9 +381,9 @@ def main():
     # Output Format & Compression
     parser.add_argument(
         "--format",
-        choices=["iso", "img", "tarball"],
+        choices=["iso", "img", "raw", "qcow2", "vdi", "vmdk", "vhdx", "vhd", "tarball"],
         default="iso",
-        help="Target build artifact format: 'iso' (bootable ISO), 'img' (disk image), or 'tarball' (rootfs tar.xz). Default: iso",
+        help="Target build artifact format: 'iso' (bootable live ISO), 'img'/'raw' (disk image for SD/USB), 'qcow2' (QEMU/KVM disk), 'vdi' (VirtualBox disk), 'vmdk' (VMware disk), 'vhdx' (Hyper-V disk), or 'tarball' (rootfs container tar.xz). Default: iso",
     )
 
     parser.add_argument(
@@ -486,19 +493,35 @@ def main():
         print("\n" + "=" * 60)
         print(" 🚀 Void-Builder Interactive Build Wizard")
         print("=" * 60)
-        print("\nSelect target architecture:")
+        print("\nSelect target architecture / platform:")
         print("  1) x86_64 (Default PC 64-bit)")
-        print("  2) x86_64-musl (Musl libc)")
-        print("  3) aarch64 (ARM 64-bit)")
-        print("  4) rpi-aarch64 (Raspberry Pi 3/4/5 64-bit)")
-        print("  5) pinebookpro (Pinebook Pro ARM)")
-        print("  6) asahi (Apple Silicon)")
-        arch_choice = input("Enter choice [1-6, default 1]: ").strip()
+        print("  2) i686 (Legacy PC 32-bit)")
+        print("  3) x86_64-musl (Musl libc 64-bit)")
+        print("  4) aarch64 (Generic ARM 64-bit UEFI)")
+        print("  5) rpi-aarch64 (Raspberry Pi 3/4/5 / CM4 64-bit)")
+        print("  6) pinebookpro (Pinebook Pro RK3399 ARM)")
+        print("  7) asahi (Apple Silicon M1/M2)")
+        print("  8) x13s (ThinkPad X13s Snapdragon ARM)")
+        arch_choice = input("Enter choice [1-8, default 1]: ").strip()
         arch_map = {
-            "1": "x86_64", "2": "x86_64-musl", "3": "aarch64",
-            "4": "rpi-aarch64", "5": "pinebookpro", "6": "asahi"
+            "1": "x86_64", "2": "i686", "3": "x86_64-musl", "4": "aarch64",
+            "5": "rpi-aarch64", "6": "pinebookpro", "7": "asahi", "8": "x13s"
         }
         args.architecture = arch_map.get(arch_choice, "x86_64")
+
+        print("\nSelect output format:")
+        print("  1) iso (Hybrid Bootable Live ISO - USB/DVD)")
+        print("  2) qcow2 (QEMU / KVM Virtual Disk Image)")
+        print("  3) vdi (VirtualBox Virtual Disk Image)")
+        print("  4) vmdk (VMware Virtual Machine Disk)")
+        print("  5) img (Raw Flashable Disk Image - SD Card / eMMC / USB)")
+        print("  6) tarball (RootFS Container Tarball)")
+        format_choice = input("Enter choice [1-6, default 1]: ").strip()
+        format_map = {
+            "1": "iso", "2": "qcow2", "3": "vdi",
+            "4": "vmdk", "5": "img", "6": "tarball"
+        }
+        args.format = format_map.get(format_choice, "iso")
 
         print("\nSelect build preset/edition:")
         print("  1) minimal (Minimal / Server / Headless)")

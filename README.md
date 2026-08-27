@@ -49,8 +49,12 @@ The online manual covers:
 - 🪝 **Lifecycle Hooks Engine**: Execute custom scripts at distinct lifecycle points (`pre-install`, `post-install`, `pre-iso`, `post-iso`) with `--hook`.
 - 🛠️ **Multiple Output Formats & Checksums**:
   - `.iso`: Hybrid bootable ISO images (BIOS + UEFI)
-  - `.img`: Partitioned raw disk images for SD cards / eMMC
-  - `.tar.xz`: Compressed RootFS container tarballs
+  - `.qcow2`: QEMU / KVM compressed copy-on-write virtual machine disks
+  - `.vdi`: VirtualBox native virtual disk images
+  - `.vmdk`: VMware Workstation / Player / ESXi virtual machine disks
+  - `.vhdx`: Microsoft Hyper-V virtual hard disks
+  - `.img` / `.raw`: Partitioned raw disk images for SD cards, eMMC, and physical drives
+  - `.tar.xz` / `.tar.zst`: Compressed RootFS container tarballs
   - Comprehensive checksums: `.sha256`, `.sha512`, `.md5`, and `.manifest.json`.
 - 🚀 **Interactive Terminal Wizard**: Launch step-by-step interactive configuration with `-i` / `--interactive`.
 - 📦 **Clean Package Profiles & Automatic Defaults**:
@@ -163,7 +167,7 @@ sudo python3 cli.py rpi-aarch64 --mode real
 | `-j`, `--jobs` | `-j 8` | CPU threads for compression and packaging. |
 | `--mode` | `mock` / `real` | Execution mode (default: `mock`). |
 | `--dry-run` | `--dry-run` | Alias for `--mode mock`. |
-| `--format` | `iso` / `img` / `tarball` | Build output format (default: `iso`). |
+| `--format` | `iso` / `qcow2` / `vdi` / `vmdk` / `vhdx` / `img` / `raw` / `tarball` | Build output format (default: `iso`). |
 | `--hostname` | `--hostname void-pc` | Custom system hostname. |
 | `--locale` | `--locale pt_PT.UTF-8` | Custom system locale. |
 | `--timezone` | `--timezone Europe/Lisbon`| Custom system timezone. |
