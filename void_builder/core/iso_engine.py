@@ -164,12 +164,47 @@ class BaseEngine(ISOEngine):
         """Produce the final output artifact (ISO, IMG, QCOW2, VDI, VMDK, VHDX, etc.)."""
 
     def _convert_disk_image(self, raw_img_path: Path, target_format: str, output_path: Path) -> Path:
-        """Convert a raw disk image (.img/.raw) to target VM disk format (qcow2, vdi, vmdk, vhdx)."""
+        """Convert a raw disk image (.img/.raw) to target VM disk format (qcow2, vdi, vmdk, vhdx) or compress for distribution."""
         target_format = target_format.lower()
+        compress_image = self.config.get("compress_image", False)
+        compression_algo = self.config.get("compression", "xz").lower()
+
         if target_format in ("img", "raw"):
-            if raw_img_path != output_path:
-                shutil.move(str(raw_img_path), str(output_path))
-            return output_path
+            if compress_image:
+                comp_ext = ".zst" if compression_algo == "zstd" else ".xz"
+                compressed_out = output_path if str(output_path).endswith(comp_ext) else output_path.parent / f"{output_path.name}{comp_ext}"
+                is_mock = getattr(self.toolchain, "mode", "mock") == "mock"
+                if is_mock:
+                    self.logger.info(f"[compress] [MOCK] Would compress {raw_img_path} with {compression_algo.upper()} to {compressed_out}")
+                    compressed_out.touch()
+                    if raw_img_path != compressed_out and raw_img_path.exists():
+                        try:
+                            raw_img_path.unlink(missing_ok=True)
+                        except Exception:
+                            pass
+                    return compressed_out
+
+                import subprocess
+                self.logger.info(f"[compress] Compressing disk image with {compression_algo.upper()} for distribution ({compressed_out})...")
+                if compression_algo == "zstd":
+                    cmd = ["zstd", "-T0", "-19", "-f", "-o", str(compressed_out), str(raw_img_path)]
+                    subprocess.run(cmd, check=True)
+                else:
+                    cmd = ["xz", "-z", "-T0", "-6", "-c", str(raw_img_path)]
+                    with open(compressed_out, "wb") as f_out:
+                        subprocess.run(cmd, stdout=f_out, check=True)
+
+                if raw_img_path.exists() and raw_img_path != compressed_out:
+                    try:
+                        raw_img_path.unlink(missing_ok=True)
+                    except Exception:
+                        pass
+                self.logger.info(f"[compress] Successfully compressed disk image: {compressed_out}")
+                return compressed_out
+            else:
+                if raw_img_path != output_path:
+                    shutil.move(str(raw_img_path), str(output_path))
+                return output_path
 
         is_mock = getattr(self.toolchain, "mode", "mock") == "mock"
         if is_mock:
@@ -842,8 +877,12 @@ class VoidEngine(BaseEngine):
             "img": ".img",
         }
         target_ext = ext_map.get(output_format, f".{output_format}")
-        if output_abs_path.suffix != target_ext:
-            output_abs_path = output_abs_path.with_suffix(target_ext)
+        base_path = output_abs_path
+        if base_path.suffix in (".xz", ".zst", ".gz"):
+            base_path = base_path.with_suffix("")
+        if base_path.suffix != target_ext:
+            base_path = base_path.with_suffix(target_ext)
+        output_abs_path = base_path
 
         output_abs_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -865,8 +904,9 @@ class VoidEngine(BaseEngine):
         if is_mock:
             self.logger.info(f"[disk] [MOCK] Would create {output_format.upper()} disk image: {output_abs_path} ({img_size})")
             output_abs_path.touch()
-            self._generate_manifest_and_checksums(str(output_abs_path))
-            return str(output_abs_path)
+            final_file = self._convert_disk_image(output_abs_path, output_format, output_abs_path)
+            self._generate_manifest_and_checksums(str(final_file))
+            return str(final_file)
 
         if os.geteuid() != 0:
             raise ISOBuilderError(f"Root privileges (sudo) are required to generate bootable {output_format.upper()} disk images.")
@@ -1074,10 +1114,12 @@ class PlatformEngine(VoidEngine):
             "img": ".img",
         }
         target_ext = ext_map.get(output_format, f".{output_format}")
-        if output_abs_path.suffix != target_ext:
-            output_abs_path = output_abs_path.with_suffix(target_ext)
-
-        output_abs = str(output_abs_path)
+        base_path = output_abs_path
+        if base_path.suffix in (".xz", ".zst", ".gz"):
+            base_path = base_path.with_suffix("")
+        if base_path.suffix != target_ext:
+            base_path = base_path.with_suffix(target_ext)
+        output_abs_path = base_path
         output_abs_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Calculate required size dynamically if not hardcoded in config
@@ -1097,12 +1139,13 @@ class PlatformEngine(VoidEngine):
         
         is_mock = getattr(self.toolchain, "mode", "mock") == "mock"
         if is_mock:
-            self.logger.info(f"[finalize] [MOCK] Would create platform image: {output_abs} ({img_size})")
+            self.logger.info(f"[finalize] [MOCK] Would create platform image: {output_abs_path} ({img_size})")
             output_abs_path.touch()
-            self._generate_manifest_and_checksums(output_abs)
-            return output_abs
+            final_file = self._convert_disk_image(output_abs_path, output_format, output_abs_path)
+            self._generate_manifest_and_checksums(str(final_file))
+            return str(final_file)
 
-        self.logger.info(f"[finalize] Creating platform image: {output_abs} ({img_size})")
+        self.logger.info(f"[finalize] Creating platform image: {output_abs_path} ({img_size})")
         if os.geteuid() != 0:
             raise ISOBuilderError("Root privileges are required to generate platform images via loop devices.")
             

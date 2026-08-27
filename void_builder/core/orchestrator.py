@@ -66,6 +66,7 @@ class BuildOrchestrator:
         fast_mode: bool = False,
         benchmark: bool = False,
         jobs: Optional[int] = None,
+        compress_image: bool = False,
     ):
         VALID_ARCHS = (
             "x86_64", "x86_64-musl",
@@ -105,6 +106,7 @@ class BuildOrchestrator:
         self.use_tmpfs = use_tmpfs
         self.benchmark = benchmark
         self.jobs = jobs
+        self.compress_image = compress_image
         self.compression = "zstd" if fast_mode else compression
         self.generate_manifest = generate_manifest
         self.use_tarball = use_tarball
@@ -234,6 +236,7 @@ class BuildOrchestrator:
         self.config._data["generate_manifest"] = self.generate_manifest
         self.config._data["use_tarball"] = self.use_tarball
         self.config._data["create_tarball"] = self.create_tarball
+        self.config._data["compress_image"] = self.compress_image
 
         # Inject command line custom repositories
         if self.repositories:

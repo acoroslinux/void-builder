@@ -180,6 +180,7 @@ sudo python3 cli.py rpi-aarch64 --mode real
 | `--use-tarball`, `--tarball` | `--use-tarball y` | Unpack a base stage seed (local path, URL, or `y`/`auto`) to speed up builds. |
 | `--create-tarball` | `--create-tarball` | Save bootstrapped base system as a reusable stage seed in `output/stage_seeds/`. |
 | `--compression` | `xz` / `zstd` / `gzip` | Compression algorithm (default: `xz`). |
+| `--compress` | `--compress` | Compress final disk images (`.img.xz` / `.img.zst`) for distribution. |
 | `--check` | `--check` | Validate configuration and exit. |
 | `--save-config` | `--save-config build.json` | Export assembled configuration JSON snapshot. |
 | `--clean-cache` | `--clean-cache` | Clear package and stage seed caches and exit. |

@@ -156,6 +156,9 @@ python3 cli.py [ARCHITECTURE] [OPTIONS]
 ### `--compression {xz,zstd,gzip}`
 - **Description**: Compression algorithm for SquashFS container and Dracut initramfs image. Default: `xz` (or `zstd` with `--fast`).
 
+### `--compress-image`, `--compress-output`, `--compress`
+- **Description**: Compresses final raw disk images (`.img` / `.raw`) with multi-threaded compression (`.img.xz` or `.img.zst`) for smaller download sizes in distribution.
+
 ### `--save-config PATH`
 - **Description**: Exports the assembled build configuration snapshot as JSON to the specified path for documentation and reproducible builds.
 

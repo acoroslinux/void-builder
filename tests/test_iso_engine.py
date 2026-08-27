@@ -108,6 +108,23 @@ class TestISOEngine(unittest.TestCase):
             self.assertTrue(Path(str(res_img) + ".sha256").exists())
             self.assertTrue(Path(str(res_img) + ".manifest.json").exists())
 
+    def test_iso_builder_mock_platform_img_compressed(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            assembler = ConfigAssembler("configs")
+            cfg = assembler.assemble("rpi-aarch64")
+            cfg._data["compress_image"] = True
+            cfg._data["compression"] = "xz"
+            toolchain = DummyToolchain()
+            builder = ISOBuilder("rpi-aarch64", cfg, toolchain)
+
+            output_img = tmp_path / "rpi.img.xz"
+            res_img = builder.build(str(output_img), workdir=str(tmp_path / "workdir"), output_format="img")
+            self.assertTrue(Path(res_img).exists())
+            self.assertTrue(str(res_img).endswith(".xz"))
+            self.assertTrue(Path(str(res_img) + ".sha256").exists())
+            self.assertTrue(Path(str(res_img) + ".manifest.json").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

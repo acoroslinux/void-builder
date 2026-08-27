@@ -27,6 +27,8 @@ def _resolve_output_name(
     output: Optional[str] = None,
     platform: Any = None,
     output_format: str = "iso",
+    compress_image: bool = False,
+    compression: str = "xz",
 ) -> str:
     if output:
         return output
@@ -46,6 +48,9 @@ def _resolve_output_name(
         "iso": "iso",
     }
     ext = format_map.get(output_format.lower(), "iso")
+    if compress_image and output_format.lower() in ("img", "raw"):
+        comp_ext = "zst" if compression.lower() == "zstd" else "xz"
+        ext = f"{ext}.{comp_ext}"
 
     plat_str = ""
     if isinstance(platform, list) and platform:
@@ -393,6 +398,15 @@ def main():
         help="SquashFS and Initramfs compression algorithm. Default: xz",
     )
 
+    parser.add_argument(
+        "--compress-image",
+        "--compress-output",
+        "--compress",
+        dest="compress_image",
+        action="store_true",
+        help="Compress final disk image (.img.xz / .img.zst) with multi-threaded compression for compact distribution.",
+    )
+
     # Performance & Speed Optimization
     parser.add_argument(
         "--fast",
@@ -668,6 +682,8 @@ def main():
         output=args.output,
         platform=args.platform,
         output_format=args.format,
+        compress_image=args.compress_image,
+        compression=args.compression,
     )
 
     config_root = resolve_from_project("configs")
@@ -757,6 +773,7 @@ def main():
         generate_manifest=args.generate_manifest,
         use_tarball=args.use_tarball,
         create_tarball=args.create_tarball,
+        compress_image=args.compress_image,
         preset=args.preset,
         hostname=args.hostname,
         timezone=args.timezone,
