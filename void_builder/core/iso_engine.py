@@ -1173,20 +1173,27 @@ class PlatformEngine(VoidEngine):
         try:
             # 4. Format
             self.logger.info(f"[finalize] Formatting partitions on {loop_dev}...")
-            subprocess.run(["mkfs.vfat", "-I", "-F16", f"{loop_dev}p1"], check=True)
-            subprocess.run(["mkfs.ext4", "-F", "-O", "^has_journal", f"{loop_dev}p2"], check=True)
+            subprocess.run(["mkfs.vfat", "-F32", "-n", "VOID_BOOT", f"{loop_dev}p1"], check=True)
+            subprocess.run(["mkfs.ext4", "-F", "-L", "void_root", f"{loop_dev}p2"], check=True)
             
             # 5. Mount and Copy
             mnt_root = Path(self.workdir) / "mnt_platform"
+            mnt_boot = Path(self.workdir) / "mnt_boot"
             mnt_root.mkdir(parents=True, exist_ok=True)
+            mnt_boot.mkdir(parents=True, exist_ok=True)
             
             subprocess.run(["mount", f"{loop_dev}p2", str(mnt_root)], check=True)
-            (mnt_root / "boot").mkdir(parents=True, exist_ok=True)
-            subprocess.run(["mount", f"{loop_dev}p1", str(mnt_root / "boot")], check=True)
+            subprocess.run(["mount", f"{loop_dev}p1", str(mnt_boot)], check=True)
             
             try:
                 self.logger.info(f"[finalize] Copying target rootfs into platform partitions...")
                 subprocess.run(["cp", "-a", f"{self.chroot_path}/.", f"{mnt_root}/"], check=True)
+
+                # Copy boot files into FAT32 boot partition (dereferencing symlinks for FAT compatibility)
+                self.logger.info(f"[finalize] Populating FAT32 boot partition...")
+                chroot_boot = Path(self.chroot_path) / "boot"
+                if chroot_boot.exists():
+                    subprocess.run(["cp", "-rL", f"{chroot_boot}/.", f"{mnt_boot}/"], check=False)
                 
                 # Fix fstab with UUIDs
                 self.logger.info(f"[finalize] Generating /etc/fstab for platform image...")
@@ -1196,21 +1203,31 @@ class PlatformEngine(VoidEngine):
                 boot_uuid = boot_uuid_res.stdout.strip()
                 root_uuid = root_uuid_res.stdout.strip()
                 
-                fstab_content = f"UUID={root_uuid} / ext4 defaults 0 1\nUUID={boot_uuid} /boot vfat defaults 0 2\n"
+                fstab_content = f"UUID={root_uuid} / ext4 defaults,noatime 0 1\nUUID={boot_uuid} /boot vfat defaults 0 2\n"
                 (mnt_root / "etc" / "fstab").write_text(fstab_content)
                 
                 # Board-specific final adjustments
                 if self.arch.startswith("rpi"):
-                    self.logger.info(f"[finalize] Updating cmdline.txt for Raspberry Pi...")
+                    self.logger.info(f"[finalize] Configuring cmdline.txt & config.txt for Raspberry Pi...")
                     root_partuuid_res = subprocess.run(["blkid", "-s", "PARTUUID", "-o", "value", f"{loop_dev}p2"], capture_output=True, text=True)
                     root_partuuid = root_partuuid_res.stdout.strip()
                     
-                    cmdline_txt = mnt_root / "boot" / "cmdline.txt"
-                    if cmdline_txt.exists():
-                        import re
-                        content = cmdline_txt.read_text()
-                        content = re.sub(r'root=[^ ]+', f'root=PARTUUID={root_partuuid}', content)
-                        cmdline_txt.write_text(content)
+                    cmdline_content = f"console=serial0,115200 console=tty1 root=PARTUUID={root_partuuid} rootfstype=ext4 elevator=deadline fsck.repair=yes rootwait\n"
+                    (mnt_boot / "cmdline.txt").write_text(cmdline_content)
+                    if (mnt_root / "boot").exists():
+                        (mnt_root / "boot" / "cmdline.txt").write_text(cmdline_content)
+
+                    config_txt = mnt_boot / "config.txt"
+                    if not config_txt.exists():
+                        config_content = (
+                            "# Void Linux Raspberry Pi Boot Config\n"
+                            "arm_64bit=1\n"
+                            "enable_uart=1\n"
+                            "dtoverlay=vc4-kms-v3d\n"
+                            "disable_overscan=1\n"
+                            "gpu_mem=64\n"
+                        )
+                        config_txt.write_text(config_content)
                 
                 elif self.arch == "pinebookpro":
                     self.logger.info(f"[finalize] Flashing Pinebook Pro U-Boot...")
@@ -1240,8 +1257,12 @@ class PlatformEngine(VoidEngine):
                         umount_pseudofs(str(mnt_root))
                     
             finally:
-                subprocess.run(["umount", "-f", str(mnt_root / "boot")], check=False)
+                subprocess.run(["umount", "-f", str(mnt_boot)], check=False)
                 subprocess.run(["umount", "-f", str(mnt_root)], check=False)
+                try:
+                    os.rmdir(str(mnt_boot))
+                except OSError:
+                    pass
                 try:
                     os.rmdir(str(mnt_root))
                 except OSError:
