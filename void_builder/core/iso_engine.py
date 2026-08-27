@@ -978,9 +978,9 @@ class VoidEngine(BaseEngine):
                     run_cmd_chroot(
                         str(mnt_root),
                         f"grub-install --target={grub_target} --efi-directory=/boot/efi --bootloader-id=void --removable",
-                        check=False
+                        check=True
                     )
-                    run_cmd_chroot(str(mnt_root), "grub-mkconfig -o /boot/grub/grub.cfg", check=False)
+                    run_cmd_chroot(str(mnt_root), "grub-mkconfig -o /boot/grub/grub.cfg", check=True)
                 finally:
                     umount_pseudofs(str(mnt_root))
 
