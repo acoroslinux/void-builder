@@ -3,7 +3,7 @@
 # This file is used by grub-mkconfig to generate /boot/grub/grub.cfg
 
 # Distributor name shown in the GRUB menu
-GRUB_DISTRIBUTOR="Arch Modern"
+GRUB_DISTRIBUTOR="Void Modern"
 
 # Default boot entry (0 = first entry)
 GRUB_DEFAULT=0
@@ -32,7 +32,7 @@ GRUB_CMDLINE_LINUX=""
 # GRUB_DISABLE_RECOVERY=true
 
 # Uncomment to detect other operating systems on the disk
-GRUB_DISABLE_OS_PROBER=false
+GRUB_DISABLE_OS_PROBER=true
 
 # Preload additional GRUB modules
 GRUB_PRELOAD_MODULES="part_gpt part_msdos"
