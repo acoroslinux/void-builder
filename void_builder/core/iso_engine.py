@@ -2,6 +2,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from pathlib import Path
 import shutil
+import tempfile
 from typing import Any, Dict, List, Optional, Type, Union
 
 from void_builder.core.config_loader import Config
@@ -41,6 +42,9 @@ class BaseEngine(ISOEngine):
         self.config = config
         self.toolchain = toolchain
         self.logger = getattr(toolchain, "logger", logger)
+        self.workdir: Optional[Path] = None
+        self.chroot_path: Optional[Path] = None
+        self.iso_staging: Optional[Path] = None
 
     def _cfg_get(self, key: str, default: Any = None) -> Any:
         try:
@@ -141,6 +145,7 @@ class BaseEngine(ISOEngine):
         if not target.is_absolute():
             target = resolve_from_project(target)
         target.mkdir(parents=True, exist_ok=True)
+        self.workdir = target
         return target
 
     @abstractmethod
@@ -350,6 +355,7 @@ class VoidEngine(BaseEngine):
 
     def setup_chroot(self, workdir: str) -> None:
         self.logger.info(f"[setup_chroot] Preparing chroot at {workdir}")
+        self.workdir = Path(workdir)
         self.chroot_path = Path(workdir) / "airootfs"
         self.chroot_path.mkdir(parents=True, exist_ok=True)
 
@@ -939,7 +945,8 @@ class VoidEngine(BaseEngine):
             subprocess.run(["mkfs.ext4", "-F", "-L", "void_root", f"{loop_dev}p2"], check=True)
 
             # 5. Mount and Copy
-            mnt_root = Path(self.workdir) / "mnt_disk"
+            workdir_base = getattr(self, "workdir", None) or (self.chroot_path.parent if getattr(self, "chroot_path", None) else Path(tempfile.gettempdir()))
+            mnt_root = Path(workdir_base) / "mnt_disk"
             mnt_root.mkdir(parents=True, exist_ok=True)
 
             subprocess.run(["mount", f"{loop_dev}p2", str(mnt_root)], check=True)
@@ -1177,8 +1184,9 @@ class PlatformEngine(VoidEngine):
             subprocess.run(["mkfs.ext4", "-F", "-L", "void_root", f"{loop_dev}p2"], check=True)
             
             # 5. Mount and Copy
-            mnt_root = Path(self.workdir) / "mnt_platform"
-            mnt_boot = Path(self.workdir) / "mnt_boot"
+            workdir_base = getattr(self, "workdir", None) or (self.chroot_path.parent if getattr(self, "chroot_path", None) else Path(tempfile.gettempdir()))
+            mnt_root = Path(workdir_base) / "mnt_platform"
+            mnt_boot = Path(workdir_base) / "mnt_boot"
             mnt_root.mkdir(parents=True, exist_ok=True)
             mnt_boot.mkdir(parents=True, exist_ok=True)
             
