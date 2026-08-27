@@ -94,6 +94,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#output-formats">Output &amp; Formats</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#format-iso-img-raw-qcow2-vdi-vmdk-vhdx-tarball"><code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">{iso,img,raw,qcow2,vdi,vmdk,vhdx,tarball}</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#compression-xz-zstd-gzip"><code class="docutils literal notranslate"><span class="pre">--compression</span> <span class="pre">{xz,zstd,gzip}</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#compress-image-compress-output-compress"><code class="docutils literal notranslate"><span class="pre">--compress-image</span></code>, <code class="docutils literal notranslate"><span class="pre">--compress-output</span></code>, <code class="docutils literal notranslate"><span class="pre">--compress</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#save-config-path"><code class="docutils literal notranslate"><span class="pre">--save-config</span> <span class="pre">PATH</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#use-tarball-source-tarball-source"><code class="docutils literal notranslate"><span class="pre">--use-tarball</span> <span class="pre">[SOURCE]</span></code>, <code class="docutils literal notranslate"><span class="pre">--tarball</span> <span class="pre">[SOURCE]</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#create-tarball"><code class="docutils literal notranslate"><span class="pre">--create-tarball</span></code></a></li>
@@ -380,6 +381,12 @@ python3<span class="w"> </span>cli.py<span class="w"> </span><span class="o">[</
 <h3><code class="docutils literal notranslate"><span class="pre">--compression</span> <span class="pre">{xz,zstd,gzip}</span></code><a class="headerlink" href="#compression-xz-zstd-gzip" title="Link to this heading"></a></h3>
 <ul class="simple">
 <li><p><strong>Description</strong>: Compression algorithm for SquashFS container and Dracut initramfs image. Default: <code class="docutils literal notranslate"><span class="pre">xz</span></code> (or <code class="docutils literal notranslate"><span class="pre">zstd</span></code> with <code class="docutils literal notranslate"><span class="pre">--fast</span></code>).</p></li>
+</ul>
+</section>
+<section id="compress-image-compress-output-compress">
+<h3><code class="docutils literal notranslate"><span class="pre">--compress-image</span></code>, <code class="docutils literal notranslate"><span class="pre">--compress-output</span></code>, <code class="docutils literal notranslate"><span class="pre">--compress</span></code><a class="headerlink" href="#compress-image-compress-output-compress" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Description</strong>: Compresses final raw disk images (<code class="docutils literal notranslate"><span class="pre">.img</span></code> / <code class="docutils literal notranslate"><span class="pre">.raw</span></code>) with multi-threaded compression (<code class="docutils literal notranslate"><span class="pre">.img.xz</span></code> or <code class="docutils literal notranslate"><span class="pre">.img.zst</span></code>) for smaller download sizes in distribution.</p></li>
 </ul>
 </section>
 <section id="save-config-path">
