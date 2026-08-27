@@ -127,7 +127,10 @@ class UserAction(SystemAction):
         if not name:
             return
 
-        groups = self.user_config.get("groups", [])
+        groups = list(self.user_config.get("groups", []))
+        if name in ("live", "void") and "autologin" not in groups:
+            groups.append("autologin")
+
         password = self.user_config.get("password", "")
         if not password and name in ("live", "void"):
             password = "live"
@@ -637,12 +640,27 @@ class LoginManagerAction(SystemAction):
                 write_chroot_file("etc/lightdm/.session", session + "\n")
                 write_chroot_file("etc/X11/Xwrapper.config", "allowed_users=anybody\nneeds_root_rights=yes\n")
 
+                lightdm_conf = (
+                    "[Seat:*]\n"
+                    f"autologin-user={self.username}\n"
+                    "autologin-user-timeout=0\n"
+                    f"autologin-session={session}\n"
+                    f"user-session={session}\n"
+                    "greeter-session=lightdm-gtk-greeter\n"
+                    "pam-service=lightdm-autologin\n"
+                    "pam-autologin-service=lightdm-autologin\n"
+                )
+                write_chroot_file("etc/lightdm/lightdm.conf.d/live.conf", lightdm_conf)
+                write_chroot_file("etc/lightdm/lightdm.conf", lightdm_conf)
+
                 greeter_content = (
                     "[greeter]\n"
                     "indicators = ~host;~spacer;~clock;~spacer;~layout;~session;~a11y;~power\n"
+                    "theme-name = Adwaita-dark\n"
+                    "icon-theme-name = Papirus\n"
                 )
                 write_chroot_file("etc/lightdm/lightdm-gtk-greeter.conf", greeter_content)
-                logger.info(f"  [LoginManager] Configured LightDM session to '{session}'")
+                logger.info(f"  [LoginManager] Configured LightDM autologin for '{self.username}' with session '{session}'")
                 
             # 2. SDDM Configuration
             elif self.display_manager == "sddm":
