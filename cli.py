@@ -99,13 +99,13 @@ def main():
         "--clean",
         dest="clean",
         action="store_true",
-        help="Clean previous build artifacts before starting a new build (default).",
+        help="Clean build tree before starting and clean up at the end (default).",
     )
     clean_group.add_argument(
         "--no-clean",
         dest="clean",
         action="store_false",
-        help="Reuse previous build tree without pre-build cleanup.",
+        help="Reuse previous build tree and do not clean up at the end.",
     )
     parser.set_defaults(clean=True)
 

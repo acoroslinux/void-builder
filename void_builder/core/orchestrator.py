@@ -437,9 +437,11 @@ class BuildOrchestrator:
                     pass
 
                 if active_mount:
-                    print(f"\n[ORCHESTRATOR] ⚠️ Safety Warning: Active mounts detected under {self.workdir}. Skipping rmtree to protect host system.")
-                else:
-                    print(f"\n[ORCHESTRATOR] Performing post-build cleanup: Removing {self.workdir}...")
+                    print(f"
+[ORCHESTRATOR] ⚠️ Safety Warning: Active mounts detected under {self.workdir}. Skipping rmtree to protect host system.")
+                elif self.clean:
+                    print(f"
+[ORCHESTRATOR] Performing post-build cleanup: Removing {self.workdir}...")
                     import shutil
                     try:
                         shutil.rmtree(self.workdir, ignore_errors=True)

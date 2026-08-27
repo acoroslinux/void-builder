@@ -22,7 +22,7 @@ class ToolchainManager:
     ):
         self.mode = mode
         self.force_isolated = force_isolated
-        self.toolchain_dir = workdir_base / "build_host"
+        self.toolchain_dir = resolve_from_project("build_host")
         self.arch = arch or "x86_64"
         self.update_toolchain = update_toolchain
         self.retries = retries
