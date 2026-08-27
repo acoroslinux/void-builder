@@ -313,7 +313,8 @@ class DracutAction(SystemAction):
             force_modules.extend(self.extra_modules)
 
         comp_flag = self.COMPRESSION_FLAGS.get(self.compression, "--xz")
-        initrd_path = "/boot/initrd"
+        initrd_path = f"/boot/initramfs-{kernel_version}.img"
+        live_initrd_path = "/boot/initrd"
 
         cmd_parts = [
             "dracut", "-N", comp_flag,
@@ -327,7 +328,8 @@ class DracutAction(SystemAction):
         cmd_str = " ".join(cmd_parts)
         logger.info(f"  [Dracut] Command: {cmd_str}")
         chroot.run_command(cmd_str)
-        logger.info(f"  [Dracut] Initramfs generated: {initrd_path} (kernel {kernel_version})")
+        chroot.run_command(f"ln -sf {Path(initrd_path).name} {live_initrd_path}")
+        logger.info(f"  [Dracut] Initramfs generated: {initrd_path} (symlinked to {live_initrd_path})")
 
 
 

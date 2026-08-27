@@ -106,6 +106,7 @@
     "gnome-keyring",
     "gparted",
     "grub",
+    "e2fsprogs",
     "grub-x86_64-efi",
     "grub-i386-efi",
     "gtk-update-icon-cache",
