@@ -142,11 +142,15 @@ python3 cli.py [ARCHITECTURE] [OPTIONS]
 
 ## Output & Formats
 
-### `--format {iso,img,tarball}`
+### `--format {iso,img,raw,qcow2,vdi,vmdk,vhdx,tarball}`
 - **Description**: Target build artifact format.
-  - `iso`: Hybrid ISO 9660 image with BIOS/UEFI bootloaders.
-  - `img`: Partitioned disk image (VFAT `/boot` + EXT4 `/`).
-  - `tarball`: Compressed `.tar.xz` rootfs archive for containers/LXC.
+  - `iso`: Hybrid ISO 9660 image with BIOS/UEFI bootloaders for live booting, CDs, DVDs, and flash drives.
+  - `qcow2`: QEMU / KVM Copy-On-Write virtual machine disk image (with built-in compression).
+  - `vdi`: VirtualBox Virtual Disk Image.
+  - `vmdk`: VMware Workstation / ESXi Virtual Machine Disk.
+  - `vhdx` / `vhd`: Microsoft Hyper-V Virtual Hard Disk.
+  - `img` / `raw`: Partitioned raw disk image (VFAT `/boot` + EXT4 `/`) ready for flashing to SD cards, USBs, and eMMC.
+  - `tarball`: Compressed `.tar.xz` or `.tar.zst` rootfs archive for containers, Docker, LXC, and stage bootstrapping.
 - **Default**: `iso`
 
 ### `--compression {xz,zstd,gzip}`

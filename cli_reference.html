@@ -92,7 +92,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#output-formats">Output &amp; Formats</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#format-iso-img-tarball"><code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">{iso,img,tarball}</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#format-iso-img-raw-qcow2-vdi-vmdk-vhdx-tarball"><code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">{iso,img,raw,qcow2,vdi,vmdk,vhdx,tarball}</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#compression-xz-zstd-gzip"><code class="docutils literal notranslate"><span class="pre">--compression</span> <span class="pre">{xz,zstd,gzip}</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#save-config-path"><code class="docutils literal notranslate"><span class="pre">--save-config</span> <span class="pre">PATH</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#use-tarball-source-tarball-source"><code class="docutils literal notranslate"><span class="pre">--use-tarball</span> <span class="pre">[SOURCE]</span></code>, <code class="docutils literal notranslate"><span class="pre">--tarball</span> <span class="pre">[SOURCE]</span></code></a></li>
@@ -359,14 +359,18 @@ python3<span class="w"> </span>cli.py<span class="w"> </span><span class="o">[</
 <hr class="docutils" />
 <section id="output-formats">
 <h2>Output &amp; Formats<a class="headerlink" href="#output-formats" title="Link to this heading"></a></h2>
-<section id="format-iso-img-tarball">
-<h3><code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">{iso,img,tarball}</span></code><a class="headerlink" href="#format-iso-img-tarball" title="Link to this heading"></a></h3>
+<section id="format-iso-img-raw-qcow2-vdi-vmdk-vhdx-tarball">
+<h3><code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">{iso,img,raw,qcow2,vdi,vmdk,vhdx,tarball}</span></code><a class="headerlink" href="#format-iso-img-raw-qcow2-vdi-vmdk-vhdx-tarball" title="Link to this heading"></a></h3>
 <ul class="simple">
 <li><p><strong>Description</strong>: Target build artifact format.</p>
 <ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">iso</span></code>: Hybrid ISO 9660 image with BIOS/UEFI bootloaders.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">img</span></code>: Partitioned disk image (VFAT <code class="docutils literal notranslate"><span class="pre">/boot</span></code> + EXT4 <code class="docutils literal notranslate"><span class="pre">/</span></code>).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">tarball</span></code>: Compressed <code class="docutils literal notranslate"><span class="pre">.tar.xz</span></code> rootfs archive for containers/LXC.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">iso</span></code>: Hybrid ISO 9660 image with BIOS/UEFI bootloaders for live booting, CDs, DVDs, and flash drives.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">qcow2</span></code>: QEMU / KVM Copy-On-Write virtual machine disk image (with built-in compression).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vdi</span></code>: VirtualBox Virtual Disk Image.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vmdk</span></code>: VMware Workstation / ESXi Virtual Machine Disk.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vhdx</span></code> / <code class="docutils literal notranslate"><span class="pre">vhd</span></code>: Microsoft Hyper-V Virtual Hard Disk.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">img</span></code> / <code class="docutils literal notranslate"><span class="pre">raw</span></code>: Partitioned raw disk image (VFAT <code class="docutils literal notranslate"><span class="pre">/boot</span></code> + EXT4 <code class="docutils literal notranslate"><span class="pre">/</span></code>) ready for flashing to SD cards, USBs, and eMMC.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tarball</span></code>: Compressed <code class="docutils literal notranslate"><span class="pre">.tar.xz</span></code> or <code class="docutils literal notranslate"><span class="pre">.tar.zst</span></code> rootfs archive for containers, Docker, LXC, and stage bootstrapping.</p></li>
 </ul>
 </li>
 <li><p><strong>Default</strong>: <code class="docutils literal notranslate"><span class="pre">iso</span></code></p></li>

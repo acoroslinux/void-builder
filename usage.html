@@ -50,8 +50,9 @@
 <li class="toctree-l2"><a class="reference internal" href="#supported-architecture-targets-matrix">1. Supported Architecture Targets Matrix</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#output-formats-explained">2. Output Formats Explained</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#a-bootable-iso-image-format-iso">A. Bootable ISO Image (<code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">iso</span></code>)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#b-raw-platform-disk-image-format-img">B. Raw Platform Disk Image (<code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">img</span></code>)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#c-rootfs-container-tarball-format-tarball">C. RootFS Container Tarball (<code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">tarball</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#b-virtual-machine-disk-images-format-qcow2-format-vdi-format-vmdk-format-vhdx">B. Virtual Machine Disk Images (<code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">qcow2</span></code>, <code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">vdi</span></code>, <code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">vmdk</span></code>, <code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">vhdx</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#c-raw-platform-flashable-disk-image-format-img-format-raw">C. Raw Platform &amp; Flashable Disk Image (<code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">img</span></code>, <code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">raw</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#d-rootfs-container-tarball-format-tarball">D. RootFS Container Tarball (<code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">tarball</span></code>)</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#stage-seed-tarball-system-gentoo-style-rapid-iso-builds">3. Stage Seed Tarball System (Gentoo-Style Rapid ISO Builds)</a></li>
@@ -204,27 +205,37 @@
 <hr class="docutils" />
 <section id="output-formats-explained">
 <h2>2. Output Formats Explained<a class="headerlink" href="#output-formats-explained" title="Link to this heading"></a></h2>
-<p>Void-Builder supports three primary output format types specified via <code class="docutils literal notranslate"><span class="pre">--format</span></code>:</p>
+<p>Void-Builder supports multiple production output format types specified via <code class="docutils literal notranslate"><span class="pre">--format</span></code>:</p>
 <section id="a-bootable-iso-image-format-iso">
 <h3>A. Bootable ISO Image (<code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">iso</span></code>)<a class="headerlink" href="#a-bootable-iso-image-format-iso" title="Link to this heading"></a></h3>
 <ul class="simple">
 <li><p><strong>Extension</strong>: <code class="docutils literal notranslate"><span class="pre">.iso</span></code></p></li>
-<li><p><strong>Use Case</strong>: Bootable Live USB flash drives, DVDs, virtual machines (QEMU, KVM, VirtualBox, VMware).</p></li>
+<li><p><strong>Use Case</strong>: Bootable Live USB flash drives, DVDs, live virtual machine testing (QEMU, KVM, VirtualBox, VMware).</p></li>
 <li><p><strong>Structure</strong>: Hybrid ISO 9660 filesystem containing a SquashFS container image (<code class="docutils literal notranslate"><span class="pre">LiveOS/squashfs.img</span></code>), El Torito BIOS MBR boot code (SYSLINUX), and UEFI FAT boot image (<code class="docutils literal notranslate"><span class="pre">boot/grub/efiboot.img</span></code>).</p></li>
 </ul>
 </section>
-<section id="b-raw-platform-disk-image-format-img">
-<h3>B. Raw Platform Disk Image (<code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">img</span></code>)<a class="headerlink" href="#b-raw-platform-disk-image-format-img" title="Link to this heading"></a></h3>
+<section id="b-virtual-machine-disk-images-format-qcow2-format-vdi-format-vmdk-format-vhdx">
+<h3>B. Virtual Machine Disk Images (<code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">qcow2</span></code>, <code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">vdi</span></code>, <code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">vmdk</span></code>, <code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">vhdx</span></code>)<a class="headerlink" href="#b-virtual-machine-disk-images-format-qcow2-format-vdi-format-vmdk-format-vhdx" title="Link to this heading"></a></h3>
 <ul class="simple">
-<li><p><strong>Extension</strong>: <code class="docutils literal notranslate"><span class="pre">.img</span></code> (or <code class="docutils literal notranslate"><span class="pre">.img.xz</span></code> compressed)</p></li>
-<li><p><strong>Use Case</strong>: Single-Board Computers (Raspberry Pi, Pinebook Pro, Asahi). Designed to be flashed directly to SD cards, eMMC drives, or NVMe storage using <code class="docutils literal notranslate"><span class="pre">dd</span></code>, Raspberry Pi Imager, or BalenaEtcher.</p></li>
+<li><p><strong>QEMU / KVM (<code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">qcow2</span></code>)</strong>: Compressed, sparse copy-on-write virtual disk image ready for <code class="docutils literal notranslate"><span class="pre">qemu-system-*</span></code>, <code class="docutils literal notranslate"><span class="pre">virt-manager</span></code>, <code class="docutils literal notranslate"><span class="pre">Proxmox</span> <span class="pre">VE</span></code>, or <code class="docutils literal notranslate"><span class="pre">OpenStack</span></code>.</p></li>
+<li><p><strong>VirtualBox (<code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">vdi</span></code>)</strong>: Native VirtualBox disk image ready to attach directly to a VM.</p></li>
+<li><p><strong>VMware (<code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">vmdk</span></code>)</strong>: Native VMware Workstation / Player / ESXi virtual machine disk.</p></li>
+<li><p><strong>Hyper-V (<code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">vhdx</span></code>)</strong>: Native Microsoft Hyper-V virtual hard disk image.</p></li>
+<li><p><strong>Structure</strong>: Partitioned virtual disk (GPT: EFI System Partition + ext4 rootfs, pre-installed GRUB2 bootloader, <code class="docutils literal notranslate"><span class="pre">/etc/fstab</span></code> with UUIDs, kernel, and customized user stack).</p></li>
+</ul>
+</section>
+<section id="c-raw-platform-flashable-disk-image-format-img-format-raw">
+<h3>C. Raw Platform &amp; Flashable Disk Image (<code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">img</span></code>, <code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">raw</span></code>)<a class="headerlink" href="#c-raw-platform-flashable-disk-image-format-img-format-raw" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Extension</strong>: <code class="docutils literal notranslate"><span class="pre">.img</span></code> / <code class="docutils literal notranslate"><span class="pre">.raw</span></code></p></li>
+<li><p><strong>Use Case</strong>: Single-Board Computers (Raspberry Pi, Pinebook Pro, Apple Silicon Asahi, ThinkPad X13s) and physical SSD/USB drive cloning. Designed to be flashed directly using <code class="docutils literal notranslate"><span class="pre">dd</span></code>, Raspberry Pi Imager, or BalenaEtcher.</p></li>
 <li><p><strong>Structure</strong>: Partitioned disk image (Partition 1: VFAT <code class="docutils literal notranslate"><span class="pre">/boot</span></code> partition; Partition 2: EXT4 root <code class="docutils literal notranslate"><span class="pre">/</span></code> partition).</p></li>
 </ul>
 </section>
-<section id="c-rootfs-container-tarball-format-tarball">
-<h3>C. RootFS Container Tarball (<code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">tarball</span></code>)<a class="headerlink" href="#c-rootfs-container-tarball-format-tarball" title="Link to this heading"></a></h3>
+<section id="d-rootfs-container-tarball-format-tarball">
+<h3>D. RootFS Container Tarball (<code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">tarball</span></code>)<a class="headerlink" href="#d-rootfs-container-tarball-format-tarball" title="Link to this heading"></a></h3>
 <ul class="simple">
-<li><p><strong>Extension</strong>: <code class="docutils literal notranslate"><span class="pre">.tar.xz</span></code></p></li>
+<li><p><strong>Extension</strong>: <code class="docutils literal notranslate"><span class="pre">.tar.xz</span></code> or <code class="docutils literal notranslate"><span class="pre">.tar.zst</span></code></p></li>
 <li><p><strong>Use Case</strong>: Docker container base images, Podman containers, LXC/Proxmox templates, systemd-nspawn containers, chroot bootstrap environments.</p></li>
 <li><p><strong>Structure</strong>: Compressed tar archive containing the exact customized root directory structure (<code class="docutils literal notranslate"><span class="pre">/bin</span></code>, <code class="docutils literal notranslate"><span class="pre">/etc</span></code>, <code class="docutils literal notranslate"><span class="pre">/usr</span></code>, <code class="docutils literal notranslate"><span class="pre">/var</span></code>).</p></li>
 </ul>
