@@ -651,7 +651,6 @@ class LoginManagerAction(SystemAction):
                     "pam-autologin-service=lightdm-autologin\n"
                 )
                 write_chroot_file("etc/lightdm/lightdm.conf.d/live.conf", lightdm_conf)
-                write_chroot_file("etc/lightdm/lightdm.conf", lightdm_conf)
 
                 greeter_content = (
                     "[greeter]\n"
@@ -660,7 +659,7 @@ class LoginManagerAction(SystemAction):
                     "icon-theme-name = Papirus\n"
                 )
                 write_chroot_file("etc/lightdm/lightdm-gtk-greeter.conf", greeter_content)
-                logger.info(f"  [LoginManager] Configured LightDM autologin for '{self.username}' with session '{session}'")
+                logger.info(f"  [LoginManager] Configured LightDM live autologin drop-in for '{self.username}' with session '{session}'")
                 
             # 2. SDDM Configuration
             elif self.display_manager == "sddm":
