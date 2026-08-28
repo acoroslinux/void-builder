@@ -109,12 +109,21 @@ class DiskEngine:
         root_img = self.workdir / "root.img"
         
         logger.info(f"Generating root filesystem ({rootfs_size} MB)...")
+        fs_type = self.config.get("fs_type", "ext4")
         if self.toolchain:
             self.toolchain.run_in_build_host(["truncate", "-s", f"{rootfs_size}M", str(root_img)], check=True)
-            self.toolchain.run_in_build_host(["mke2fs", "-t", "ext4", "-L", "void_root", "-U", root_uuid, "-d", str(self.target_root), str(root_img)], check=True)
+            if fs_type == "f2fs":
+                self.toolchain.run_in_build_host(["mkfs.f2fs", "-l", "void_root", str(root_img)], check=True)
+                self.toolchain.run_in_build_host(["sload.f2fs", "-f", str(self.target_root), str(root_img)], check=False)
+            else:
+                self.toolchain.run_in_build_host(["mke2fs", "-t", "ext4", "-L", "void_root", "-U", root_uuid, "-d", str(self.target_root), str(root_img)], check=True)
         else:
             subprocess.run(["truncate", "-s", f"{rootfs_size}M", str(root_img)], check=True)
-            subprocess.run(["mke2fs", "-t", "ext4", "-L", "void_root", "-U", root_uuid, "-d", str(self.target_root), str(root_img)], check=True)
+            if fs_type == "f2fs":
+                subprocess.run(["mkfs.f2fs", "-l", "void_root", str(root_img)], check=True)
+                subprocess.run(["sload.f2fs", "-f", str(self.target_root), str(root_img)], check=False)
+            else:
+                subprocess.run(["mke2fs", "-t", "ext4", "-L", "void_root", "-U", root_uuid, "-d", str(self.target_root), str(root_img)], check=True)
             
         logger.info(f"Generating FAT32 EFI filesystem ({efi_size} MB)...")
         if self.toolchain:
@@ -132,7 +141,7 @@ class DiskEngine:
             subprocess.run(["parted", "-s", str(out_path), "mktable", "msdos"], check=True)
             subprocess.run(["parted", "-s", str(out_path), "mkpart", "primary", "fat32", "1MiB", f"{efi_size+1}MiB"], check=True)
             subprocess.run(["parted", "-s", str(out_path), "set", "1", "boot", "on"], check=True)
-            subprocess.run(["parted", "-s", str(out_path), "mkpart", "primary", "ext4", f"{efi_size+1}MiB", "100%"], check=True)
+            subprocess.run(["parted", "-s", str(out_path), "mkpart", "primary", fs_type, f"{efi_size+1}MiB", "100%"], check=True)
             subprocess.run(["dd", f"if={efi_img}", f"of={out_path}", "bs=1M", "seek=1", "conv=notrunc", "status=none"], check=True)
             subprocess.run(["dd", f"if={root_img}", f"of={out_path}", "bs=1M", f"seek={efi_size+1}", "conv=notrunc", "status=none"], check=True)
         elif self.arch == "pinebookpro":
@@ -156,7 +165,7 @@ class DiskEngine:
             subprocess.run(["parted", "-s", str(out_path), "mktable", "gpt"], check=True)
             subprocess.run(["parted", "-s", str(out_path), "mkpart", "ESP", "fat32", "1MiB", f"{efi_size+1}MiB"], check=True)
             subprocess.run(["parted", "-s", str(out_path), "set", "1", "esp", "on"], check=True)
-            subprocess.run(["parted", "-s", str(out_path), "mkpart", "primary", "ext4", f"{efi_size+1}MiB", "100%"], check=True)
+            subprocess.run(["parted", "-s", str(out_path), "mkpart", "primary", fs_type, f"{efi_size+1}MiB", "100%"], check=True)
             subprocess.run(["dd", f"if={efi_img}", f"of={out_path}", "bs=1M", "seek=1", "conv=notrunc", "status=none"], check=True)
             subprocess.run(["dd", f"if={root_img}", f"of={out_path}", "bs=1M", f"seek={efi_size+1}", "conv=notrunc", "status=none"], check=True)
 
