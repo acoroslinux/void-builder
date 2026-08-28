@@ -1,3 +1,4 @@
+from void_builder.core.path_utils import unmount_all_under, resolve_from_project
 import os
 import shutil
 import tempfile
@@ -301,18 +302,13 @@ class BuildOrchestrator:
             else:
                 print(f"[ORCHESTRATOR] 🚀 [MOCK/SIM] Fast RAM staging enabled for {workdir}")
 
-        if self.clean:
-            stale_paths = [
-                workdir / "airootfs",
-                workdir / "mnt",
-                workdir / "iso-staging",
-                workdir / "build_host",
-            ]
-            from void_builder.utils.lib import umount_pseudofs
-            for stale_dir in stale_paths:
-                if stale_dir.exists():
-                    umount_pseudofs(str(stale_dir))
-                    shutil.rmtree(stale_dir, ignore_errors=True)
+
+        if self.clean and self.mode != "mock":
+            if os.geteuid() == 0:
+                unmount_all_under(resolve_from_project("workdir"))
+            if workdir.exists():
+                import shutil
+                shutil.rmtree(workdir, ignore_errors=True)
 
         self.toolchain = ToolchainManager(
             workdir_base=workdir,
@@ -421,6 +417,13 @@ class BuildOrchestrator:
             raise BuildOrchestratorError(f"Pipeline failed: {e}")
 
         finally:
+            if self.clean and self.mode != "mock":
+                if os.geteuid() == 0:
+                    unmount_all_under(resolve_from_project("workdir"))
+                if hasattr(self, 'workdir') and self.workdir and self.workdir.exists():
+                    import shutil
+                    shutil.rmtree(self.workdir, ignore_errors=True)
+
             if self.workdir:
                 from void_builder.utils.lib import umount_pseudofs
                 umount_pseudofs(str(self.workdir / "airootfs"))
