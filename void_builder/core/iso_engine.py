@@ -755,10 +755,8 @@ class VoidEngine(BaseEngine):
         output_format = (output_format or "iso").lower()
         if output_format == "iso":
             return self._finalize_iso(output_path)
-        elif output_format in ("img", "raw", "qcow2", "vdi", "vmdk", "vhdx", "vhd"):
-            return self._finalize_disk_image(output_path, output_format)
         else:
-            raise ISOBuilderError(f"Unsupported output format: {output_format}")
+            raise ISOBuilderError(f"Unsupported output format in ISOEngine: {output_format}")
 
     def _finalize_iso(self, output_path: str) -> str:
         # 1. Create squashfs
@@ -868,139 +866,6 @@ class VoidEngine(BaseEngine):
         self._generate_manifest_and_checksums(output_abs)
         return output_abs
 
-    def _finalize_disk_image(self, output_path: str, output_format: str) -> str:
-        self.logger.info(f"=== Step 6: Finalizing Bootable Virtual Disk / Disk Image ({output_format.upper()}) ===")
-        import subprocess
-        import os
-        from void_builder.core.path_utils import resolve_from_project
-
-        output_abs_path = resolve_from_project(output_path)
-        ext_map = {
-            "qcow2": ".qcow2",
-            "vdi": ".vdi",
-            "vmdk": ".vmdk",
-            "vhdx": ".vhdx",
-            "vhd": ".vhdx",
-            "raw": ".raw",
-            "img": ".img",
-        }
-        target_ext = ext_map.get(output_format, f".{output_format}")
-        base_path = output_abs_path
-        if base_path.suffix in (".xz", ".zst", ".gz"):
-            base_path = base_path.with_suffix("")
-        if base_path.suffix != target_ext:
-            base_path = base_path.with_suffix(target_ext)
-        output_abs_path = base_path
-
-        output_abs_path.parent.mkdir(parents=True, exist_ok=True)
-
-        img_size_config = self._cfg_get("system.img_size", None)
-        if img_size_config:
-            img_size = img_size_config
-        else:
-            try:
-                du_res = subprocess.run(["du", "--apparent-size", "-sm", str(self.chroot_path)], capture_output=True, text=True, check=True)
-                used_mb = int(du_res.stdout.split()[0])
-                required_mb = int(used_mb * 1.30) + 600
-                img_size = f"{required_mb}M"
-                self.logger.info(f"[disk] Dynamically calculated image size: {img_size} (rootfs is ~{used_mb}MB)")
-            except Exception as e:
-                self.logger.warning(f"[disk] Failed to calculate rootfs size: {e}. Falling back to 4G.")
-                img_size = "4G"
-
-        is_mock = getattr(self.toolchain, "mode", "mock") == "mock"
-        if is_mock:
-            self.logger.info(f"[disk] [MOCK] Would create {output_format.upper()} disk image: {output_abs_path} ({img_size})")
-            output_abs_path.touch()
-            final_file = self._convert_disk_image(output_abs_path, output_format, output_abs_path)
-            self._generate_manifest_and_checksums(str(final_file))
-            return str(final_file)
-
-        if os.geteuid() != 0:
-            raise ISOBuilderError(f"Root privileges (sudo) are required to generate bootable {output_format.upper()} disk images.")
-
-        raw_staging = output_abs_path.parent / f"{output_abs_path.stem}.raw_staging"
-        self.logger.info(f"[disk] Creating raw staging disk image: {raw_staging} ({img_size})")
-
-        # 1. Truncate file
-        subprocess.run(["truncate", "-s", img_size, str(raw_staging)], check=True)
-
-        # 2. Partition with GPT (ESP + Root)
-        sfdisk_cmd = (
-            "label: gpt\n"
-            "unit: sectors\n"
-            "first-lba: 2048\n"
-            "name=EFI, size=524288, type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B, bootable\n"
-            "name=VoidLinux, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4\n"
-        )
-        subprocess.run(["sfdisk", str(raw_staging)], input=sfdisk_cmd.encode(), check=True)
-
-        # 3. Setup Loop
-        res = subprocess.run(["losetup", "--show", "--find", "--partscan", str(raw_staging)], capture_output=True, text=True, check=True)
-        loop_dev = res.stdout.strip()
-        subprocess.run(["udevadm", "settle"], check=False)
-
-        try:
-            # 4. Format EFI (FAT32) and Root (ext4)
-            self.logger.info(f"[disk] Formatting partitions on {loop_dev}...")
-            subprocess.run(["mkfs.vfat", "-F32", "-n", "VOID_BOOT", f"{loop_dev}p1"], check=True)
-            subprocess.run(["mkfs.ext4", "-F", "-L", "void_root", f"{loop_dev}p2"], check=True)
-
-            # 5. Mount and Copy
-            workdir_base = getattr(self, "workdir", None) or (self.chroot_path.parent if getattr(self, "chroot_path", None) else Path(tempfile.gettempdir()))
-            mnt_root = Path(workdir_base) / "mnt_disk"
-            mnt_root.mkdir(parents=True, exist_ok=True)
-
-            subprocess.run(["mount", f"{loop_dev}p2", str(mnt_root)], check=True)
-            (mnt_root / "boot" / "efi").mkdir(parents=True, exist_ok=True)
-            subprocess.run(["mount", f"{loop_dev}p1", str(mnt_root / "boot" / "efi")], check=True)
-
-            try:
-                self.logger.info(f"[disk] Copying rootfs into disk partitions...")
-                subprocess.run(["cp", "-a", f"{self.chroot_path}/.", f"{mnt_root}/"], check=True)
-
-                # Fix fstab with UUIDs
-                boot_uuid_res = subprocess.run(["blkid", "-s", "UUID", "-o", "value", f"{loop_dev}p1"], capture_output=True, text=True)
-                root_uuid_res = subprocess.run(["blkid", "-s", "UUID", "-o", "value", f"{loop_dev}p2"], capture_output=True, text=True)
-                boot_uuid = boot_uuid_res.stdout.strip()
-                root_uuid = root_uuid_res.stdout.strip()
-
-                fstab_content = (
-                    f"UUID={root_uuid} / ext4 defaults,noatime 0 1\n"
-                    f"UUID={boot_uuid} /boot/efi vfat umask=0077 0 2\n"
-                )
-                (mnt_root / "etc" / "fstab").write_text(fstab_content)
-
-                # Install GRUB bootloader to EFI partition
-                self.logger.info(f"[disk] Installing bootloader into virtual disk...")
-                from void_builder.utils.lib import mount_pseudofs, umount_pseudofs, run_cmd_chroot
-                try:
-                    mount_pseudofs(str(mnt_root))
-                    grub_target = "x86_64-efi" if self.arch == "x86_64" else ("i386-efi" if self.arch == "i686" else "arm64-efi")
-                    run_cmd_chroot(
-                        str(mnt_root),
-                        f"grub-install --target={grub_target} --efi-directory=/boot/efi --bootloader-id=void --removable",
-                        check=True
-                    )
-                    run_cmd_chroot(str(mnt_root), "grub-mkconfig -o /boot/grub/grub.cfg", check=True)
-                finally:
-                    umount_pseudofs(str(mnt_root))
-
-            finally:
-                subprocess.run(["umount", "-f", str(mnt_root / "boot" / "efi")], check=False)
-                subprocess.run(["umount", "-f", str(mnt_root)], check=False)
-                try:
-                    os.rmdir(str(mnt_root))
-                except OSError:
-                    pass
-
-        finally:
-            subprocess.run(["losetup", "-d", loop_dev], check=False)
-
-        # 6. Convert to target virtual disk format (QCOW2, VDI, VMDK, VHDX, RAW/IMG)
-        final_file = self._convert_disk_image(raw_staging, output_format, output_abs_path)
-        self._generate_manifest_and_checksums(str(final_file))
-        return str(final_file)
 
 
 class ISOBuilder:
@@ -1042,14 +907,18 @@ class ISOBuilder:
         self.engine.post_install_configure()
         self.timings["post_install"] = time.perf_counter() - t_step
 
-        # 4. Build bootloaders
+        # 4. Build bootloaders (skip for non-ISO if handled by Orchestrator/DiskEngine)
         t_step = time.perf_counter()
-        self.engine.build_bootloaders(str(workdir_path))
+        if output_format in ("iso", "tarball"):
+            self.engine.build_bootloaders(str(workdir_path))
         self.timings["build_bootloaders"] = time.perf_counter() - t_step
 
         # 5. Finalize ISO / IMG / Tarball file
         t_step = time.perf_counter()
-        if output_format == "tarball" or self.config.get("create_tarball"):
+        if output_format not in ("iso", "tarball"):
+            # Leave image generation to Orchestrator + DiskEngine
+            final_file = str(self.engine.chroot_path)
+        elif output_format == "tarball" or self.config.get("create_tarball"):
             final_tarball = self.engine.export_tarball(output_path)
             if self.config.get("create_tarball"):
                 cache_dest = resolve_from_project(f"cache/tarballs/void-base-{self.arch}.tar.xz")
@@ -1102,186 +971,4 @@ class PlatformEngine(VoidEngine):
         elif self.arch in ("asahi", "x13s"):
             self.logger.info(f"{self.arch} requires GRUB EFI. Will be installed during image finalization.")
 
-    def finalize_isofile(self, output_path: str, output_format: str = "img") -> Optional[str]:
-        self.logger.info(f"=== Step 6: Finalizing Platform Image ({output_format.upper()}) ===")
-        output_format = (output_format or "img").lower()
-        if output_format == "iso":
-            output_format = "img"
 
-        import subprocess
-        import os
-        from void_builder.core.path_utils import resolve_from_project
-        
-        output_abs_path = resolve_from_project(output_path)
-        ext_map = {
-            "qcow2": ".qcow2",
-            "vdi": ".vdi",
-            "vmdk": ".vmdk",
-            "vhdx": ".vhdx",
-            "vhd": ".vhdx",
-            "raw": ".raw",
-            "img": ".img",
-        }
-        target_ext = ext_map.get(output_format, f".{output_format}")
-        base_path = output_abs_path
-        if base_path.suffix in (".xz", ".zst", ".gz"):
-            base_path = base_path.with_suffix("")
-        if base_path.suffix != target_ext:
-            base_path = base_path.with_suffix(target_ext)
-        output_abs_path = base_path
-        output_abs_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Calculate required size dynamically if not hardcoded in config
-        img_size_config = self._cfg_get("system.img_size", None)
-        if img_size_config:
-            img_size = img_size_config
-        else:
-            try:
-                du_res = subprocess.run(["du", "--apparent-size", "-sm", str(self.chroot_path)], capture_output=True, text=True, check=True)
-                used_mb = int(du_res.stdout.split()[0])
-                required_mb = int(used_mb * 1.25) + 600
-                img_size = f"{required_mb}M"
-                self.logger.info(f"[finalize] Dynamically calculated image size: {img_size} (rootfs is ~{used_mb}MB)")
-            except Exception as e:
-                self.logger.warning(f"[finalize] Failed to calculate rootfs size: {e}. Falling back to 4G.")
-                img_size = "4G"
-        
-        is_mock = getattr(self.toolchain, "mode", "mock") == "mock"
-        if is_mock:
-            self.logger.info(f"[finalize] [MOCK] Would create platform image: {output_abs_path} ({img_size})")
-            output_abs_path.touch()
-            final_file = self._convert_disk_image(output_abs_path, output_format, output_abs_path)
-            self._generate_manifest_and_checksums(str(final_file))
-            return str(final_file)
-
-        self.logger.info(f"[finalize] Creating platform image: {output_abs_path} ({img_size})")
-        if os.geteuid() != 0:
-            raise ISOBuilderError("Root privileges are required to generate platform images via loop devices.")
-            
-        # 1. Create file
-        raw_staging = output_abs_path.parent / f"{output_abs_path.stem}.raw_staging"
-        subprocess.run(["truncate", "-s", img_size, str(raw_staging)], check=True)
-        
-        # 2. Partition
-        boot_size = "256MiB"
-        if self.arch == "pinebookpro":
-            boot_size = "512MiB" # RK3399 needs larger boot space for kernels
-            sfdisk_cmd = f"label: gpt\nunit: sectors\nfirst-lba: 32768\nname=BootFS, size={boot_size}, type=L, bootable, attrs=\"LegacyBIOSBootable\"\nname=RootFS, type=L\n"
-        elif self.arch in ("asahi", "x13s"):
-            sfdisk_cmd = f"label: dos\n2048,{boot_size},b,*\n,+,L\n"
-        else:
-            sfdisk_cmd = f"label: dos\n2048,{boot_size},b,*\n,+,L\n"
-
-        subprocess.run(["sfdisk", str(raw_staging)], input=sfdisk_cmd.encode(), check=True)
-        
-        # 3. Setup Loop
-        res = subprocess.run(["losetup", "--show", "--find", "--partscan", str(raw_staging)], capture_output=True, text=True, check=True)
-        loop_dev = res.stdout.strip()
-        subprocess.run(["udevadm", "settle"], check=False)
-        
-        try:
-            # 4. Format
-            self.logger.info(f"[finalize] Formatting partitions on {loop_dev}...")
-            subprocess.run(["mkfs.vfat", "-F32", "-n", "VOID_BOOT", f"{loop_dev}p1"], check=True)
-            subprocess.run(["mkfs.ext4", "-F", "-L", "void_root", f"{loop_dev}p2"], check=True)
-            
-            # 5. Mount and Copy
-            workdir_base = getattr(self, "workdir", None) or (self.chroot_path.parent if getattr(self, "chroot_path", None) else Path(tempfile.gettempdir()))
-            mnt_root = Path(workdir_base) / "mnt_platform"
-            mnt_boot = Path(workdir_base) / "mnt_boot"
-            mnt_root.mkdir(parents=True, exist_ok=True)
-            mnt_boot.mkdir(parents=True, exist_ok=True)
-            
-            subprocess.run(["mount", f"{loop_dev}p2", str(mnt_root)], check=True)
-            subprocess.run(["mount", f"{loop_dev}p1", str(mnt_boot)], check=True)
-            
-            try:
-                self.logger.info(f"[finalize] Copying target rootfs into platform partitions...")
-                subprocess.run(["cp", "-a", f"{self.chroot_path}/.", f"{mnt_root}/"], check=True)
-
-                # Copy boot files into FAT32 boot partition (dereferencing symlinks for FAT compatibility)
-                self.logger.info(f"[finalize] Populating FAT32 boot partition...")
-                chroot_boot = Path(self.chroot_path) / "boot"
-                if chroot_boot.exists():
-                    subprocess.run(["cp", "-rL", f"{chroot_boot}/.", f"{mnt_boot}/"], check=False)
-                
-                # Fix fstab with UUIDs
-                self.logger.info(f"[finalize] Generating /etc/fstab for platform image...")
-                boot_uuid_res = subprocess.run(["blkid", "-s", "UUID", "-o", "value", f"{loop_dev}p1"], capture_output=True, text=True)
-                root_uuid_res = subprocess.run(["blkid", "-s", "UUID", "-o", "value", f"{loop_dev}p2"], capture_output=True, text=True)
-                
-                boot_uuid = boot_uuid_res.stdout.strip()
-                root_uuid = root_uuid_res.stdout.strip()
-                
-                fstab_content = f"UUID={root_uuid} / ext4 defaults,noatime 0 1\nUUID={boot_uuid} /boot vfat defaults 0 2\n"
-                (mnt_root / "etc" / "fstab").write_text(fstab_content)
-                
-                # Board-specific final adjustments
-                if self.arch.startswith("rpi"):
-                    self.logger.info(f"[finalize] Configuring cmdline.txt & config.txt for Raspberry Pi...")
-                    root_partuuid_res = subprocess.run(["blkid", "-s", "PARTUUID", "-o", "value", f"{loop_dev}p2"], capture_output=True, text=True)
-                    root_partuuid = root_partuuid_res.stdout.strip()
-                    
-                    cmdline_content = f"console=serial0,115200 console=tty1 root=PARTUUID={root_partuuid} rootfstype=ext4 elevator=deadline fsck.repair=yes rootwait\n"
-                    (mnt_boot / "cmdline.txt").write_text(cmdline_content)
-                    if (mnt_root / "boot").exists():
-                        (mnt_root / "boot" / "cmdline.txt").write_text(cmdline_content)
-
-                    config_txt = mnt_boot / "config.txt"
-                    if not config_txt.exists():
-                        config_content = (
-                            "# Void Linux Raspberry Pi Boot Config\n"
-                            "arm_64bit=1\n"
-                            "enable_uart=1\n"
-                            "dtoverlay=vc4-kms-v3d\n"
-                            "disable_overscan=1\n"
-                            "gpu_mem=64\n"
-                        )
-                        config_txt.write_text(config_content)
-                
-                elif self.arch == "pinebookpro":
-                    self.logger.info(f"[finalize] Flashing Pinebook Pro U-Boot...")
-                    uboot_dir = mnt_root / "usr" / "lib" / "pinebookpro-uboot"
-                    if uboot_dir.exists():
-                        subprocess.run(["dd", f"if={uboot_dir}/idbloader.img", f"of={loop_dev}", "bs=512", "seek=64", "conv=notrunc,fsync"], check=True)
-                        subprocess.run(["dd", f"if={uboot_dir}/u-boot.itb", f"of={loop_dev}", "bs=512", "seek=16384", "conv=notrunc,fsync"], check=True)
-                    else:
-                        self.logger.warning("[finalize] U-Boot binaries not found in /usr/lib/pinebookpro-uboot!")
-                    
-                    from void_builder.utils.lib import mount_pseudofs, umount_pseudofs, run_cmd_chroot
-                    try:
-                        mount_pseudofs(str(mnt_root))
-                        run_cmd_chroot(str(mnt_root), "xbps-reconfigure -f pinebookpro-kernel", check=False)
-                    finally:
-                        umount_pseudofs(str(mnt_root))
-                
-                elif self.arch in ("asahi", "x13s"):
-                    self.logger.info(f"[finalize] Installing GRUB EFI for {self.arch}...")
-                    from void_builder.utils.lib import mount_pseudofs, umount_pseudofs, run_cmd_chroot
-                    try:
-                        mount_pseudofs(str(mnt_root))
-                        run_cmd_chroot(str(mnt_root), f"grub-install --target=arm64-efi --efi-directory=/boot --removable {loop_dev}", check=False)
-                        kernel_pkg = "linux-asahi" if self.arch == "asahi" else "linux"
-                        run_cmd_chroot(str(mnt_root), f"xbps-reconfigure -f {kernel_pkg}", check=False)
-                    finally:
-                        umount_pseudofs(str(mnt_root))
-                    
-            finally:
-                subprocess.run(["umount", "-f", str(mnt_boot)], check=False)
-                subprocess.run(["umount", "-f", str(mnt_root)], check=False)
-                try:
-                    os.rmdir(str(mnt_boot))
-                except OSError:
-                    pass
-                try:
-                    os.rmdir(str(mnt_root))
-                except OSError:
-                    pass
-                
-        finally:
-            subprocess.run(["partx", "-d", loop_dev], check=False)
-            subprocess.run(["losetup", "-d", loop_dev], check=False)
-
-        final_file = self._convert_disk_image(raw_staging, output_format, output_abs_path)
-        self._generate_manifest_and_checksums(str(final_file))
-        return str(final_file)

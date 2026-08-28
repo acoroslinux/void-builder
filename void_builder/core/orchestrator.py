@@ -376,6 +376,26 @@ class BuildOrchestrator:
                 output_path = resolve_from_project(output_iso)
 
             result_iso = self.builder.build(output_path, str(self.workdir), output_format=output_format)
+            
+            if output_format not in ("iso", "tarball"):
+                from void_builder.core.disk_engine import DiskEngine
+                output_name = output_p.stem if output_p.suffix else output_p.name
+                disk_engine = DiskEngine(
+                    workdir=self.workdir,
+                    target_root=Path(result_iso),
+                    output_name=output_name,
+                    config=self.config._data,
+                    mode=self.mode,
+                    toolchain=self.toolchain,
+                    arch=self.arch,
+                )
+                disk_result = disk_engine.build_disk_image(target_format=output_format)
+                if Path(disk_result) != output_path:
+                    import shutil
+                    shutil.move(str(disk_result), str(output_path))
+                    result_iso = output_path
+                else:
+                    result_iso = disk_result
 
             print("\n✅ BUILD SUCCEEDED!")
             print(f"Artifact generated at: {result_iso}")
