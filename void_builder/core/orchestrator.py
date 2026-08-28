@@ -269,6 +269,14 @@ class BuildOrchestrator:
         base_workdir = resolve_from_project(str(configured_base))
         workdir = self._resolve_writable_workdir(base_workdir)
 
+
+        if self.clean and self.mode != "mock":
+            if os.geteuid() == 0:
+                unmount_all_under(resolve_from_project("workdir"))
+            if workdir.exists():
+                import shutil
+                shutil.rmtree(workdir, ignore_errors=True)
+
         if self.use_tmpfs:
             if self.mode == "real" and os.geteuid() == 0:
                 # Compute safe tmpfs size based on available RAM + Swap (default 16G, up to 75% of total memory)
@@ -296,19 +304,12 @@ class BuildOrchestrator:
                     pass
 
                 print(f"[ORCHESTRATOR] 🚀 Mounting tmpfs ({tmpfs_size} RAM disk) on {workdir}...")
+                workdir.mkdir(parents=True, exist_ok=True)
                 import subprocess
                 subprocess.run(["mount", "-t", "tmpfs", "-o", f"size={tmpfs_size},mode=0755", "tmpfs", str(workdir)], check=True)
                 self._tmpfs_mounted = True
             else:
                 print(f"[ORCHESTRATOR] 🚀 [MOCK/SIM] Fast RAM staging enabled for {workdir}")
-
-
-        if self.clean and self.mode != "mock":
-            if os.geteuid() == 0:
-                unmount_all_under(resolve_from_project("workdir"))
-            if workdir.exists():
-                import shutil
-                shutil.rmtree(workdir, ignore_errors=True)
 
         self.toolchain = ToolchainManager(
             workdir_base=workdir,
