@@ -231,7 +231,8 @@ class BaseEngine(ISOEngine):
         elif target_format == "vdi":
             cmd.extend(["vdi"])
         elif target_format == "vmdk":
-            cmd.extend(["vmdk"])
+            # Use lsilogic adapter for VMware compatibility (avoids "internal errors" on SCSI/NVMe controllers)
+            cmd.extend(["vmdk", "-o", "adapter_type=lsilogic"])
         elif target_format in ("vhdx", "vhd"):
             cmd.extend(["vhdx"])
         else:
@@ -245,25 +246,6 @@ class BaseEngine(ISOEngine):
             raise ISOBuilderError(f"qemu-img conversion to {target_format} failed: {res.stderr}")
 
         self.logger.info(f"[convert] Successfully generated {target_format.upper()} virtual disk: {output_path}")
-
-        # VMware Workstation compatibility pass
-        if target_format == "vmdk":
-            import shutil
-            vdiskmanager = shutil.which("vmware-vdiskmanager")
-            if vdiskmanager:
-                self.logger.info("[convert] VMware tools detected. Sanitizing VMDK format for VMware Workstation compatibility...")
-                repaired_path = Path(output_path).with_suffix(".repaired.vmdk")
-                try:
-                    res_repair = subprocess.run([vdiskmanager, "-r", str(output_path), "-t", "0", str(repaired_path)], capture_output=True, text=True)
-                    if res_repair.returncode == 0 and repaired_path.exists():
-                        shutil.move(str(repaired_path), str(output_path))
-                        self.logger.info("[convert] VMDK sanitization complete. Disk is now VMware-certified.")
-                    else:
-                        self.logger.warning(f"[convert] VMware sanitization returned non-zero. Keeping original qemu-img VMDK. Log: {res_repair.stderr}")
-                        if repaired_path.exists():
-                            repaired_path.unlink()
-                except Exception as e:
-                    self.logger.warning(f"[convert] VMware sanitization failed (will keep standard qemu VMDK): {e}")
 
         if raw_img_path != output_path and raw_img_path.exists():
             try:
