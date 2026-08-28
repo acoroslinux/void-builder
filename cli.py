@@ -75,6 +75,7 @@ def main():
         "architecture",
         nargs="?",
         default="x86_64",
+        choices=["x86_64", "aarch64", "riscv64", "ppc64le", "s390x"],
         help="Target architecture (e.g., x86_64). Default: x86_64",
     )
 
@@ -386,7 +387,7 @@ def main():
     # Output Format & Compression
     parser.add_argument(
         "--format",
-        choices=["iso", "img", "raw", "qcow2", "vdi", "vmdk", "vhdx", "vhd", "tarball"],
+        choices=["iso", "img", "raw", "qcow2", "vmdk", "vhd", "vhdx", "vdi", "tarball", "container"],
         default="iso",
         help="Target build artifact format: 'iso' (bootable live ISO), 'img'/'raw' (disk image for SD/USB), 'qcow2' (QEMU/KVM disk), 'vdi' (VirtualBox disk), 'vmdk' (VMware disk), 'vhdx' (Hyper-V disk), or 'tarball' (rootfs container tar.xz). Default: iso",
     )

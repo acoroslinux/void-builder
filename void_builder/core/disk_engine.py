@@ -88,9 +88,9 @@ class DiskEngine:
         
         fstab_path = self.target_root / "etc" / "fstab"
         if self.arch.startswith("rpi") or self.arch == "pinebookpro":
-            fstab_content = f"UUID={root_uuid} / ext4 defaults,noatime 0 1\nUUID={boot_uuid} /boot vfat defaults 0 2\n"
+            fstab_content = f"UUID={root_uuid} / ext4 defaults,noatime,commit=60 0 1\nUUID={boot_uuid} /boot vfat defaults,noatime,commit=60 0 2\n"
         else:
-            fstab_content = f"UUID={root_uuid} / ext4 defaults,noatime 0 1\nUUID={boot_uuid} /boot/efi vfat defaults 0 2\n"
+            fstab_content = f"UUID={root_uuid} / ext4 defaults,noatime,commit=60 0 1\nUUID={boot_uuid} /boot/efi vfat defaults,noatime,commit=60 0 2\n"
         fstab_path.write_text(fstab_content)
         
         # 3. Calculate sizes
