@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>conf_files</key>
+	<array>
+		<dict>
+			<key>file</key>
+			<string>/etc/xattr.conf</string>
+			<key>sha256</key>
+			<string>756d8374248b53c70a43249d0406a586743594114db3f2958e38b18964628f3a</string>
+			<key>size</key>
+			<integer>652</integer>
+		</dict>
+	</array>
+	<key>dirs</key>
+	<array>
+		<dict>
+			<key>file</key>
+			<string>/etc</string>
+		</dict>
+		<dict>
+			<key>file</key>
+			<string>/usr</string>
+		</dict>
+		<dict>
+			<key>file</key>
+			<string>/usr/lib</string>
+		</dict>
+	</array>
+	<key>files</key>
+	<array>
+		<dict>
+			<key>file</key>
+			<string>/usr/lib/libattr.so.1.1.2600</string>
+			<key>sha256</key>
+			<string>ce98eef1a47e0688233aa471378f5591a7a8659a5699f423108f09e04c8cd83c</string>
+			<key>size</key>
+			<integer>26696</integer>
+		</dict>
+	</array>
+	<key>links</key>
+	<array>
+		<dict>
+			<key>file</key>
+			<string>/usr/lib/libattr.so.1</string>
+			<key>target</key>
+			<string>/usr/lib/libattr.so.1.1.2600</string>
+		</dict>
+	</array>
+</dict>
+</plist>

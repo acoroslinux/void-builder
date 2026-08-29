@@ -1,8 +1,8 @@
 {
-    "name": "Pinebook Pro",
-    "architecture": "aarch64",
-    "bootloader": {
-        "type": "u-boot-pinebookpro"
-    },
-    "output_format": "img"
+  "name": "Pinebook Pro",
+  "packages": [
+    "pinebookpro-base"
+  ],
+  "cmdline": "console=ttyS2,115200 video=eDP-1:1920x1080x60",
+  "dtb": "rockchip/rk3399-pinebook-pro.dtb"
 }

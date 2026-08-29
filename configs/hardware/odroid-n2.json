@@ -1,8 +1,6 @@
 {
-    "name": "Odroid N2",
-    "architecture": "aarch64",
-    "bootloader": {
-        "type": "u-boot-odroid-n2"
-    },
-    "output_format": "img"
+  "name": "Hardkernel ODROID-N2/N2+",
+  "packages": [],
+  "cmdline": "console=tty1 console=ttyAML0,115200n8",
+  "dtb": "amlogic/meson-g12b-odroid-n2-plus.dtb"
 }

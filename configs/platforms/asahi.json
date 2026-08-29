@@ -1,6 +1,0 @@
-{
-  "name": "Apple Silicon (Asahi)",
-  "packages": [],
-  "cmdline": "console=tty0 earlycon",
-  "dtb": "apple/t8103-j274.dtb"
-}

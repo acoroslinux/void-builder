@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>dirs</key>
+	<array>
+		<dict>
+			<key>file</key>
+			<string>/usr</string>
+		</dict>
+		<dict>
+			<key>file</key>
+			<string>/usr/lib</string>
+		</dict>
+	</array>
+	<key>files</key>
+	<array>
+		<dict>
+			<key>file</key>
+			<string>/usr/lib/libblkid.so.1.1.0</string>
+			<key>sha256</key>
+			<string>7b85fa4fa75cdf2ecd03d5081d23ae145d89dae1b3a78c9789e39e4218a768a0</string>
+			<key>size</key>
+			<integer>392232</integer>
+		</dict>
+	</array>
+	<key>links</key>
+	<array>
+		<dict>
+			<key>file</key>
+			<string>/usr/lib/libblkid.so.1</string>
+			<key>target</key>
+			<string>/usr/lib/libblkid.so.1.1.0</string>
+		</dict>
+	</array>
+</dict>
+</plist>

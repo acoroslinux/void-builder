@@ -1,8 +1,6 @@
 {
-    "name": "VisionFive 2",
-    "architecture": "riscv64",
-    "bootloader": {
-        "type": "u-boot-visionfive2"
-    },
-    "output_format": "img"
+  "name": "StarFive VisionFive 2",
+  "packages": [],
+  "cmdline": "console=tty0 console=ttyS0,115200n8 earlycon=sbi",
+  "dtb": "starfive/jh7110-starfive-visionfive-2-v1.3b.dtb"
 }

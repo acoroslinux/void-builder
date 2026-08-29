@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>dirs</key>
+	<array>
+		<dict>
+			<key>file</key>
+			<string>/usr</string>
+		</dict>
+		<dict>
+			<key>file</key>
+			<string>/usr/lib</string>
+		</dict>
+	</array>
+	<key>files</key>
+	<array>
+		<dict>
+			<key>file</key>
+			<string>/usr/lib/libaio.so.1.0.2</string>
+			<key>mtime</key>
+			<integer>1687650095</integer>
+			<key>sha256</key>
+			<string>fe1090f60a8a84a57b638e7b3e1579cfcc2b3a1d737f3769b96228b15a73823e</string>
+			<key>size</key>
+			<integer>14240</integer>
+		</dict>
+	</array>
+	<key>links</key>
+	<array>
+		<dict>
+			<key>file</key>
+			<string>/usr/lib/libaio.so.1</string>
+			<key>mtime</key>
+			<integer>1687650095</integer>
+			<key>target</key>
+			<string>/usr/lib/libaio.so.1.0.2</string>
+		</dict>
+	</array>
+</dict>
+</plist>

@@ -1,8 +1,6 @@
 {
-    "name": "Apple Silicon (Asahi)",
-    "architecture": "aarch64",
-    "bootloader": {
-        "type": "asahi"
-    },
-    "output_format": "img"
+  "name": "Apple Silicon (Asahi)",
+  "packages": [],
+  "cmdline": "console=tty0 earlycon",
+  "dtb": "apple/t8103-j274.dtb"
 }

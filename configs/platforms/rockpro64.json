@@ -1,6 +1,0 @@
-{
-  "name": "Pine64 RockPro64",
-  "packages": [],
-  "cmdline": "console=tty1 console=ttyS2,1500000n8",
-  "dtb": "rockchip/rk3399-rockpro64.dtb"
-}

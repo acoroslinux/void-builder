@@ -1,8 +1,6 @@
 {
-    "name": "RockPro64",
-    "architecture": "aarch64",
-    "bootloader": {
-        "type": "u-boot-rockpro64"
-    },
-    "output_format": "img"
+  "name": "Pine64 RockPro64",
+  "packages": [],
+  "cmdline": "console=tty1 console=ttyS2,1500000n8",
+  "dtb": "rockchip/rk3399-rockpro64.dtb"
 }

@@ -162,7 +162,7 @@ def main():
         "-k",
         "--kernel",
         type=str,
-        help="Kernel selection (profile in configs/kernels or direct package name, e.g. linux-lts).",
+        help="Kernel selection (profile in configs/system or direct package name, e.g. linux-lts).",
     )
 
     parser.add_argument(
@@ -176,7 +176,7 @@ def main():
         "-b",
         "--bootloader",
         type=str,
-        help="Bootloader profile name from configs/bootloaders.",
+        help="Bootloader profile name from configs/boot.",
     )
 
     parser.add_argument(
@@ -184,7 +184,7 @@ def main():
         "--package-profile",
         action="append",
         default=[],
-        help="Package profile from configs/packages. Can be provided multiple times.",
+        help="Package profile from configs/software. Can be provided multiple times.",
     )
 
     parser.add_argument(
@@ -345,6 +345,19 @@ def main():
         help="Include directory structure under given path in the rootfs. Can be specified multiple times.",
     )
 
+
+    parser.add_argument(
+        "--with-offline-repo",
+        action="store_true",
+        help="Embed an offline package repository on the ISO/Image.",
+    )
+
+    parser.add_argument(
+        "--offline-repo-packages",
+        type=str,
+        default=None,
+        help="Comma-separated list of packages to include in the offline repository.",
+    )
     parser.add_argument(
         "--list-options",
         action="store_true",
@@ -494,7 +507,7 @@ def main():
 
     # ── Handle Device Profile ───────────────────────────────────────────────────
     if getattr(args, "device", None):
-        device_file = resolve_from_project(f"configs/devices/{args.device}.json")
+        device_file = resolve_from_project(f"configs/hardware/{args.device}.json")
         if device_file.exists():
             import json
             with open(device_file) as f:
@@ -725,9 +738,9 @@ def main():
         print(f"- presets:       {', '.join(_available_profiles(config_root, 'presets')) or '(none)'}")
         print(f"- architectures: {', '.join(_available_profiles(config_root, 'architectures')) or '(none)'}")
         print(f"- desktops:      {', '.join(_available_profiles(config_root, 'desktops')) or '(none)'}")
-        print(f"- kernels:       {', '.join(_available_profiles(config_root, 'kernels')) or '(none)'}")
-        print(f"- bootloaders:   {', '.join(_available_profiles(config_root, 'bootloaders')) or '(none)'}")
-        print(f"- packages:      {', '.join(_available_profiles(config_root, 'packages')) or '(none)'}")
+        print(f"- kernels:       {', '.join(_available_profiles(config_root, 'system')) or '(none)'}")
+        print(f"- bootloaders:   {', '.join(_available_profiles(config_root, 'boot')) or '(none)'}")
+        print(f"- packages:      {', '.join(_available_profiles(config_root, 'software')) or '(none)'}")
         print(f"- services:      {', '.join(_available_profiles(config_root, 'services')) or '(none)'}")
         print(f"- live-users:    {', '.join(_available_profiles(config_root, 'live-users')) or '(none)'}")
         sys.exit(0)

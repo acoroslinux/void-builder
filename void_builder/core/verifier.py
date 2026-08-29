@@ -342,7 +342,7 @@ class ImageVerifier:
         logger.info(f"[PlatformVerifier] Verifying platform profile '{platform_name}' against {target_image_or_dir}...")
 
         from void_builder.core.path_utils import resolve_from_project
-        plat_json = resolve_from_project(f"configs/platforms/{platform_name}.json")
+        plat_json = resolve_from_project(f"configs/hardware/{platform_name}.json")
         plat_data = {}
         if plat_json.exists():
             try:

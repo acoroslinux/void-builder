@@ -247,9 +247,9 @@ class Grub2Bootloader:
             dest_themes.mkdir(parents=True, exist_ok=True)
             shutil.copytree(custom_theme_src, dest_themes, dirs_exist_ok=True)
 
-        # Check and render templates from configs/bootloaders/templates
-        config_template = resolve_from_project("configs/bootloaders/templates/config.cfg.in")
-        loopback_template = resolve_from_project("configs/bootloaders/templates/loopback.cfg.in")
+        # Check and render templates from configs/boot/templates
+        config_template = resolve_from_project("configs/boot/templates/config.cfg.in")
+        loopback_template = resolve_from_project("configs/boot/templates/loopback.cfg.in")
         placeholders = self._get_template_placeholders()
 
         if config_template.exists():

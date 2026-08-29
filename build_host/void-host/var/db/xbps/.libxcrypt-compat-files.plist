@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>dirs</key>
+	<array>
+		<dict>
+			<key>file</key>
+			<string>/usr</string>
+		</dict>
+		<dict>
+			<key>file</key>
+			<string>/usr/lib</string>
+		</dict>
+	</array>
+	<key>files</key>
+	<array>
+		<dict>
+			<key>file</key>
+			<string>/usr/lib/libcrypt.so.1.1.0</string>
+			<key>mtime</key>
+			<integer>1744020423</integer>
+			<key>sha256</key>
+			<string>b42c1d29eda65cd49ab279f60cfd385870b49e603eedda22d0f56229c68d1cb9</string>
+			<key>size</key>
+			<integer>206920</integer>
+		</dict>
+	</array>
+	<key>links</key>
+	<array>
+		<dict>
+			<key>file</key>
+			<string>/usr/lib/libcrypt.so.1</string>
+			<key>mtime</key>
+			<integer>1744020423</integer>
+			<key>target</key>
+			<string>/usr/lib/libcrypt.so.1.1.0</string>
+		</dict>
+	</array>
+</dict>
+</plist>

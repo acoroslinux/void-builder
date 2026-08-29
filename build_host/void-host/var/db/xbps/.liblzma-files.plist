@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>dirs</key>
+	<array>
+		<dict>
+			<key>file</key>
+			<string>/usr</string>
+		</dict>
+		<dict>
+			<key>file</key>
+			<string>/usr/lib</string>
+		</dict>
+	</array>
+	<key>files</key>
+	<array>
+		<dict>
+			<key>file</key>
+			<string>/usr/lib/liblzma.so.5.8.3</string>
+			<key>sha256</key>
+			<string>bb125f2ebd4268e6eac6e0d03892605e0324018744f1825a2d6f19361518d1a2</string>
+			<key>size</key>
+			<integer>198992</integer>
+		</dict>
+	</array>
+	<key>links</key>
+	<array>
+		<dict>
+			<key>file</key>
+			<string>/usr/lib/liblzma.so.5</string>
+			<key>target</key>
+			<string>/usr/lib/liblzma.so.5.8.3</string>
+		</dict>
+	</array>
+</dict>
+</plist>

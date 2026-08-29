@@ -150,11 +150,11 @@ class ConfigAssembler:
                     replaced = True
             return replaced
 
-        replace_kernel_in_list(platform.get("packages"))
+        replace_kernel_in_list(platform.get("software"))
         pkg_sources = self.master_config.get("package_sources", {})
         if isinstance(pkg_sources, dict):
             replace_kernel_in_list(pkg_sources.get("official"))
-        replace_kernel_in_list(self.master_config.get("packages"))
+        replace_kernel_in_list(self.master_config.get("software"))
 
     def _apply_live_user_override(self, live_user: str, live_groups: Optional[List[str]]) -> None:
         """Apply live user overrides directly into system customizations and command targets."""
@@ -317,7 +317,7 @@ class ConfigAssembler:
 
         # 4. Optional profile selections
         if target_kernel:
-            kernel_data = self._load_optional_profile("kernels", target_kernel)
+            kernel_data = self._load_optional_profile("system", target_kernel)
             if kernel_data:
                 self._deep_merge(self.master_config, kernel_data)
             self._apply_kernel_override(target_kernel)
@@ -326,7 +326,7 @@ class ConfigAssembler:
             if isinstance(target_bootloader, dict):
                 self._deep_merge(self.master_config, {"bootloader": target_bootloader})
             else:
-                bootloader_data = self._load_optional_profile("bootloaders", target_bootloader)
+                bootloader_data = self._load_optional_profile("boot", target_bootloader)
                 if bootloader_data:
                     self._deep_merge(self.master_config, bootloader_data)
 
@@ -336,13 +336,13 @@ class ConfigAssembler:
             default_profiles.extend(["printing", "desktop-essentials"])
 
         for default_profile in default_profiles:
-            prof_data = self._load_optional_profile("packages", default_profile)
+            prof_data = self._load_optional_profile("software", default_profile)
             if prof_data:
                 self._deep_merge(self.master_config, prof_data)
-                if "packages" in prof_data and isinstance(prof_data["packages"], list):
+                if "software" in prof_data and isinstance(prof_data["software"], list):
                     package_sources = self.master_config.setdefault("package_sources", {})
                     official_pkgs = package_sources.setdefault("official", [])
-                    for pkg in prof_data["packages"]:
+                    for pkg in prof_data["software"]:
                         pkg_name = pkg.get("name") if isinstance(pkg, dict) else pkg
                         if pkg_name and pkg_name not in official_pkgs:
                             official_pkgs.append(pkg_name)
@@ -367,13 +367,13 @@ class ConfigAssembler:
         for profile_name in flatten_profiles(package_profiles):
             if profile_name in default_profiles:
                 continue
-            package_data = self._load_optional_profile("packages", profile_name)
+            package_data = self._load_optional_profile("software", profile_name)
             if package_data:
                 self._deep_merge(self.master_config, package_data)
-                if "packages" in package_data and isinstance(package_data["packages"], list):
+                if "software" in package_data and isinstance(package_data["software"], list):
                     package_sources = self.master_config.setdefault("package_sources", {})
                     official_pkgs = package_sources.setdefault("official", [])
-                    for pkg in package_data["packages"]:
+                    for pkg in package_data["software"]:
                         pkg_name = pkg.get("name") if isinstance(pkg, dict) else pkg
                         if pkg_name and pkg_name not in official_pkgs:
                             official_pkgs.append(pkg_name)
@@ -408,14 +408,14 @@ class ConfigAssembler:
         # 4c. Process platforms (ARM specific)
         if target_arch.startswith("aarch64"):
             platform_specific = self.master_config.setdefault("platform_specific", {})
-            pkgs = platform_specific.setdefault("packages", [])
+            pkgs = platform_specific.setdefault("software", [])
             if "grub-arm64-efi" not in pkgs:
                 pkgs.append("grub-arm64-efi")
 
             if platforms:
                 self.master_config.setdefault("platforms_config", {})
                 for platform in platforms:
-                    json_path = self.config_root / "platforms" / f"{platform}.json"
+                    json_path = self.config_root / "hardware" / f"{platform}.json"
                     p_name = platform
                     p_pkgs = []
                     p_cmdline = ""
@@ -425,7 +425,7 @@ class ConfigAssembler:
                         try:
                             p_data = self._load_json_file(json_path)
                             p_name = p_data.get("name", platform)
-                            p_pkgs = p_data.get("packages", [])
+                            p_pkgs = p_data.get("software", [])
                             p_cmdline = p_data.get("cmdline", "")
                             p_dtb = p_data.get("dtb", "")
                             logger.info(f"Loaded platform config from JSON: {json_path}")
@@ -569,12 +569,12 @@ class ConfigAssembler:
         if "official" in package_sources and isinstance(package_sources["official"], list):
             package_sources["official"] = _filter_pkg_list(package_sources["official"])
 
-        if "packages" in self.master_config and isinstance(self.master_config["packages"], list):
-            self.master_config["packages"] = _filter_pkg_list(self.master_config["packages"])
+        if "software" in self.master_config and isinstance(self.master_config["software"], list):
+            self.master_config["software"] = _filter_pkg_list(self.master_config["software"])
 
-        platform_pkgs = self.master_config.get("platform_specific", {}).get("packages")
+        platform_pkgs = self.master_config.get("platform_specific", {}).get("software")
         if platform_pkgs and isinstance(platform_pkgs, list):
-            self.master_config["platform_specific"]["packages"] = _filter_pkg_list(platform_pkgs)
+            self.master_config["platform_specific"]["software"] = _filter_pkg_list(platform_pkgs)
 
         # 4f. Apply direct customization overrides
         cust = self.master_config.setdefault("customizations", {})
@@ -666,7 +666,7 @@ class ConfigAssembler:
 
         # Check bootloader profile
         if target_bootloader:
-            bl_path = self.config_root / "bootloaders" / f"{target_bootloader}.json"
+            bl_path = self.config_root / "boot" / f"{target_bootloader}.json"
             if not bl_path.exists():
                 report["valid"] = False
                 report["errors"].append(f"Bootloader profile '{target_bootloader}' missing at {bl_path}")
@@ -691,7 +691,7 @@ class ConfigAssembler:
         # Check package profiles
         if package_profiles:
             for pkg_prof in flatten_names(package_profiles):
-                p_path = self.config_root / "packages" / f"{pkg_prof}.json"
+                p_path = self.config_root / "software" / f"{pkg_prof}.json"
                 if not p_path.exists():
                     report["valid"] = False
                     report["errors"].append(f"Package profile '{pkg_prof}' missing at {p_path}")
@@ -714,7 +714,7 @@ class ConfigAssembler:
                 service_profiles=service_profiles,
                 preset=preset,
             )
-            pkg_list = config.get("packages", []) or []
+            pkg_list = config.get("software", []) or []
             off_pkgs = config.get("package_sources.official", []) or []
             common_pkgs = config.get("common_desktop_packages", []) or []
             all_pkgs = []

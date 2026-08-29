@@ -96,7 +96,7 @@ class BaseEngine(ISOEngine):
         return normalized
 
     def _package_plan(self) -> Dict[str, List[str]]:
-        legacy_packages = self._normalize_packages(self._cfg_get("packages"))
+        legacy_packages = self._normalize_packages(self._cfg_get("software"))
         platform_packages = self._normalize_packages(self._cfg_get("platform_specific.packages"))
         legacy = list(dict.fromkeys(legacy_packages + platform_packages))
         official = self._normalize_packages(self._cfg_get("package_sources.official", []))
@@ -306,7 +306,7 @@ class BaseEngine(ISOEngine):
                 "md5": md5_val,
             },
             "packages_count": len(packages),
-            "packages": sorted(packages),
+            "software": sorted(packages),
         }
 
         manifest_file = output_file.with_suffix(output_file.suffix + ".manifest.json")

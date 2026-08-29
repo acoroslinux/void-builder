@@ -94,6 +94,14 @@ class DiskEngine:
         fstab_path.write_text(fstab_content)
         
         # 3. Calculate sizes
+        
+        offline_repo_dir = self.config.get("offline_repo_dir")
+        if offline_repo_dir and __import__('pathlib').Path(offline_repo_dir).exists():
+            target_repo = self.target_root / "repo"
+            target_repo.parent.mkdir(parents=True, exist_ok=True)
+            if self.mode != "mock":
+                __import__('shutil').copytree(offline_repo_dir, target_repo, dirs_exist_ok=True)
+
         rootfs_size = self._calculate_image_size(self.target_root)
         
         if self.arch.startswith("rpi") or self.arch == "pinebookpro" or self.arch in ("asahi", "x13s"):

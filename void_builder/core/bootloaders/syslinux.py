@@ -70,7 +70,7 @@ class SyslinuxBootloader:
         isolinux_dir.mkdir(parents=True, exist_ok=True)
 
         mklive_dir = resolve_from_project("configs/assets")
-        template_path = resolve_from_project("configs/bootloaders/templates/isolinux.cfg.in")
+        template_path = resolve_from_project("configs/boot/templates/isolinux.cfg.in")
         if not template_path.exists():
             template_path = mklive_dir / "isolinux" / "isolinux.cfg.in"
         if not template_path.exists():
