@@ -323,9 +323,12 @@ class ConfigAssembler:
             self._apply_kernel_override(target_kernel)
 
         if target_bootloader:
-            bootloader_data = self._load_optional_profile("bootloaders", target_bootloader)
-            if bootloader_data:
-                self._deep_merge(self.master_config, bootloader_data)
+            if isinstance(target_bootloader, dict):
+                self._deep_merge(self.master_config, {"bootloader": target_bootloader})
+            else:
+                bootloader_data = self._load_optional_profile("bootloaders", target_bootloader)
+                if bootloader_data:
+                    self._deep_merge(self.master_config, bootloader_data)
 
         # Always load base, filesystems, hardware, and networking package profiles as default foundations.
         default_profiles = ["base", "filesystems", "hardware", "networking"]
