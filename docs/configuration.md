@@ -208,7 +208,7 @@ Desktop profiles specify packages required to build a functional graphical deskt
 
 ---
 
-## 4. Package Bundle Profiles (`configs/packages/`)
+## 4. Package Bundle Profiles (`configs/software/`)
 
 Package profiles allow modular bundle composition across 16 categories (`desktop-essentials`, `dev-tools`, `filesystems`, `multimedia`, `office`, `gaming`, `networking`, `virtualization`, `graphics`, `printing`, `xorg`, `wayland`, `internet`, `custom-user`, `base`, `installer`).
 
@@ -443,4 +443,3 @@ The system configurator (`SystemConfigurator`) automatically manages:
 - **`RootPasswordAction`**: Ingests `--root-password <pass>` or `--lock-root` to secure administrative accounts.
 - **`SSHKeyAction`**: Provisions authorized keys into `/root/.ssh/authorized_keys` and `/home/<live_user>/.ssh/authorized_keys` with strict permissions (`0700` directory, `0600` file).
 - **Service Conflict Engine**: Automatically detects if `NetworkManager` is enabled and suppresses conflicting standalone services like `dhcpcd` to prevent race conditions during boot.
-
