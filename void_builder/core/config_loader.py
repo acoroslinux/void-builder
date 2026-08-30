@@ -339,10 +339,11 @@ class ConfigAssembler:
             prof_data = self._load_optional_profile("software", default_profile)
             if prof_data:
                 self._deep_merge(self.master_config, prof_data)
-                if "software" in prof_data and isinstance(prof_data["software"], list):
+                profile_packages = prof_data.get("software", prof_data.get("packages", []))
+                if isinstance(profile_packages, list):
                     package_sources = self.master_config.setdefault("package_sources", {})
                     official_pkgs = package_sources.setdefault("official", [])
-                    for pkg in prof_data["software"]:
+                    for pkg in profile_packages:
                         pkg_name = pkg.get("name") if isinstance(pkg, dict) else pkg
                         if pkg_name and pkg_name not in official_pkgs:
                             official_pkgs.append(pkg_name)
@@ -370,10 +371,11 @@ class ConfigAssembler:
             package_data = self._load_optional_profile("software", profile_name)
             if package_data:
                 self._deep_merge(self.master_config, package_data)
-                if "software" in package_data and isinstance(package_data["software"], list):
+                profile_packages = package_data.get("software", package_data.get("packages", []))
+                if isinstance(profile_packages, list):
                     package_sources = self.master_config.setdefault("package_sources", {})
                     official_pkgs = package_sources.setdefault("official", [])
-                    for pkg in package_data["software"]:
+                    for pkg in profile_packages:
                         pkg_name = pkg.get("name") if isinstance(pkg, dict) else pkg
                         if pkg_name and pkg_name not in official_pkgs:
                             official_pkgs.append(pkg_name)

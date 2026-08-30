@@ -916,8 +916,36 @@ class ISOBuilder:
         # 5. Finalize ISO / IMG / Tarball file
         t_step = time.perf_counter()
         if output_format not in ("iso", "tarball"):
-            # Leave image generation to Orchestrator + DiskEngine
-            final_file = str(self.engine.chroot_path)
+            raw_img = Path(output_path)
+            if output_format.lower() not in ("img", "raw"):
+                raw_img = raw_img.with_suffix(".img")
+
+            is_mock = getattr(self.toolchain, "mode", "mock") == "mock"
+            if is_mock:
+                raw_img.parent.mkdir(parents=True, exist_ok=True)
+                raw_img.touch()
+                converted = self.engine._convert_disk_image(raw_img, output_format, Path(output_path))
+            else:
+                from void_builder.core.disk_engine import DiskEngine
+                output_p = Path(output_path)
+                output_name = output_p.stem if output_p.suffix else output_p.name
+                disk_engine = DiskEngine(
+                    workdir=workdir_path,
+                    target_root=Path(self.engine.chroot_path),
+                    output_name=output_name,
+                    config=self.config._data,
+                    mode=getattr(self.toolchain, "mode", "real"),
+                    toolchain=self.toolchain,
+                    arch=self.arch,
+                )
+                converted = disk_engine.build_disk_image(target_format=output_format)
+                if Path(converted) != Path(output_path):
+                    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+                    shutil.move(str(converted), str(output_path))
+                    converted = Path(output_path)
+
+            self.engine._generate_manifest_and_checksums(str(converted))
+            final_file = str(converted)
         elif output_format == "tarball" or self.config.get("create_tarball"):
             final_tarball = self.engine.export_tarball(output_path)
             if self.config.get("create_tarball"):
@@ -970,5 +998,4 @@ class PlatformEngine(VoidEngine):
             self.logger.info("Pinebook Pro relies on u-boot written directly to disk. Skipping GRUB/Syslinux inside chroot.")
         elif self.arch in ("asahi", "x13s"):
             self.logger.info(f"{self.arch} requires GRUB EFI. Will be installed during image finalization.")
-
 
