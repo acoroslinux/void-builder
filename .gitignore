@@ -80,6 +80,7 @@ docs/_build/
 void-builder/
 output/
 workdir/
+build_host/
 cache/
 custom_files/*
 !custom_files/.gitkeep
