@@ -70,7 +70,7 @@ def test_failed_required_efi_cannot_reuse_stale_loader(tmp_path, monkeypatch):
     write(tc.target_dir / 'usr/lib/grub/x86_64-efi/modinfo.sh')
     write(tmp_path / 'iso/boot/grub/BOOTX64.EFI', b'stale')
     monkeypatch.setattr('void_builder.core.bootloaders.grub2.shutil.which', lambda name, **k: name)
-    monkeypatch.setattr('void_builder.core.bootloaders.grub2.subprocess.run', lambda *a, **k: SimpleNamespace(returncode=1, stderr='failure'))
+    monkeypatch.setattr('void_builder.core.bootloaders.grub2.subprocess.run', lambda cmd, **k: SimpleNamespace(returncode=1 if any(arg.startswith('--format=') for arg in cmd) else 0, stdout='', stderr='failure'))
     with pytest.raises(Grub2BootloaderError, match='BOOTX64'):
         Grub2Bootloader({}, 'VOID').generate_boot_image(tmp_path / 'iso', toolchain=tc)
     assert not (tmp_path / 'iso/boot/grub/BOOTX64.EFI').exists()
@@ -114,3 +114,47 @@ def test_arm64_menu_matches_staged_kernel(tmp_path):
     assert 'linux /boot/vmlinux ' in cfg
     assert '/boot/vmlinuz' not in cfg
     assert '@@KERNEL_FILE@@' not in cfg
+
+
+def test_host_environment_pairs_libc_with_its_iconv_modules(tmp_path, monkeypatch):
+    (tmp_path / 'usr/lib/gconv').mkdir(parents=True)
+    monkeypatch.setenv('GCONV_PATH', '/unrelated/host/modules')
+    env = Grub2Bootloader._host_environment(tmp_path)
+    assert env['GCONV_PATH'] == str(tmp_path / 'usr/lib/gconv')
+    assert env['LD_LIBRARY_PATH'].split(':')[0] == str(tmp_path / 'usr/lib')
+
+
+def test_fat_command_failure_reports_stderr(monkeypatch):
+    monkeypatch.setattr('void_builder.core.bootloaders.grub2.subprocess.run',
+                        lambda *a, **k: SimpleNamespace(returncode=1, stdout='', stderr='Error converting to codepage 850'))
+    with pytest.raises(Grub2BootloaderError, match='Error converting to codepage 850'):
+        Grub2Bootloader._run_host_command(['mmd', '-i', 'efi.img', '::/EFI'], {})
+
+
+def test_real_mtools_with_isolated_glibc(tmp_path):
+    import platform
+    import subprocess
+    from void_builder.core.path_utils import resolve_from_project
+
+    if platform.machine() != 'x86_64':
+        pytest.skip('Cached toolchain fixture is x86_64')
+    cache = resolve_from_project('cache/xbps/x86_64')
+    host = tmp_path / 'void-host'
+    host.mkdir()
+    for name in ('mtools', 'dosfstools', 'glibc'):
+        package = next(cache.glob(f'{name}-[0-9]*.x86_64.xbps'), None)
+        if package is None:
+            pytest.skip('Cached native tools unavailable')
+        subprocess.run(['tar', '-xf', str(package), '-C', str(host)], check=True, capture_output=True)
+    env = Grub2Bootloader._host_environment(host)
+    img = tmp_path / 'efi.img'
+    with img.open('wb') as stream:
+        stream.truncate(32 * 1024 * 1024)
+    run = Grub2Bootloader._run_host_command
+    run(['mkfs.fat', '-F16', '-S', '512', '-n', 'GRUB_UEFI', str(img)], env)
+    run(['mmd', '-i', str(img), '::/EFI', '::/EFI/BOOT'], env)
+    payload = tmp_path / 'BOOTX64.EFI'
+    payload.write_bytes(b'EFI test payload')
+    run(['mcopy', '-i', str(img), str(payload), '::/EFI/BOOT/BOOTX64.EFI'], env)
+    result = run(['mtype', '-i', str(img), '::/EFI/BOOT/BOOTX64.EFI'], env)
+    assert result.stdout == 'EFI test payload'

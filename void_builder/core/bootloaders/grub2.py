@@ -1,3 +1,4 @@
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -279,6 +280,28 @@ class Grub2Bootloader:
         logger.info("[GRUB2] GRUB EFI configured")
         return True
 
+    @staticmethod
+    def _host_environment(toolchain_host: Path) -> Dict[str, str]:
+        env = os.environ.copy()
+        lib_dir = toolchain_host / "usr/lib"
+        env["PATH"] = f"{toolchain_host / 'usr/bin'}:{toolchain_host / 'usr/sbin'}:{env.get('PATH', '')}"
+        env["LD_LIBRARY_PATH"] = f"{lib_dir}:{env.get('LD_LIBRARY_PATH', '')}".rstrip(":")
+        # glibc's iconv modules must come from the same isolated libc. Otherwise
+        # mtools fails to load CP850 when the host has a different glibc layout.
+        if (lib_dir / "gconv").is_dir():
+            env["GCONV_PATH"] = str(lib_dir / "gconv")
+        return env
+
+    @staticmethod
+    def _run_host_command(command, env):
+        result = subprocess.run(command, env=env, capture_output=True, text=True)
+        if result.returncode:
+            raise Grub2BootloaderError(
+                f"EFI command failed (exit {result.returncode}): {' '.join(command)}\n"
+                f"{result.stdout or ''}\n{result.stderr or ''}"
+            )
+        return result
+
     def generate_boot_image(self, workdir: Path, chroot_path: Optional[Path] = None, *, toolchain: Any = None, mode: str = "real") -> bool:
         """Generate EFI using this build's native tools and target GRUB modules."""
         logger.info("[GRUB2] Generating UEFI boot image (efiboot.img)...")
@@ -359,25 +382,15 @@ class Grub2Bootloader:
             raise Grub2BootloaderError("Real EFI generation requires the current build toolchain")
         toolchain_host = Path(toolchain_host)
         toolchain_target = Path(toolchain_target)
-        toolchain_bin = str(toolchain_host / "usr" / "bin")
-        toolchain_sbin = str(toolchain_host / "usr" / "sbin")
-        toolchain_lib = str(toolchain_host / "usr" / "lib")
-        host_path = f"{toolchain_bin}:{toolchain_sbin}:{os.environ.get('PATH', '')}"
-
-        has_host_mtools = bool(
-            shutil.which("mkfs.fat", path=host_path)
-            and shutil.which("mmd", path=host_path)
-            and shutil.which("mcopy", path=host_path)
+        host_env = self._host_environment(toolchain_host)
+        has_host_mtools = all(
+            shutil.which(tool, path=host_env["PATH"])
+            for tool in ("mkfs.fat", "mmd", "mcopy")
         )
 
-        host_env = os.environ.copy()
-        host_env["PATH"] = host_path
-        if toolchain_lib:
-            host_env["LD_LIBRARY_PATH"] = f"{toolchain_lib}:{os.environ.get('LD_LIBRARY_PATH', '')}".rstrip(":")
-
         if has_host_mtools:
-            subprocess.run(["mkfs.fat", "-F16", "-S", "512", "-n", "grub_uefi", str(efi_img_path)], env=host_env, check=True, capture_output=True)
-            subprocess.run(["mmd", "-i", str(efi_img_path), "::/EFI", "::/EFI/BOOT"], env=host_env, check=True, capture_output=True)
+            self._run_host_command(["mkfs.fat", "-F16", "-S", "512", "-n", "GRUB_UEFI", str(efi_img_path)], host_env)
+            self._run_host_command(["mmd", "-i", str(efi_img_path), "::/EFI", "::/EFI/BOOT"], host_env)
 
             for grub_arch, efi_name in builds:
                 logger.info(f"[GRUB2] Building EFI loader for {grub_arch} ({efi_name})...")
@@ -422,7 +435,7 @@ class Grub2Bootloader:
                         built = True
 
                 if built and efi_out.exists():
-                    subprocess.run(["mcopy", "-i", str(efi_img_path), str(efi_out), f"::/EFI/BOOT/{efi_name}"], env=host_env, check=True, capture_output=True)
+                    self._run_host_command(["mcopy", "-i", str(efi_img_path), str(efi_out), f"::/EFI/BOOT/{efi_name}"], host_env)
                     built_loaders.add(efi_name)
                     logger.info(f"[GRUB2] Successfully built and embedded {efi_name} into efiboot.img")
                 else:
