@@ -617,6 +617,30 @@ class VoidEngine(BaseEngine):
         grub.prepare_files(self.iso_staging)
         grub.generate_boot_image(self.iso_staging, bootloader_chroot, toolchain=self.toolchain, mode=getattr(self.toolchain, "mode", "real"))
 
+    def _populate_ext3_image(self, image: Path) -> None:
+        import subprocess
+        # Preserve the permission corrections previously applied after cp -a.
+        permissions = {"etc/shadow": 0o600, "etc/passwd": 0o644,
+                       "etc/group": 0o644, "etc/sudoers": 0o440,
+                       "etc/sudoers.d": 0o750}
+        for relative, mode in permissions.items():
+            path = self.chroot_path / relative
+            if path.exists() and not path.is_symlink():
+                path.chmod(mode)
+        for path in (self.chroot_path / "etc/sudoers.d").glob("*"):
+            if path.is_file() and not path.is_symlink():
+                path.chmod(0o440)
+        mkfs = shutil.which("mkfs.ext3")
+        if not mkfs:
+            mkfs = next((str(p) for p in (Path("/usr/sbin/mkfs.ext3"), Path("/sbin/mkfs.ext3")) if p.is_file()), None)
+        if not mkfs:
+            raise ISOBuilderError("mkfs.ext3 is required to create the live rootfs image (e2fsprogs)")
+        self.logger.info(f"[squashfs] Populating {image.name} directly from rootfs without a loop mount")
+        command = [mkfs, "-F", "-m", "1", "-d", str(self.chroot_path), str(image)]
+        result = subprocess.run(command, capture_output=True, text=True)
+        if result.returncode:
+            raise ISOBuilderError(f"Failed to populate ext3fs.img: {result.stdout}\n{result.stderr}")
+
     def _create_squashfs(self) -> None:
         """Create the squashed root filesystem (wrapped in ext3fs.img for dmsquash-live)."""
         self.logger.info("=== Step 4: Compressing Root Filesystem ===")
@@ -657,7 +681,6 @@ class VoidEngine(BaseEngine):
         import os
         import subprocess
         import tempfile
-        import time
 
         # 1. Determine rootfs size
         try:
@@ -679,51 +702,9 @@ class VoidEngine(BaseEngine):
             # 2. Truncate image file
             subprocess.run(["truncate", "-s", f"{img_size_mb}M", str(ext3_img)], check=True)
             
-            # 3. Run mkfs.ext3 matching void-mklive
-            subprocess.run([
-                "mkfs.ext3", "-F", "-m", "1",
-                str(ext3_img)
-            ], check=True)
-            
-            # 4. Mount and copy
-            mount_point = tmp_path / "mnt"
-            mount_point.mkdir(parents=True, exist_ok=True)
-
-            chroot_cmd = []
-            if os.geteuid() != 0:
-                chroot_cmd = ["sudo"]
-
-            subprocess.run(chroot_cmd + ["mount", "-o", "loop", str(ext3_img), str(mount_point)], check=True)
-            try:
-                self.logger.info(f"Copying rootfs into ext3fs.img (Size: {img_size_mb}MB)...")
-                subprocess.run(chroot_cmd + ["cp", "-a", f"{self.chroot_path}/.", f"{mount_point}/"], check=True)
-
-                # Strictly ensure security permissions inside ext3fs.img
-                subprocess.run(chroot_cmd + ["chmod", "600", f"{mount_point}/etc/shadow"], check=False)
-                subprocess.run(chroot_cmd + ["chmod", "644", f"{mount_point}/etc/passwd"], check=False)
-                subprocess.run(chroot_cmd + ["chmod", "644", f"{mount_point}/etc/group"], check=False)
-                if (mount_point / "etc" / "sudoers").exists():
-                    subprocess.run(chroot_cmd + ["chmod", "440", f"{mount_point}/etc/sudoers"], check=False)
-                sudoers_d = mount_point / "etc" / "sudoers.d"
-                if sudoers_d.exists():
-                    subprocess.run(chroot_cmd + ["chmod", "750", str(sudoers_d)], check=False)
-                    for s_file in sudoers_d.glob("*"):
-                        if s_file.is_file():
-                            subprocess.run(chroot_cmd + ["chmod", "440", str(s_file)], check=False)
-            finally:
-                unmounted = False
-                for _ in range(5):
-                    res = subprocess.run(chroot_cmd + ["umount", "-f", str(mount_point)], capture_output=True)
-                    if res.returncode == 0:
-                        unmounted = True
-                        break
-                    time.sleep(1)
-                if not unmounted:
-                    subprocess.run(chroot_cmd + ["umount", "-l", str(mount_point)], capture_output=True)
-                try:
-                    mount_point.rmdir()
-                except OSError:
-                    pass
+            # Keep void-mklive's LiveOS/ext3fs.img layout, but populate it
+            # directly with mke2fs instead of requiring a host loop mount.
+            self._populate_ext3_image(ext3_img)
 
             # 5. Generate squashfs from tmp_dir
             mksquashfs_bin = "mksquashfs"
