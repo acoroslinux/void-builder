@@ -535,18 +535,21 @@ class VoidEngine(BaseEngine):
                     missing.append("initramfs")
                 raise ISOBuilderError(f"Real build failed: {' and '.join(missing)} missing in target chroot /boot.")
 
-        # Determine target bootloader chroot environment
+        # Determine target bootloader environment
         bootloader_chroot = self.chroot_path
-        if getattr(self.toolchain, "mode", "mock") == "real" and hasattr(self.toolchain, "target_dir"):
-            bootloader_chroot = self.toolchain.target_dir
+        target_dir = getattr(self.toolchain, "target_dir", None)
+        memtest_search_dirs = [self.chroot_path / "boot" / "memtest86+"]
+        if target_dir and Path(target_dir).exists():
+            memtest_search_dirs.insert(0, Path(target_dir) / "boot" / "memtest86+")
 
         # Copy memtest binaries if present in bootloader chroot
-        chroot_memtest_dir = bootloader_chroot / "boot" / "memtest86+"
-        if chroot_memtest_dir.is_dir():
-            for f in chroot_memtest_dir.iterdir():
-                if f.name in ("memtest.bin", "memtest.efi"):
-                    shutil.copy2(f, staging_boot / f.name)
-                    self.logger.info(f"[bootloaders] Copied memtest file: {f.name}")
+        for chroot_memtest_dir in memtest_search_dirs:
+            if chroot_memtest_dir.is_dir():
+                for f in chroot_memtest_dir.iterdir():
+                    if f.name in ("memtest.bin", "memtest.efi"):
+                        shutil.copy2(f, staging_boot / f.name)
+                        self.logger.info(f"[bootloaders] Copied memtest file: {f.name}")
+                break
 
         # Process platform DTBs if ARM platforms are specified
         platforms_config = self.config.get("platforms_config", {})

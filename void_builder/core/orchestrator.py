@@ -9,6 +9,7 @@ from void_builder.core.chroot_manager import ChrootManager
 from void_builder.core.iso_engine import ISOBuilder, ISOBuilderError
 from void_builder.core.path_utils import resolve_from_project
 from void_builder.core.toolchain import ToolchainManager
+from void_builder.core.hook_manager import HookManager
 
 
 class BuildOrchestratorError(Exception):
@@ -149,6 +150,14 @@ class BuildOrchestrator:
                 probe = candidate / ".write_test"
                 probe.write_text("ok")
                 probe.unlink(missing_ok=True)
+
+                # Also verify airootfs if it exists
+                chroot_test = candidate / "airootfs"
+                if chroot_test.exists():
+                    test_probe = chroot_test / ".write_test"
+                    test_probe.write_text("ok")
+                    test_probe.unlink(missing_ok=True)
+
                 if candidate != preferred:
                     print(
                         f"[ORCHESTRATOR] Workdir fallback active: {candidate}"
@@ -241,7 +250,13 @@ class BuildOrchestrator:
         self.config._data["generate_manifest"] = self.generate_manifest
         self.config._data["use_tarball"] = self.use_tarball
         self.config._data["create_tarball"] = self.create_tarball
-        self.config._data["compress_image"] = self.compress_image
+        # Inject offline repo settings
+        self.config._data["with_offline_repo"] = self.with_offline_repo
+        self.config._data["offline_repo_packages"] = self.offline_repo_packages
+
+        if self.with_offline_repo:
+            offline_dir = resolve_from_project("workdir") / self.arch / "offline_repo"
+            self.config._data["offline_repo_dir"] = str(offline_dir)
 
         # Inject command line custom repositories
         if self.repositories:
@@ -367,31 +382,13 @@ class BuildOrchestrator:
 
 
     def run_hooks(self, phase: str, chroot=None):
-        import os, shutil
-        from pathlib import Path
-        hooks_dir = Path("configs/hooks") / phase
-        if not hooks_dir.exists(): return
-        scripts = sorted([p for p in hooks_dir.iterdir() if p.is_file() and p.suffix == ".sh"])
-        if not scripts: return
-        print(f"Running {phase} hooks...")
-        env = os.environ.copy()
-        env["CHROOT_PATH"] = str(self.workdir / "chroot" if not chroot else chroot.target_root)
-        env["WORK_DIR"] = str(self.workdir)
-        env["ARCH"] = getattr(self, "arch", "")
-        env["DISTRO"] = getattr(self, "distro", "")
-        env["FORMAT"] = getattr(self, "output_format", "")
-        if phase == "post_chroot" and chroot:
-            chroot_tmp = Path(chroot.target_root) / "tmp"
-            chroot_tmp.mkdir(parents=True, exist_ok=True)
-            for script in scripts:
-                tgt = chroot_tmp / script.name
-                shutil.copy2(script, tgt)
-                tgt.chmod(0o755)
-                chroot.run_in_chroot(["/tmp/" + script.name])
-        else:
-            import subprocess
-            for script in scripts:
-                subprocess.run([str(script)], env=env, check=True)
+        """Execute hook scripts for a given canonical phase (pre-chroot, chroot, post-chroot)."""
+        cfg_dict = self.config._data if hasattr(self.config, "_data") else (self.config if isinstance(self.config, dict) else {})
+        if not hasattr(self, "hook_manager") or not self.hook_manager:
+            self.hook_manager = HookManager(chroot or getattr(self, "chroot", None), cfg_dict)
+        elif chroot:
+            self.hook_manager.chroot = chroot
+        self.hook_manager.run_stage(phase)
 
     def run_build(self, output_iso: str, output_format: str = "iso") -> Union[str, Path]:
         try:
@@ -404,27 +401,14 @@ class BuildOrchestrator:
             else:
                 output_path = resolve_from_project(output_iso)
 
+            self.run_hooks("pre-chroot")
+
             result_iso = self.builder.build(output_path, str(self.workdir), output_format=output_format)
-            
-            if output_format not in ("iso", "tarball"):
-                from void_builder.core.disk_engine import DiskEngine
-                output_name = output_p.stem if output_p.suffix else output_p.name
-                disk_engine = DiskEngine(
-                    workdir=self.workdir,
-                    target_root=Path(result_iso),
-                    output_name=output_name,
-                    config=self.config._data,
-                    mode=self.mode,
-                    toolchain=self.toolchain,
-                    arch=self.arch,
-                )
-                disk_result = disk_engine.build_disk_image(target_format=output_format)
-                if Path(disk_result) != output_path:
-                    import shutil
-                    shutil.move(str(disk_result), str(output_path))
-                    result_iso = output_path
-                else:
-                    result_iso = disk_result
+
+            if hasattr(self, "chroot") and self.chroot:
+                self.run_hooks("chroot", chroot=self.chroot)
+
+            self.run_hooks("post-chroot")
 
             print("\n✅ BUILD SUCCEEDED!")
             print(f"Artifact generated at: {result_iso}")
@@ -450,21 +434,29 @@ class BuildOrchestrator:
             raise BuildOrchestratorError(f"Pipeline failed: {e}")
 
         finally:
-            if self.clean and self.mode != "mock":
-                if os.geteuid() == 0:
-                    unmount_all_under(resolve_from_project("workdir"))
-                if hasattr(self, 'workdir') and self.workdir and self.workdir.exists():
-                    import shutil
-                    shutil.rmtree(self.workdir, ignore_errors=True)
+            # 1. Unmount chroot pseudofs mounts (/dev, /proc, /sys, /run, /dev/shm)
+            if self.chroot:
+                try:
+                    self.chroot.umount()
+                except Exception as e:
+                    print(f"[ORCHESTRATOR] Warning: Error unmounting chroot: {e}")
 
             if self.workdir:
-                from void_builder.utils.lib import umount_pseudofs
-                umount_pseudofs(str(self.workdir / "airootfs"))
-                umount_pseudofs(str(self.workdir / "mnt"))
+                try:
+                    from void_builder.utils.lib import umount_pseudofs
+                    umount_pseudofs(str(self.workdir / "airootfs"))
+                    umount_pseudofs(str(self.workdir / "mnt"))
+                except Exception as e:
+                    print(f"[ORCHESTRATOR] Warning: Error unmounting workdir pseudofs: {e}")
 
-            if self.chroot:
-                self.chroot.umount()
+            # 2. Unmount all child mounts under workdir (in reverse order)
+            if self.workdir and os.geteuid() == 0:
+                try:
+                    unmount_all_under(self.workdir)
+                except Exception as e:
+                    print(f"[ORCHESTRATOR] Warning: Error unmounting mounts under workdir: {e}")
 
+            # 3. Unmount tmpfs if mounted
             if self.workdir:
                 try:
                     import subprocess
@@ -475,9 +467,9 @@ class BuildOrchestrator:
                             self._tmpfs_mounted = False
                 except Exception as e:
                     print(f"[ORCHESTRATOR] Warning: Could not unmount tmpfs: {e}")
-            
-            if self.workdir and self.workdir.exists():
-                # Safety check: verify no active child mount points remain under self.workdir before running rmtree
+
+            # 4. Perform safe clean removal if requested
+            if self.workdir and self.workdir.exists() and self.clean:
                 active_mount = False
                 try:
                     resolved_workdir = self.workdir.resolve()
@@ -494,7 +486,7 @@ class BuildOrchestrator:
 
                 if active_mount:
                     print(f"\n[ORCHESTRATOR] ⚠️ Safety Warning: Active mounts detected under {self.workdir}. Skipping rmtree to protect host system.")
-                elif self.clean:
+                else:
                     print(f"\n[ORCHESTRATOR] Performing post-build cleanup: Removing {self.workdir}...")
                     import shutil
                     try:

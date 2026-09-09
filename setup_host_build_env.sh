@@ -47,30 +47,30 @@ app-arch/zstd static-libs
 dev-libs/lzo static-libs
 PORTAGE_EOF
 
-    echo "=> Installing app-emulation/qemu via emerge..."
-    emerge -uDN --autounmask-write=y --autounmask-continue=y --noreplace app-emulation/qemu || true
+    echo "=> Installing app-emulation/qemu and net-misc/rsync via emerge..."
+    emerge -uDN --autounmask-write=y --autounmask-continue=y --noreplace app-emulation/qemu net-misc/rsync || true
 
 elif command -v xbps-install &> /dev/null; then
     echo "=> Void Linux (XBPS) detected."
     xbps-install -S -y
-    xbps-install -y qemu-user qemu-user-aarch64 qemu-user-arm qemu-user-riscv64 binfmt-support
+    xbps-install -y qemu-user qemu-user-aarch64 qemu-user-arm qemu-user-riscv64 binfmt-support rsync
 
 elif command -v apt-get &> /dev/null; then
     echo "=> Debian/Ubuntu (APT) detected."
     apt-get update
-    apt-get install -y qemu-user-static binfmt-support
+    apt-get install -y qemu-user-static binfmt-support rsync
 
 elif command -v pacman &> /dev/null; then
     echo "=> Arch Linux (Pacman) detected."
-    pacman -Syu --noconfirm qemu-user-static binfmt-support
+    pacman -Syu --noconfirm qemu-user-static binfmt-support rsync
 
 elif command -v dnf &> /dev/null; then
     echo "=> Fedora/RHEL (DNF) detected."
-    dnf install -y qemu-user-static
+    dnf install -y qemu-user-static rsync
 
 elif command -v zypper &> /dev/null; then
     echo "=> openSUSE (Zypper) detected."
-    zypper install -y qemu-linux-user binfmt-support
+    zypper install -y qemu-linux-user binfmt-support rsync
 fi
 
 # 2. Ensure binfmt_misc kernel module is loaded

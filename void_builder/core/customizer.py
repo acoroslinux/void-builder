@@ -1148,7 +1148,7 @@ class SystemConfigurator:
         import shutil
         from pathlib import Path
         try:
-            from core.path_utils import resolve_from_project
+            from void_builder.core.path_utils import resolve_from_project
         except ImportError:
             def resolve_from_project(p): return Path(p)
             
