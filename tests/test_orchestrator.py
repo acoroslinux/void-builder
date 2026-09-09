@@ -51,7 +51,39 @@ class TestOrchestrator(unittest.TestCase):
             self.assertIn("total", orchestrator.builder.timings)
             self.assertGreaterEqual(orchestrator.builder.timings["total"], 0.0)
 
+    def test_toolchain_dir_in_workdir(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            orchestrator = BuildOrchestrator(
+                arch="x86_64",
+                config_path="configs/global_build.json",
+                mode="mock",
+                clean=False,
+            )
+            orchestrator._setup()
+            self.assertIsNotNone(orchestrator.toolchain)
+            # Verifica se toolchain_dir fica dentro do workdir
+            self.assertEqual(orchestrator.toolchain.toolchain_dir, orchestrator.workdir / "build_host")
+            self.assertEqual(orchestrator.toolchain.host_dir, orchestrator.workdir / "build_host" / "void-host")
+            self.assertEqual(orchestrator.toolchain.target_dir, orchestrator.workdir / "build_host" / "void-target")
+
+    def test_orchestrator_clean_removes_workdir_and_build_host(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            output = tmp_path / "void-clean-test.iso"
+            orchestrator = BuildOrchestrator(
+                arch="x86_64",
+                config_path="configs/global_build.json",
+                mode="mock",
+                clean=True,
+            )
+            result = orchestrator.run_build(str(output))
+            self.assertTrue(Path(result).exists())
+            # Com clean=True (padrão sem --no-clean), o workdir (e consequentemente build_host) deve ser removido
+            self.assertFalse(orchestrator.workdir.exists())
+
 
 if __name__ == "__main__":
     unittest.main()
+
 

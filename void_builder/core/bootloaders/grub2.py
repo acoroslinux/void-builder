@@ -250,6 +250,7 @@ class Grub2Bootloader:
         # Check and render templates from configs/boot/templates
         config_template = resolve_from_project("configs/boot/templates/config.cfg.in")
         loopback_template = resolve_from_project("configs/boot/templates/loopback.cfg.in")
+        grub_template = resolve_from_project("configs/boot/templates/grub.cfg.in")
         placeholders = self._get_template_placeholders()
 
         if config_template.exists():
@@ -263,6 +264,16 @@ class Grub2Bootloader:
             for k, v in placeholders.items():
                 loopback_text = loopback_text.replace(k, str(v))
             (grub_dir / "loopback.cfg").write_text(loopback_text, encoding="utf-8")
+
+        # If main grub.cfg is still missing, render from template or use grub_void.cfg
+        if not (grub_dir / "grub.cfg").exists():
+            if grub_template.exists():
+                grub_text = grub_template.read_text(encoding="utf-8")
+                for k, v in placeholders.items():
+                    grub_text = grub_text.replace(k, str(v))
+                (grub_dir / "grub.cfg").write_text(grub_text, encoding="utf-8")
+            elif (grub_dir / "grub_void.cfg").exists():
+                shutil.copy2(grub_dir / "grub_void.cfg", grub_dir / "grub.cfg")
 
         logger.info("[GRUB2] GRUB EFI configured")
         return True
@@ -330,18 +341,43 @@ class Grub2Bootloader:
         with open(efi_img_path, "wb") as f:
             f.write(b"\x00" * (32 * 1024 * 1024))
 
-        has_host_mtools = bool(shutil.which("mkfs.fat") and shutil.which("mmd") and shutil.which("mcopy"))
+        # Search for mtools/mkfs.fat on host or in isolated toolchain (workdir / "build_host" / "void-host")
+        candidate_hosts = [
+            workdir / "build_host" / "void-host",
+            workdir.parent / "build_host" / "void-host",
+            resolve_from_project("build_host") / "void-host",
+        ]
+        toolchain_host = next((p for p in candidate_hosts if p.exists()), candidate_hosts[0])
+        toolchain_bin = str(toolchain_host / "usr" / "bin")
+        toolchain_sbin = str(toolchain_host / "usr" / "sbin")
+        toolchain_lib = str(toolchain_host / "usr" / "lib")
+        host_path = f"{toolchain_bin}:{toolchain_sbin}:{os.environ.get('PATH', '')}"
+
+        has_host_mtools = bool(
+            shutil.which("mkfs.fat", path=host_path)
+            and shutil.which("mmd", path=host_path)
+            and shutil.which("mcopy", path=host_path)
+        )
+
+        host_env = os.environ.copy()
+        host_env["PATH"] = host_path
+        if toolchain_lib:
+            host_env["LD_LIBRARY_PATH"] = f"{toolchain_lib}:{os.environ.get('LD_LIBRARY_PATH', '')}".rstrip(":")
 
         if has_host_mtools:
-            subprocess.run(["mkfs.fat", "-F12", "-S", "512", "-n", "grub_uefi", str(efi_img_path)], check=True, capture_output=True)
-            subprocess.run(["mmd", "-i", str(efi_img_path), "::/EFI", "::/EFI/BOOT"], check=True, capture_output=True)
+            subprocess.run(["mkfs.fat", "-F16", "-S", "512", "-n", "grub_uefi", str(efi_img_path)], env=host_env, check=True, capture_output=True)
+            subprocess.run(["mmd", "-i", str(efi_img_path), "::/EFI", "::/EFI/BOOT"], env=host_env, check=True, capture_output=True)
 
             for grub_arch, efi_name in builds:
                 logger.info(f"[GRUB2] Building EFI loader for {grub_arch} ({efi_name})...")
                 efi_out = workdir / "boot" / "grub" / efi_name
                 # Use void-target for modules and void-host for the binary, exactly like void-mklive
-                toolchain_target = workdir.parent / "build_host" / "void-target"
-                toolchain_host = workdir.parent / "build_host" / "void-host"
+                candidate_targets = [
+                    workdir / "build_host" / "void-target",
+                    workdir.parent / "build_host" / "void-target",
+                    resolve_from_project("build_host") / "void-target",
+                ]
+                toolchain_target = next((p for p in candidate_targets if p.exists()), candidate_targets[0])
                 
                 grub_mod_dir = toolchain_target / "usr" / "lib" / "grub" / grub_arch
                 host_grub_mk = toolchain_host / "usr" / "bin" / "grub-mkstandalone"
@@ -356,13 +392,14 @@ class Grub2Bootloader:
                         f"--output={efi_out}",
                         f"boot/grub/grub.cfg={workdir / 'boot' / 'grub' / 'grub.cfg'}"
                     ]
-                    res = subprocess.run(cmd_host, capture_output=True, text=True)
+                    res = subprocess.run(cmd_host, env=host_env, capture_output=True, text=True)
                     if res.returncode == 0 and efi_out.exists():
                         built = True
 
                 if not built and has_real_chroot:
                     from void_builder.utils.lib import copy_qemu_user_binary
                     copy_qemu_user_binary(arch, chroot)
+                    (chroot / "tmp").mkdir(parents=True, exist_ok=True)
                     cmd_chroot = [
                         *chroot_cmd, str(chroot), "sh", "-c",
                         f"grub-mkstandalone --directory=/usr/lib/grub/{grub_arch} --format={grub_arch} --output=/tmp/{efi_name} boot/grub/grub.cfg"
@@ -374,7 +411,7 @@ class Grub2Bootloader:
                         built = True
 
                 if built and efi_out.exists():
-                    subprocess.run(["mcopy", "-i", str(efi_img_path), str(efi_out), f"::/EFI/BOOT/{efi_name}"], check=True, capture_output=True)
+                    subprocess.run(["mcopy", "-i", str(efi_img_path), str(efi_out), f"::/EFI/BOOT/{efi_name}"], env=host_env, check=True, capture_output=True)
                     logger.info(f"[GRUB2] Successfully built and embedded {efi_name} into efiboot.img")
                 else:
                     logger.warning(f"[GRUB2] Skipping {grub_arch} due to build failure (missing libs or unsupported).")
@@ -383,6 +420,7 @@ class Grub2Bootloader:
             return True
 
         # Fallback to in-chroot generation if host tools missing
+        (chroot / "tmp").mkdir(parents=True, exist_ok=True)
         efi_img_chroot = "/tmp/efiboot.img"
         efi_img_host = chroot / "tmp" / "efiboot.img"
         with open(efi_img_host, "wb") as f:
@@ -392,7 +430,7 @@ class Grub2Bootloader:
         copy_qemu_user_binary(arch, chroot)
 
         fat_cmds = [
-            f"mkfs.fat -F12 -S 512 -n grub_uefi {efi_img_chroot}",
+            f"mkfs.fat -F16 -S 512 -n grub_uefi {efi_img_chroot}",
             f"mmd -i {efi_img_chroot} ::/EFI ::/EFI/BOOT",
         ]
 
