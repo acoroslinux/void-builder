@@ -543,13 +543,11 @@ class VoidEngine(BaseEngine):
             memtest_search_dirs.insert(0, Path(target_dir) / "boot" / "memtest86+")
 
         # Copy memtest binaries if present in bootloader chroot
-        for chroot_memtest_dir in memtest_search_dirs:
-            if chroot_memtest_dir.is_dir():
-                for f in chroot_memtest_dir.iterdir():
-                    if f.name in ("memtest.bin", "memtest.efi"):
-                        shutil.copy2(f, staging_boot / f.name)
-                        self.logger.info(f"[bootloaders] Copied memtest file: {f.name}")
-                break
+        for name in ("memtest.bin", "memtest.efi"):
+            source = next((directory / name for directory in memtest_search_dirs if (directory / name).is_file()), None)
+            if source:
+                shutil.copy2(source, staging_boot / name)
+                self.logger.info(f"[bootloaders] Copied memtest file: {source}")
 
         # Process platform DTBs if ARM platforms are specified
         platforms_config = self.config.get("platforms_config", {})
@@ -612,12 +610,12 @@ class VoidEngine(BaseEngine):
         if self.arch.startswith(("x86_64", "i686")):
             syslinux = SyslinuxBootloader(self.config, kernel_version=kernel_version)
             syslinux.prepare_files(self.iso_staging)
-            syslinux.generate_boot_image(self.iso_staging, bootloader_chroot)
+            syslinux.generate_boot_image(self.iso_staging, bootloader_chroot, toolchain=self.toolchain, mode=getattr(self.toolchain, "mode", "real"))
 
         # Set up GRUB2 (UEFI) - for all architectures
         grub = Grub2Bootloader(self.config, root_device_id="VOID_MODERN", kernel_version=kernel_version)
         grub.prepare_files(self.iso_staging)
-        grub.generate_boot_image(self.iso_staging, bootloader_chroot)
+        grub.generate_boot_image(self.iso_staging, bootloader_chroot, toolchain=self.toolchain, mode=getattr(self.toolchain, "mode", "real"))
 
     def _create_squashfs(self) -> None:
         """Create the squashed root filesystem (wrapped in ext3fs.img for dmsquash-live)."""
@@ -792,20 +790,12 @@ class VoidEngine(BaseEngine):
         # Add BIOS boot options if ISOLINUX is present
         isolinux_dir = self.iso_staging / "boot" / "isolinux"
         if (isolinux_dir / "isolinux.bin").exists():
-            isohdpfx_path = None
-            if hasattr(self.toolchain, "target_dir"):
-                candidate = self.toolchain.target_dir / "usr" / "lib" / "syslinux" / "isohdpfx.bin"
-                if candidate.exists():
-                    isohdpfx_path = candidate
-            if not isohdpfx_path:
-                candidate = self.chroot_path / "usr" / "lib" / "syslinux" / "isohdpfx.bin"
-                if candidate.exists():
-                    isohdpfx_path = candidate
-
-            if isohdpfx_path and isohdpfx_path.exists():
-                command.extend([
-                    "-isohybrid-mbr", str(isohdpfx_path)
-                ])
+            # Use the MBR from the same Syslinux package set staged above.
+            isohdpfx_path = isolinux_dir / "isohdpfx.bin"
+            if isohdpfx_path.is_file():
+                command.extend(["-isohybrid-mbr", str(isohdpfx_path)])
+            elif not is_mock:
+                raise ISOBuilderError(f"Missing BIOS hybrid MBR: {isohdpfx_path}")
             command.extend([
                 "-eltorito-boot", "boot/isolinux/isolinux.bin",
                 "-eltorito-catalog", "boot/isolinux/boot.cat",

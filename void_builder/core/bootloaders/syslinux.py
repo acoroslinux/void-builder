@@ -134,45 +134,33 @@ class SyslinuxBootloader:
 
         return True
 
-    def generate_boot_image(self, workdir: Path, chroot_path: Path) -> bool:
-        """Copy syslinux boot files from the chroot to boot/isolinux/."""
-        logger.info("[SYSLINUX] Gathering BIOS boot binaries...")
+    def generate_boot_image(self, workdir: Path, chroot_path: Path, *, toolchain: Any = None, mode: str = "real") -> bool:
+        """Copy a complete BIOS module set from this build's target toolchain."""
         isolinux_dir = workdir / "boot" / "isolinux"
         isolinux_dir.mkdir(parents=True, exist_ok=True)
-
-        # Copy syslinux binaries (c32 modules + isolinux.bin + isohdpfx.bin)
-        copied_any = False
-        if chroot_path and chroot_path.exists():
-            # Check standard syslinux paths in Void Linux
-            syslinux_paths = [
-                chroot_path / "usr" / "lib" / "syslinux",
-                chroot_path / "usr" / "lib" / "syslinux" / "bios",
-            ]
-            
-            binaries = [
-                "isolinux.bin", "ldlinux.c32", "libcom32.c32",
-                "vesamenu.c32", "menu.c32", "libutil.c32", "chain.c32",
-                "reboot.c32", "poweroff.c32", "isohdpfx.bin"
-            ]
-
-            for path in syslinux_paths:
-                if path.is_dir():
-                    for bin_file in binaries:
-                        src = path / bin_file
-                        if src.exists():
-                            try:
-                                shutil.copy2(src, isolinux_dir / bin_file)
-                                copied_any = True
-                            except Exception as e:
-                                logger.warning(f"[SYSLINUX] Failed to copy {bin_file}: {e}")
-
-        if not copied_any:
-            logger.warning("[SYSLINUX] syslinux was not found in the chroot. Simulating files instead.")
+        if mode == "mock":
             self._mock_binaries(isolinux_dir)
+            return True
 
-        # Also place isolinux config files or copies needed by xorriso hybrid boot (like isohdpfx.bin)
-        # under isolinux dir or boot.
-        # Void uses standard isolinux hybrid config.
+        roots = []
+        target_dir = getattr(toolchain, "target_dir", None)
+        if target_dir:
+            roots.append(Path(target_dir))
+        if chroot_path:
+            roots.append(Path(chroot_path))
+        required = [
+            "isolinux.bin", "ldlinux.c32", "libcom32.c32", "vesamenu.c32",
+            "libutil.c32", "chain.c32", "reboot.c32", "poweroff.c32", "isohdpfx.bin",
+        ]
+        candidates = [root / "usr/lib/syslinux" / suffix for root in roots for suffix in ("", "bios")]
+        source = next((path for path in candidates if all((path / name).is_file() for name in required)), None)
+        if source is None:
+            raise SyslinuxBootloaderError(f"Complete Syslinux BIOS module set missing from {candidates}")
+        # Keep binaries from one package tree to avoid mixing incompatible versions.
+        for name in required + ["menu.c32"]:
+            if (source / name).is_file():
+                shutil.copy2(source / name, isolinux_dir / name)
+        logger.info(f"[SYSLINUX] Copied BIOS modules from {source}")
         return True
 
     def _mock_binaries(self, syslinux_dir: Path):
