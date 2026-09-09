@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
@@ -105,10 +106,12 @@ class ConfigAssembler:
             return {}
         try:
             with open(path, "r", encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+            if not isinstance(data, dict):
+                raise ValueError("Expected a JSON object")
+            return data
         except Exception as e:
-            logger.error(f"Error reading {path}: {e}")
-            return {}
+            raise ConfigValidationError(f"Error reading {path}: {e}") from e
 
     def _load_optional_profile(self, category: str, profile_name: str, warn_if_missing: bool = True) -> Dict[str, Any]:
         """Load a profile JSON from configs/<category>/<profile_name>.json if it exists."""
@@ -132,7 +135,7 @@ class ConfigAssembler:
                 return False
             # Match "linux", "linux-lts", "linux-mainline", or versioned like "linux6.6"
             return name in {"linux", "linux-lts", "linux-mainline"} or (
-                name.startswith("linux") and any(c.isdigit() for c in name)
+                re.fullmatch(r"linux[0-9]+(?:\.[0-9]+)*", name) is not None
             )
 
         def replace_kernel_in_list(pkg_list):
@@ -151,6 +154,10 @@ class ConfigAssembler:
             return replaced
 
         replace_kernel_in_list(platform.get("software"))
+        replace_kernel_in_list(platform.get("packages"))
+        packages = platform.setdefault("packages", [])
+        if not any((p.get("name") if isinstance(p, dict) else p) == kernel_name for p in packages):
+            packages.append(kernel_name)
         pkg_sources = self.master_config.get("package_sources", {})
         if isinstance(pkg_sources, dict):
             replace_kernel_in_list(pkg_sources.get("official"))
@@ -437,7 +444,6 @@ class ConfigAssembler:
                         sh_path = resolve_from_project(f"configs/assets/platforms/{platform}.sh")
                         if sh_path.exists():
                             content = sh_path.read_text(encoding="utf-8")
-                            import re
                             name_match = re.search(r'PLATFORM_NAME=["\']?(.*?)["\']?$', content, re.M)
                             pkgs_match = re.search(r'PLATFORM_PKGS=\((.*?)\)', content, re.DOTALL | re.M)
                             cmdline_match = re.search(r'PLATFORM_CMDLINE=["\']?(.*?)["\']?$', content, re.M)
@@ -578,10 +584,28 @@ class ConfigAssembler:
         if platform_pkgs and isinstance(platform_pkgs, list):
             self.master_config["platform_specific"]["software"] = _filter_pkg_list(platform_pkgs)
 
+        # Apply kernel selection after every profile has contributed packages.
+        if target_kernel:
+            self._apply_kernel_override(target_kernel)
+        platform = self.master_config.get("platform_specific", {})
+        kernel_packages = platform.get("packages", [])
+        names = [p.get("name") if isinstance(p, dict) else p for p in kernel_packages]
+        self.master_config["kernel"] = next(
+            (name for name in names if name in {"rpi-kernel", "pinebookpro-kernel", "linux-asahi"}),
+            target_kernel or platform.get("base_kernel") or "linux",
+        )
+        self.master_config["desktop"] = target_desktop if target_desktop != "base" else None
+
         # 4f. Apply direct customization overrides
         cust = self.master_config.setdefault("customizations", {})
         if hostname:
             cust["hostname"] = hostname
+        elif not cust.get("hostname"):
+            distro = self.master_config.get("system", {}).get("distro", "void")
+            suffix = target_desktop if target_desktop and target_desktop != "base" else "live"
+            cust["hostname"] = re.sub(r"[^a-z0-9-]+", "-", f"{distro}-{suffix}".lower())[:63].strip("-")
+        if not re.fullmatch(r"[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?", cust["hostname"]):
+            raise ConfigValidationError("Hostname must be a single label of 1–63 letters, digits or hyphens")
         if timezone:
             cust["timezone"] = timezone
         if locale:
@@ -660,7 +684,7 @@ class ConfigAssembler:
             report["errors"].append(f"Architecture profile '{target_arch}' missing at {arch_path}")
 
         # Check desktop profile
-        if target_desktop:
+        if target_desktop and target_desktop != "base":
             dt_path = self.config_root / "desktops" / f"{target_desktop}.json"
             if not dt_path.exists():
                 report["valid"] = False
@@ -727,7 +751,7 @@ class ConfigAssembler:
                         all_pkgs.append(name)
                 elif isinstance(item, str):
                     all_pkgs.append(item)
-            desktop_val = target_desktop
+            desktop_val = config.get("desktop")
             if not desktop_val:
                 raw_desk = config.get("desktop_environment")
                 if isinstance(raw_desk, dict):
@@ -741,7 +765,8 @@ class ConfigAssembler:
                 "target_arch": target_arch,
                 "preset": preset or "(none)",
                 "desktop": desktop_val,
-                "kernel": target_kernel or config.get("kernel", "default"),
+                "kernel": config.get("kernel", "linux"),
+                "hostname": config.get("customizations.hostname"),
                 "total_packages": len(set(all_pkgs)),
                 "services": config.get("customizations.services", []),
                 "repositories": config.get("repositories", []),

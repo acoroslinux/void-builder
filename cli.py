@@ -30,16 +30,20 @@ def _slugify_name(value: str, fallback: str) -> str:
 def _resolve_output_name(
     architecture: str,
     desktop: Optional[str] = None,
+    kernel: Optional[str] = None,
     output: Optional[str] = None,
     platform: Any = None,
     output_format: str = "iso",
     compress_image: bool = False,
     compression: str = "xz",
+    distro: str = "void",
 ) -> str:
     if output:
         return output
 
+    distro_label = _slugify_name(distro or "void", "void")
     desktop_label = _slugify_name(desktop or "base", "base")
+    kernel_label = _slugify_name(kernel or "linux", "linux")
     arch_label = _slugify_name(architecture, "x86_64")
 
     format_map = {
@@ -66,8 +70,8 @@ def _resolve_output_name(
 
     if plat_str and plat_str.lower() != architecture.lower():
         plat_label = _slugify_name(plat_str, "")
-        return f"void-builder-{desktop_label}-{plat_label}-{arch_label}.{ext}"
-    return f"void-builder-{desktop_label}-{arch_label}.{ext}"
+        return f"{distro_label}-{arch_label}-{kernel_label}-{desktop_label}-{plat_label}.{ext}"
+    return f"{distro_label}-{arch_label}-{kernel_label}-{desktop_label}.{ext}"
 
 
 def main():
@@ -727,15 +731,6 @@ def main():
         print(f"Supported architectures: {', '.join(VALID_ARCHS)}")
         sys.exit(1)
     args.architecture = arch_lower
-    output_name = _resolve_output_name(
-        architecture=args.architecture,
-        desktop=args.desktop or args.preset,
-        output=args.output,
-        platform=args.platform,
-        output_format=args.format,
-        compress_image=args.compress_image,
-        compression=args.compression,
-    )
 
     config_root = resolve_from_project("configs")
     if args.list_options:
@@ -863,6 +858,26 @@ def main():
             for err in report.get("errors", []):
                 print(f"  - ERROR: {err}")
             sys.exit(1)
+
+    # Resolve names from the same merged profiles used by the build.
+    from void_builder.core.config_loader import ConfigAssembler, ConfigValidationError
+    try:
+        naming_config = ConfigAssembler(str(config_path.parent)).assemble(
+            args.architecture, target_desktop=args.desktop, target_kernel=args.kernel,
+            target_bootloader=args.bootloader, preset=args.preset,
+            package_profiles=args.package_profile, service_profiles=args.service_profile,
+            platforms=args.platform, hostname=args.hostname,
+        )
+    except ConfigValidationError as exc:
+        parser.error(str(exc))
+    output_name = _resolve_output_name(
+        architecture=args.architecture,
+        desktop=naming_config.get("desktop"),
+        kernel=naming_config.get("kernel"),
+        distro=naming_config.get("system.distro", "void"),
+        output=args.output, platform=args.platform, output_format=args.format,
+        compress_image=args.compress_image, compression=args.compression,
+    )
 
     print(f"--- Void-Builder Execution ---")
     print(f"Target Arch: {args.architecture}")

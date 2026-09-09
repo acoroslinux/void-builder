@@ -214,3 +214,18 @@ Then open `docs/_build/html/index.html` in your browser.
 
 This project is licensed under the [MIT License](LICENSE).
 
+
+### Automatic artifact names and hostnames
+
+Unless `--output` is supplied, artifacts use
+`<distro>-<architecture>-<kernel>-<desktop>.<format>` (for example,
+`void-x86_64-linux6.6-xfce.iso`). The desktop and kernel come from the merged
+configuration, including presets and command-line overrides. Console builds use
+`base`; selected hardware platforms are appended before the extension. The
+kernel component identifies the selected package/flavour, not its installed version.
+Set `system.distro` in `configs/global_build.json` to customize the distro name.
+
+The default live hostname is `void-live`, or `void-<desktop>` for a desktop build.
+A hostname configured by a preset or custom profile takes precedence over this
+default; `--hostname` overrides it. Hostnames must contain 1–63 letters, digits or
+hyphens and begin and end with a letter or digit.

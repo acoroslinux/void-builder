@@ -1,5 +1,6 @@
 {
   "system": {
+    "distro": "void",
     "iso_label": "VOID_MODERN",
     "workdir_base": "workdir",
     "xbps_cache": "cache/xbps"
@@ -25,7 +26,6 @@
   "custom_repositories": [],
   "_comment_priority": "Repository priority: XBPS evaluates repositories in the declared order (command line -R/--repository first, then profiles/custom_repositories, and finally base official repositories). The first package match is the one that will be installed.",
   "customizations": {
-    "hostname": "void-modern",
     "timezone": "UTC",
     "locale": "en_US.UTF-8",
     "keymap": "us",
