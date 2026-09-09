@@ -688,13 +688,12 @@ def main():
             
         subprocess.run(pkg_cmd, cwd=str(workdir), check=True)
         
-        binpkgs_dir = workdir / "hostdir" / "binpkgs"
-        if target_arch != "x86_64":
-             # xbps-src stores cross compiled packages in hostdir/binpkgs/<arch>
-             binpkgs_dir = binpkgs_dir / target_arch
-             if not binpkgs_dir.exists():
-                 binpkgs_dir = workdir / "hostdir" / "binpkgs" # fallback
-                 
+        from void_builder.core.local_packages import calamares_repositories
+        built_repos = calamares_repositories(target_arch, workdir / "hostdir" / "binpkgs")
+        if not built_repos:
+            raise RuntimeError(f"Calamares compilation finished but no indexed package for {target_arch} was found")
+        binpkgs_dir = Path(built_repos[0])
+
         print(f"\n[Calamares] ✅ Compilation completed successfully!")
         print(f"[Calamares] Binary repository generated at: {binpkgs_dir}\n")
         return binpkgs_dir
@@ -813,6 +812,8 @@ def main():
         live_groups=parsed_live_groups,
         platforms=args.platform,
         repositories=args.repository,
+        with_offline_repo=args.with_offline_repo,
+        offline_repo_packages=[p.strip() for p in (args.offline_repo_packages or "").split(",") if p.strip()],
         include_dirs=args.include,
         update_toolchain=args.update_toolchain,
         compression=args.compression,

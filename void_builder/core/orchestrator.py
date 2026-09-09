@@ -250,20 +250,16 @@ class BuildOrchestrator:
         self.config._data["generate_manifest"] = self.generate_manifest
         self.config._data["use_tarball"] = self.use_tarball
         self.config._data["create_tarball"] = self.create_tarball
+        self.config._data["compress_image"] = self.compress_image
         # Inject offline repo settings
         self.config._data["with_offline_repo"] = self.with_offline_repo
         self.config._data["offline_repo_packages"] = self.offline_repo_packages
 
-        if self.with_offline_repo:
-            offline_dir = resolve_from_project("workdir") / self.arch / "offline_repo"
-            self.config._data["offline_repo_dir"] = str(offline_dir)
 
         # Inject command line custom repositories
         if self.repositories:
             custom_repos = self.config._data.setdefault("custom_repositories", [])
-            for r in self.repositories:
-                if r not in custom_repos:
-                    custom_repos.append(r)
+            self.config._data["custom_repositories"] = list(dict.fromkeys([*self.repositories, *custom_repos]))
 
         # Inject command line include directories
         if self.include_dirs:

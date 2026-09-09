@@ -393,7 +393,7 @@ class VoidEngine(BaseEngine):
             except Exception as e:
                 self.logger.warning(f"[Tarball] System update in chroot warned: {e}")
 
-        repos = self._cfg_get("repositories", []) + self._cfg_get("custom_repositories", [])
+        repos = self._cfg_get("custom_repositories", []) + self._cfg_get("repositories", [])
         
         # Support for Custom Local Packages (e.g. Calamares)
         from void_builder.core.path_utils import resolve_from_project
@@ -899,6 +899,17 @@ class ISOBuilder:
         t_step = time.perf_counter()
         self.engine.post_install_configure()
         self.timings["post_install"] = time.perf_counter() - t_step
+
+        if self.config.get("with_offline_repo", False):
+            from void_builder.core.offline_repository import build_offline_repository
+            manager = self.toolchain.chroot_manager
+            packages = self.config.get("offline_repo_packages") or self.engine._package_plan()["official"]
+            build_offline_repository(
+                self.toolchain, self.arch, packages,
+                getattr(manager, "package_repositories", []),
+                self.engine.chroot_path, workdir_path,
+            )
+
 
         # 4. Build bootloaders (skip for non-ISO if handled by Orchestrator/DiskEngine)
         t_step = time.perf_counter()

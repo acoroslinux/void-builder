@@ -117,15 +117,26 @@ class ChrootManager:
         # Determine package repositories
         internal_repos = []
         config_repos = []
-        if repos:
-            config_repos.extend(repos)
-        if hasattr(self, "config") and self.config:
-            r = self.config.get("repositories")
-            if isinstance(r, list):
-                config_repos.extend(r)
+        if getattr(self, "config", None):
             cr = self.config.get("custom_repositories")
             if isinstance(cr, list):
                 config_repos.extend(cr)
+
+        # --build-calamares exits after compilation; subsequent ISO builds must
+        # also discover its indexed repository, without rebuilding the package.
+        if "calamares" in packages:
+            from void_builder.core.local_packages import calamares_repositories
+            local_repos = calamares_repositories(self.arch)
+            config_repos.extend(local_repos)
+            if local_repos:
+                logger.info(f"[Chroot] Reusing locally built Calamares from: {', '.join(local_repos)}")
+
+        if repos:
+            config_repos.extend(repos)
+        if getattr(self, "config", None):
+            r = self.config.get("repositories")
+            if isinstance(r, list):
+                config_repos.extend(r)
 
         if config_repos:
             for r in config_repos:
@@ -155,6 +166,8 @@ class ChrootManager:
         # Filter repos to only use compatible ones for target arch
         from void_builder.utils.lib import filter_repositories
         internal_repos = filter_repositories(internal_repos, self.arch)
+
+        self.package_repositories = list(internal_repos)
 
         logger.info(f"[Chroot] Installing {len(packages)} packages: {', '.join(packages)}")
         logger.info(f"[Chroot] Using package cache directory: {cache_dir}")
@@ -195,7 +208,7 @@ class ChrootManager:
 
         for attempt in range(1, max_attempts + 1):
             cmd = [
-                xbps_install, "-S", "-r", str(self.chroot_path),
+                xbps_install, "-S", "-i", "-r", str(self.chroot_path),
                 "-c", str(cache_dir),
             ]
             for repo in current_repos:
@@ -206,6 +219,7 @@ class ChrootManager:
             logger.info(f"[Chroot] Running host-side xbps-install.static (attempt {attempt}/{max_attempts}) for {xbps_arch}...")
             res = subprocess.run(cmd, env=cmd_env)
             if res.returncode == 0:
+                self.package_repositories = list(current_repos)
                 logger.info("[Chroot] Package installation completed successfully.")
                 return
 
