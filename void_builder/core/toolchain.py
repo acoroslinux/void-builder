@@ -130,34 +130,84 @@ class ToolchainManager:
         logger.error(f"[TOOLCHAIN] Bootstrap failed after {max_attempts} attempts (exit {last_error_code}).")
         raise RuntimeError(f"Bootstrap failed with exit code {last_error_code}")
 
+    # ------------------------------------------------------------------
+    # Arch-mismatch detection helpers
+    # ------------------------------------------------------------------
+
+    _ARCH_MARKER = ".arch"
+
+    def _read_dir_arch(self, directory: Path) -> Optional[str]:
+        """Return the arch stored in the marker file, or None if absent."""
+        marker = directory / self._ARCH_MARKER
+        try:
+            return marker.read_text().strip() or None
+        except OSError:
+            return None
+
+    def _write_dir_arch(self, directory: Path, arch: str) -> None:
+        """Write (or overwrite) the arch marker file inside *directory*."""
+        (directory / self._ARCH_MARKER).write_text(arch)
+
+    def _wipe_dir(self, directory: Path) -> None:
+        """Remove all contents of *directory* while keeping the directory itself."""
+        import shutil
+        if directory.exists():
+            logger.info(f"[TOOLCHAIN] Arch mismatch — wiping stale dir: {directory}")
+            shutil.rmtree(directory)
+        directory.mkdir(parents=True, exist_ok=True)
+
     def _bootstrap_toolchain_dirs(self):
-        # 1. Copy keys
+        from void_builder.utils.lib import filter_repositories, is_target_native
+
+        host_arch = self._get_host_arch()
+
+        # Wipe host_dir if it was previously built for a different host arch.
+        stored_host_arch = self._read_dir_arch(self.host_dir)
+        if stored_host_arch and stored_host_arch != host_arch:
+            logger.warning(
+                f"[TOOLCHAIN] host_dir arch mismatch: stored={stored_host_arch}, "
+                f"current={host_arch}. Rebuilding."
+            )
+            self._wipe_dir(self.host_dir)
+
+        # Wipe target_dir if it was previously built for a different target arch.
+        from void_builder.utils.lib import map_xbps_arch
+        canonical_target = map_xbps_arch(self.arch)
+        stored_target_arch = self._read_dir_arch(self.target_dir)
+        if stored_target_arch and stored_target_arch != canonical_target:
+            logger.warning(
+                f"[TOOLCHAIN] target_dir arch mismatch: stored={stored_target_arch}, "
+                f"current={canonical_target}. Rebuilding."
+            )
+            self._wipe_dir(self.target_dir)
+
+        # 1. Copy keys (after possible wipe)
         self._setup_keys(self.host_dir)
         self._setup_keys(self.target_dir)
 
         # 2. Install host prereqs into self.host_dir
-        host_arch = self._get_host_arch()
         repos = [
             "https://repo-default.voidlinux.org/current",
             "https://repo-default.voidlinux.org/current/musl",
             "https://repo-default.voidlinux.org/current/aarch64"
         ]
-        
-        from void_builder.utils.lib import filter_repositories, is_target_native
+
         host_repos = filter_repositories(repos, host_arch)
         host_pkgs = ["base-files", "libgcc", "dash", "coreutils", "sed", "tar", "gawk", "squashfs-tools", "xorriso", "dosfstools", "mtools", "grub"]
         self._run_xbps_install(self.host_dir, host_arch, host_pkgs, host_repos)
+        self._write_dir_arch(self.host_dir, host_arch)
 
-        # 3. Install target bootloader packages into self.target_dir
-        target_pkgs = ["base-files", "bash", "mtools", "dosfstools"]
+        # 3. Install target bootloader packages into self.target_dir (unpack only)
+        target_pkgs = []
         if self.arch.startswith(("x86_64", "i686")):
             target_pkgs.extend(["syslinux", "grub-i386-efi", "grub-x86_64-efi", "memtest86+"])
         elif self.arch.startswith("aarch64") or "aarch64" in self.arch or "arm" in self.arch:
             target_pkgs.extend(["grub-arm64-efi"])
-            
-        target_repos = filter_repositories(repos, self.arch)
-        is_native = is_target_native(self.arch)
-        self._run_xbps_install(self.target_dir, self.arch, target_pkgs, target_repos, unpack_only=not is_native)
+
+        if target_pkgs:
+            target_repos = filter_repositories(repos, self.arch)
+            self._run_xbps_install(self.target_dir, self.arch, target_pkgs, target_repos, unpack_only=True)
+            self._write_dir_arch(self.target_dir, canonical_target)
 
     def execute_command(
         self,
@@ -199,18 +249,44 @@ class ToolchainManager:
                 res = subprocess.run(chroot_cmd, env=cmd_env, text=True, capture_output=True)
                 return res.returncode, res.stdout, res.stderr
             else:
-                # Proot
+                # Unprivileged container execution
                 proot_bin = str(self.proot)
-                proot_cmd = [
-                    proot_bin, "-r", str(chroot_path), "-0", "-w", "/",
-                    "-b", "/dev", "-b", "/sys", "-b", "/proc",
-                    "/bin/sh", "-c", cmd_to_run
-                ]
+                has_proot = self.proot.exists()
+                has_bwrap = bool(shutil.which("bwrap"))
+
+                if has_proot:
+                    runner_cmd = [
+                        proot_bin, "-r", str(chroot_path), "-0", "-w", "/",
+                        "-b", "/dev", "-b", "/sys", "-b", "/proc",
+                        "/bin/sh", "-c", cmd_to_run
+                    ]
+                    logger.info(f"[TOOLCHAIN] [PROOT] Running: {' '.join(runner_cmd)}")
+                elif has_bwrap:
+                    runner_cmd = [
+                        "bwrap",
+                        "--bind", str(chroot_path), "/",
+                        "--dev", "/dev",
+                        "--proc", "/proc",
+                        "--dir", "/sys",
+                        "--uid", "0",
+                        "--gid", "0",
+                        "--chdir", "/",
+                        "/bin/sh", "-c", cmd_to_run
+                    ]
+                    logger.info(f"[TOOLCHAIN] [BWRAP] Running: {' '.join(runner_cmd)}")
+                else:
+                    # Fallback to xbps-uunshare if available
+                    uunshare_bin = self.tools_dir / "usr" / "bin" / "xbps-uunshare.static"
+                    if uunshare_bin.exists():
+                        runner_cmd = [str(uunshare_bin), str(chroot_path), "/bin/sh", "-c", cmd_to_run]
+                        logger.info(f"[TOOLCHAIN] [XBPS-UUNSHARE] Running: {' '.join(runner_cmd)}")
+                    else:
+                        raise RuntimeError("No unprivileged container runner available (proot or bwrap required).")
+
                 cmd_env = os.environ.copy()
                 if env:
                     cmd_env.update(env)
-                logger.info(f"[TOOLCHAIN] [PROOT] Running: {' '.join(proot_cmd)}")
-                res = subprocess.run(proot_cmd, env=cmd_env, text=True, capture_output=True)
+                res = subprocess.run(runner_cmd, env=cmd_env, text=True, capture_output=True)
                 return res.returncode, res.stdout, res.stderr
         else:
             # Run directly on host
@@ -220,3 +296,32 @@ class ToolchainManager:
                 cmd_env.update(env)
             res = subprocess.run(command, env=cmd_env, text=True, capture_output=True)
             return res.returncode, res.stdout, res.stderr
+
+    def run_in_build_host(
+        self,
+        command: List[str],
+        env: Optional[Dict[str, str]] = None,
+        check: bool = True,
+    ) -> Tuple[int, str, str]:
+        """Execute host-level toolchain commands (truncate, mkfs, mcopy, etc.)."""
+        if self.mode == "mock":
+            logger.info(f"[TOOLCHAIN] [MOCK-HOST] Executing: {' '.join(command)}")
+            return 0, "mock output", ""
+
+        # Prefer running with isolated host_dir PATH if available
+        cmd_env = os.environ.copy()
+        if hasattr(self, "host_dir") and self.host_dir and self.host_dir.exists():
+            bin_dir = str(self.host_dir / "usr" / "bin")
+            sbin_dir = str(self.host_dir / "usr" / "sbin")
+            cmd_env["PATH"] = f"{bin_dir}:{sbin_dir}:{cmd_env.get('PATH', '')}"
+
+        if env:
+            cmd_env.update(env)
+
+        logger.info(f"[TOOLCHAIN] [BUILD-HOST] Executing: {' '.join(command)}")
+        res = subprocess.run(command, env=cmd_env, text=True, capture_output=True)
+        if check and res.returncode != 0:
+            raise RuntimeError(
+                f"Command '{' '.join(command)}' failed with exit code {res.returncode}: {res.stderr or res.stdout}"
+            )
+        return res.returncode, res.stdout, res.stderr
