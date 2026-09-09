@@ -6,6 +6,12 @@ from typing import Any, Optional
 
 from void_builder.core.orchestrator import BuildOrchestrator, BuildOrchestratorError
 from void_builder.core.path_utils import resolve_from_project
+from void_builder.utils.lib import add_xbps_tools_to_path
+
+# Make the bundled xbps-static binaries discoverable for any subprocess that
+# inherits os.environ (e.g. scripts called via shell=True), even on hosts that
+# do not have xbps installed system-wide.
+add_xbps_tools_to_path()
 
 
 def _available_profiles(config_root: Path, category: str):
@@ -81,8 +87,7 @@ def main():
         "architecture",
         nargs="?",
         default="x86_64",
-        choices=["x86_64", "aarch64", "riscv64", "ppc64le", "s390x"],
-        help="Target architecture (e.g., x86_64). Default: x86_64",
+        help="Target architecture (e.g., x86_64, aarch64, rpi-aarch64, pinebookpro, asahi). Default: x86_64",
     )
 
     # Configuration and Environment

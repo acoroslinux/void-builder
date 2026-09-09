@@ -373,6 +373,39 @@ def get_tools_dir():
     return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'tools')
 
 
+def get_xbps_tools_bin_dir() -> str:
+    """Return the absolute path to the xbps-static binaries directory.
+
+    This is ``<project>/void_builder/tools/usr/bin``.  The directory is created
+    by :func:`ensure_static_xbps` the first time a build runs, but the path is
+    stable and can be used before that point (e.g. to export PATH in scripts).
+    """
+    return os.path.join(get_tools_dir(), "usr", "bin")
+
+
+def add_xbps_tools_to_path() -> str:
+    """Prepend the xbps-static bin directory to ``os.environ['PATH']``.
+
+    Call this once at process start-up (e.g. in ``cli.py`` or orchestrator) so
+    that child processes spawned via ``subprocess`` without an explicit *env*
+    argument can also locate the static xbps binaries without requiring them to
+    be installed system-wide.
+
+    Returns the tools bin directory path that was added.
+
+    Example::
+
+        from void_builder.utils.lib import add_xbps_tools_to_path
+        add_xbps_tools_to_path()
+    """
+    bin_dir = get_xbps_tools_bin_dir()
+    current_path = os.environ.get("PATH", "")
+    path_entries = current_path.split(os.pathsep)
+    if bin_dir not in path_entries:
+        os.environ["PATH"] = bin_dir + os.pathsep + current_path
+    return bin_dir
+
+
 def ensure_dir(path):
     """Create a directory if it doesn't exist and return its path."""
     os.makedirs(path, exist_ok=True)
