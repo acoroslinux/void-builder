@@ -640,7 +640,7 @@ class VoidEngine(BaseEngine):
         mountpoint = Path(tempfile.mkdtemp(prefix="rootfs-mount-", dir=self.workdir))
         mounted = False
         try:
-            self.logger.info(f"[squashfs] Mounting ext3fs.img via loop at {mountpoint}")
+            self.logger.info(f"[squashfs] Mounting {image.name} via loop at {mountpoint}")
             run([*prefix, "mount", "-o", "loop", str(image), str(mountpoint)])
             mounted = True
             self.logger.info("[squashfs] Copying rootfs into the mounted ext3 image")
@@ -657,10 +657,10 @@ class VoidEngine(BaseEngine):
                 self.logger.error(f"[squashfs] Unmount failed; preserving mounted directory: {mountpoint}")
 
     def _create_squashfs(self) -> None:
-        """Create the squashed root filesystem (wrapped in ext3fs.img for dmsquash-live)."""
+        """Wrap the ext3 filesystem in LiveOS/rootfs.img for dmsquash-live."""
         self.logger.info("=== Step 4: Compressing Root Filesystem ===")
 
-        # CRITICAL: Unmount pseudofs BEFORE copying rootfs into ext3fs.img.
+        # CRITICAL: Unmount pseudofs BEFORE copying rootfs into rootfs.img.
         # Without this, /dev /proc /sys from the host get baked into the
         # SquashFS image, causing dracut to crash with 'Signal caught!' on boot.
         # This matches void-mklive's generate_squashfs() which starts with:
@@ -684,8 +684,8 @@ class VoidEngine(BaseEngine):
         squashfs_img = liveos_dir / "squashfs.img"
 
         if squashfs_img.exists():
-            self.logger.info("SquashFS already exists, skipping compression.")
-            return
+            self.logger.info("[squashfs] Replacing existing image with the current rootfs.")
+            squashfs_img.unlink()
 
         comp_type = self.config.get("squashfs_compression", "xz")
         if getattr(self.toolchain, "mode", "mock") == "mock":
@@ -712,7 +712,9 @@ class VoidEngine(BaseEngine):
             tmp_liveos = tmp_path / "LiveOS"
             tmp_liveos.mkdir(parents=True, exist_ok=True)
 
-            ext3_img = tmp_liveos / "ext3fs.img"
+            # Stock dmsquash-live (Dracut 112) looks for LiveOS/rootfs.img.
+            # The filename is independent of the ext3 filesystem format.
+            ext3_img = tmp_liveos / "rootfs.img"
             
             # 2. Truncate image file
             subprocess.run(["truncate", "-s", f"{img_size_mb}M", str(ext3_img)], check=True)
@@ -1005,4 +1007,3 @@ class PlatformEngine(VoidEngine):
             self.logger.info("Pinebook Pro relies on u-boot written directly to disk. Skipping GRUB/Syslinux inside chroot.")
         elif self.arch in ("asahi", "x13s"):
             self.logger.info(f"{self.arch} requires GRUB EFI. Will be installed during image finalization.")
-

@@ -1,4 +1,6 @@
 from pathlib import Path
+import shutil
+import subprocess
 from types import SimpleNamespace
 
 import pytest
@@ -15,7 +17,7 @@ def loop_build(tmp_path, monkeypatch):
     engine.chroot_path.mkdir()
     monkeypatch.setattr('os.geteuid', lambda: 0)
     monkeypatch.setattr('shutil.which', lambda _: None)
-    return engine, tmp_path / 'ext3fs.img'
+    return engine, tmp_path / 'rootfs.img'
 
 
 def test_void_mklive_loop_sequence(loop_build, monkeypatch):
@@ -54,3 +56,36 @@ def test_loop_failures_stop_and_clean_safely(loop_build, monkeypatch, failure):
         assert not mountpoint.exists()
     else:
         assert mountpoint.exists()  # Never recursively delete a still-mounted tree.
+
+
+@pytest.mark.skipif(not shutil.which('mksquashfs') or not shutil.which('unsquashfs'),
+                    reason='SquashFS tools required')
+@pytest.mark.parametrize('existing_image', [False, True])
+def test_squashfs_contains_dracut_rootfs_path(tmp_path, monkeypatch, existing_image):
+    engine = VoidEngine('x86_64', Config({}), SimpleNamespace(mode='real'))
+    engine.workdir = tmp_path
+    engine.chroot_path = tmp_path / 'rootfs'
+    engine.chroot_path.mkdir()
+    engine.iso_staging = tmp_path / 'iso-staging'
+    squashfs = engine.iso_staging / 'LiveOS' / 'squashfs.img'
+    if existing_image:
+        squashfs.parent.mkdir(parents=True)
+        squashfs.write_bytes(b'stale image from an earlier build')
+        squashfs.chmod(0o444)
+
+    # Exercise real archive creation; loop population is tested separately.
+    payload = b'current root filesystem payload'
+    monkeypatch.setattr(engine, '_populate_ext3_image', lambda image: image.write_bytes(payload))
+    monkeypatch.setattr('os.cpu_count', lambda: 1)
+    engine._create_squashfs()
+
+    extracted = subprocess.run(
+        ['unsquashfs', '-cat', str(squashfs), 'LiveOS/rootfs.img'],
+        check=True, capture_output=True,
+    )
+    assert extracted.stdout == payload
+    listing = subprocess.run(
+        ['unsquashfs', '-ll', str(squashfs)], check=True, capture_output=True, text=True,
+    ).stdout
+    assert 'LiveOS/rootfs.img' in listing
+    assert 'ext3fs.img' not in listing
