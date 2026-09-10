@@ -203,14 +203,24 @@ def mount_pseudofs(rootfs):
 def umount_pseudofs(rootfs):
     """Safely unmount pseudo-filesystems using lazy unmounting to avoid lockups."""
     success = True
-    
+
+    def unmount(command):
+        import time
+        started = time.monotonic()
+        result = CommandRunner.run(command, check=False)
+        info_msg(f"[Unmount] {command[-1]}: exit={result[0]}, elapsed={time.monotonic() - started:.2f}s")
+        return result
+
     # Pre-emptively unmount internal tmpfs mounts if mounted
     for fs in ('dev/shm', 'run'):
         target = os.path.join(rootfs, fs)
         if os.path.isdir(target):
             rc, _, _ = CommandRunner.run(['mountpoint', '-q', target], check=False, capture_output=True, silent_errors=True)
             if rc == 0:
-                CommandRunner.run(['umount', '-l', target], check=False)
+                rc_u, _, stderr = unmount(['umount', '-l', target])
+                if rc_u != 0:
+                    warn_msg(f"Failed to unmount {target}: {stderr}")
+                    success = False
             
     # Unmount main points
     for fs in ('sys', 'proc', 'dev'):
@@ -218,7 +228,7 @@ def umount_pseudofs(rootfs):
         if os.path.isdir(target):
             rc, _, _ = CommandRunner.run(['mountpoint', '-q', target], check=False, capture_output=True, silent_errors=True)
             if rc == 0:
-                rc_u, _, stderr = CommandRunner.run(['umount', '-R', '-l', target], check=False)
+                rc_u, _, stderr = unmount(['umount', '-R', '-l', target])
                 if rc_u != 0:
                     warn_msg(f"Failed to unmount {target}: {stderr}")
                     success = False

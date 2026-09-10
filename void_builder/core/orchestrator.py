@@ -399,10 +399,10 @@ class BuildOrchestrator:
 
             self.run_hooks("pre-chroot")
 
-            result_iso = self.builder.build(output_path, str(self.workdir), output_format=output_format)
-
-            if hasattr(self, "chroot") and self.chroot:
-                self.run_hooks("chroot", chroot=self.chroot)
+            result_iso = self.builder.build(
+                output_path, str(self.workdir), output_format=output_format,
+                chroot_hook=lambda: self.run_hooks("chroot", chroot=self.chroot),
+            )
 
             self.run_hooks("post-chroot")
 

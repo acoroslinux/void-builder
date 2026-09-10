@@ -62,7 +62,8 @@ class ChrootManager:
 
         from void_builder.utils.lib import umount_pseudofs
         logger.info(f"[Chroot] Unmounting virtual filesystems at {self.chroot_path}...")
-        umount_pseudofs(str(self.chroot_path))
+        if not umount_pseudofs(str(self.chroot_path)):
+            raise ChrootError(f"Failed to unmount virtual filesystems at {self.chroot_path}")
         self._mounted = False
 
     def run_command(

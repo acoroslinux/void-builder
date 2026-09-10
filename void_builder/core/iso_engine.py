@@ -446,8 +446,7 @@ class VoidEngine(BaseEngine):
         from void_builder.utils.lib import clean_qemu_user_binary
         clean_qemu_user_binary(self.arch, self.chroot_path)
 
-        # 5. Unmount virtual systems
-        chroot_manager.umount()
+        # Keep pseudofs mounted until all chroot work and bootloaders finish.
 
     def build_bootloaders(self, mountpoint: str) -> None:
         self.logger.info("[bootloaders] Preparing bootloader files and copying kernel...")
@@ -618,28 +617,44 @@ class VoidEngine(BaseEngine):
         grub.generate_boot_image(self.iso_staging, bootloader_chroot, toolchain=self.toolchain, mode=getattr(self.toolchain, "mode", "real"))
 
     def _populate_ext3_image(self, image: Path) -> None:
+        """Use void-mklive's mkfs.ext3 -> loop mount -> cp -a -> umount flow."""
+        import os
         import subprocess
-        # Preserve the permission corrections previously applied after cp -a.
-        permissions = {"etc/shadow": 0o600, "etc/passwd": 0o644,
-                       "etc/group": 0o644, "etc/sudoers": 0o440,
-                       "etc/sudoers.d": 0o750}
-        for relative, mode in permissions.items():
-            path = self.chroot_path / relative
-            if path.exists() and not path.is_symlink():
-                path.chmod(mode)
-        for path in (self.chroot_path / "etc/sudoers.d").glob("*"):
-            if path.is_file() and not path.is_symlink():
-                path.chmod(0o440)
-        mkfs = shutil.which("mkfs.ext3")
-        if not mkfs:
-            mkfs = next((str(p) for p in (Path("/usr/sbin/mkfs.ext3"), Path("/sbin/mkfs.ext3")) if p.is_file()), None)
-        if not mkfs:
-            raise ISOBuilderError("mkfs.ext3 is required to create the live rootfs image (e2fsprogs)")
-        self.logger.info(f"[squashfs] Populating {image.name} directly from rootfs without a loop mount")
-        command = [mkfs, "-F", "-m", "1", "-d", str(self.chroot_path), str(image)]
-        result = subprocess.run(command, capture_output=True, text=True)
-        if result.returncode:
-            raise ISOBuilderError(f"Failed to populate ext3fs.img: {result.stdout}\n{result.stderr}")
+        prefix = [] if os.geteuid() == 0 else ["sudo"]
+
+        def run(command):
+            result = subprocess.run(command, capture_output=True, text=True)
+            if result.returncode:
+                raise ISOBuilderError(
+                    f"Rootfs image command failed (exit {result.returncode}): {' '.join(command)}\n"
+                    f"{result.stdout or ''}\n{result.stderr or ''}"
+                )
+
+        # As in void-mklive, a built-in loop driver is valid even if modprobe fails.
+        modprobe = shutil.which("modprobe")
+        if modprobe:
+            subprocess.run([*prefix, modprobe, "-q", "loop"], capture_output=True)
+        run(["mkfs.ext3", "-F", "-m", "1", str(image)])
+        # Keep the mount outside the temporary tree passed to mksquashfs and
+        # TemporaryDirectory cleanup, including when unmounting fails.
+        mountpoint = Path(tempfile.mkdtemp(prefix="rootfs-mount-", dir=self.workdir))
+        mounted = False
+        try:
+            self.logger.info(f"[squashfs] Mounting ext3fs.img via loop at {mountpoint}")
+            run([*prefix, "mount", "-o", "loop", str(image), str(mountpoint)])
+            mounted = True
+            self.logger.info("[squashfs] Copying rootfs into the mounted ext3 image")
+            try:
+                run([*prefix, "cp", "-a", f"{self.chroot_path}/.", f"{mountpoint}/"])
+            finally:
+                self.logger.info(f"[squashfs] Unmounting {mountpoint}")
+                run([*prefix, "umount", "-f", str(mountpoint)])
+                mounted = False
+        finally:
+            if not mounted:
+                mountpoint.rmdir()
+            else:
+                self.logger.error(f"[squashfs] Unmount failed; preserving mounted directory: {mountpoint}")
 
     def _create_squashfs(self) -> None:
         """Create the squashed root filesystem (wrapped in ext3fs.img for dmsquash-live)."""
@@ -690,7 +705,7 @@ class VoidEngine(BaseEngine):
             self.logger.warning(f"Failed to determine rootfs size, using 4000MB fallback: {e}")
             size_mb = 4000
 
-        img_size_mb = size_mb * 2 + 100
+        img_size_mb = size_mb * 2
 
         with tempfile.TemporaryDirectory(dir=self.iso_staging.parent) as tmp_dir:
             tmp_path = Path(tmp_dir)
@@ -702,8 +717,7 @@ class VoidEngine(BaseEngine):
             # 2. Truncate image file
             subprocess.run(["truncate", "-s", f"{img_size_mb}M", str(ext3_img)], check=True)
             
-            # Keep void-mklive's LiveOS/ext3fs.img layout, but populate it
-            # directly with mke2fs instead of requiring a host loop mount.
+            # Populate the mounted ext3 filesystem using void-mklive's method.
             self._populate_ext3_image(ext3_img)
 
             # 5. Generate squashfs from tmp_dir
@@ -857,7 +871,7 @@ class ISOBuilder:
             raise ISOBuilderError(f"No build engine registered for architecture '{arch}'.")
         self.engine = engine_cls(arch, config, toolchain)
 
-    def build(self, output_path: str, workdir: Optional[str] = None, output_format: str = "iso") -> str:
+    def build(self, output_path: str, workdir: Optional[str] = None, output_format: str = "iso", chroot_hook=None) -> str:
         """Execute the full build pipeline with per-stage timing metrics."""
         import time
         t_start = time.perf_counter()
@@ -879,6 +893,8 @@ class ISOBuilder:
         # 3. Run post-install configuration & customizations
         t_step = time.perf_counter()
         self.engine.post_install_configure()
+        if chroot_hook is not None:
+            chroot_hook()
         self.timings["post_install"] = time.perf_counter() - t_step
 
         if self.config.get("with_offline_repo", False):
@@ -897,6 +913,12 @@ class ISOBuilder:
         if output_format in ("iso", "tarball"):
             self.engine.build_bootloaders(str(workdir_path))
         self.timings["build_bootloaders"] = time.perf_counter() - t_step
+
+        # No mounted host pseudo-filesystems may enter any exported artifact.
+        manager = getattr(self.toolchain, "chroot_manager", None)
+        if manager:
+            logger.info("[finalize] Chroot work complete; unmounting before image creation")
+            manager.umount()
 
         # 5. Finalize ISO / IMG / Tarball file
         t_step = time.perf_counter()
