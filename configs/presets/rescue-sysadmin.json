@@ -6,7 +6,17 @@
   "bootloader": "grub",
   "boot_title": "Void Linux Rescue & SysAdmin",
   "customizations": {
-    "hostname": "void-rescue"
+    "hostname": "void-rescue",
+    "copy_files": [
+      {
+        "source": "presets/rescue-sysadmin/autostart/create-rescue-icons.desktop",
+        "destination": "/etc/xdg/autostart/create-rescue-icons.desktop"
+      },
+      {
+        "source": "presets/rescue-sysadmin/scripts/add-rescue-desktop-icons.sh",
+        "destination": "/usr/local/bin/add-rescue-desktop-icons.sh"
+      }
+    ]
   },
   "package_profiles": [
     "hardware",
@@ -41,7 +51,11 @@
       "lsof",
       "strace",
       "inxi",
-      "dmidecode"
+      "dmidecode",
+      "bind-utils",
+      "lshw",
+      "net-tools",
+      "traceroute"
     ]
   }
 }

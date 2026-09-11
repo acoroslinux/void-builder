@@ -5,6 +5,31 @@ from void_builder.core.orchestrator import BuildOrchestrator, BuildOrchestratorE
 
 
 class TestOrchestrator(unittest.TestCase):
+    def test_each_execution_gets_a_fresh_workspace(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            runner = BuildOrchestrator(arch='x86_64', config_path='configs/global_build.json', mode='mock', clean=False)
+            first = runner._resolve_writable_workdir(Path(tmp))
+            (first / 'previous-build').touch()
+            second = runner._resolve_writable_workdir(Path(tmp))
+            self.assertNotEqual(first, second)
+            self.assertEqual(first.parent, second.parent)
+            self.assertFalse((second / 'previous-build').exists())
+            self.assertTrue((first / 'previous-build').exists())
+
+    def test_output_lock_blocks_competing_build_and_is_released(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = str(Path(tmp) / 'same.iso')
+            first = BuildOrchestrator(arch='x86_64', config_path='configs/global_build.json', mode='mock')
+            second = BuildOrchestrator(arch='x86_64', config_path='configs/global_build.json', mode='mock')
+            def competing_run(*args):
+                with self.assertRaisesRegex(BuildOrchestratorError, 'already writing'):
+                    second.run_build(output)
+                return output
+            first._run_build = competing_run
+            self.assertEqual(first.run_build(output), output)
+            second._run_build = lambda *args: output
+            self.assertEqual(second.run_build(output), output)
+
     def test_orchestrator_validation(self):
         orchestrator = BuildOrchestrator(
             arch="x86_64",
@@ -85,5 +110,4 @@ class TestOrchestrator(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
 

@@ -305,6 +305,10 @@ class ConfigAssembler:
                 
                 # Automatically append pipewire packages if a desktop variant is loaded
                 if target_desktop != "base":
+                    services = self.master_config.setdefault('customizations', {}).setdefault('services', [])
+                    for service in ('dbus', 'polkitd', 'elogind'):
+                        if service not in services:
+                            services.append(service)
                     if "package_sources" not in self.master_config:
                         self.master_config["package_sources"] = {}
                     if "official" not in self.master_config["package_sources"]:
@@ -337,10 +341,10 @@ class ConfigAssembler:
                 if bootloader_data:
                     self._deep_merge(self.master_config, bootloader_data)
 
-        # Always load base, filesystems, hardware, and networking package profiles as default foundations.
-        default_profiles = ["base", "filesystems", "hardware", "networking"]
-        if target_desktop and target_desktop != "base":
-            default_profiles.extend(["printing", "desktop-essentials"])
+        # Presets declare their additions explicitly. Only the base is universal.
+        default_profiles = ["base"]
+        if not preset and target_desktop and target_desktop != "base":
+            default_profiles.extend(["hardware", "networking", "desktop-essentials"])
 
         for default_profile in default_profiles:
             prof_data = self._load_optional_profile("software", default_profile)
@@ -372,6 +376,7 @@ class ConfigAssembler:
                             flattened.append(sub)
             return flattened
 
+        self.master_config['package_profiles'] = list(dict.fromkeys(default_profiles + flatten_profiles(package_profiles)))
         for profile_name in flatten_profiles(package_profiles):
             if profile_name in default_profiles:
                 continue

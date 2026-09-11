@@ -6,6 +6,13 @@ from void_builder.core.stage_manager import StageManager, StageManagerError
 
 
 class TestStageManager(unittest.TestCase):
+    def test_stage_identity_separates_desktops_and_offline_settings(self):
+        from void_builder.core.stage_manager import stage_config_key
+        base = {'desktop': 'xfce', 'with_offline_repo': False}
+        self.assertNotEqual(stage_config_key(base), stage_config_key({**base, 'desktop': 'kde'}))
+        self.assertNotEqual(stage_config_key(base), stage_config_key({**base, 'with_offline_repo': True}))
+        self.assertEqual(stage_config_key(base), stage_config_key({**base, 'use_tarball': 'auto', 'create_tarball': True}))
+
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.workdir = Path(self.temp_dir.name)

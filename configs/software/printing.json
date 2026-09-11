@@ -19,5 +19,10 @@
   "optional_packages": [
     "gutenprint",
     "foomatic-db-nonfree"
-  ]
+  ],
+  "customizations": {
+    "services": [
+      "cupsd"
+    ]
+  }
 }

@@ -121,7 +121,7 @@ def main():
         "--no-clean",
         dest="clean",
         action="store_false",
-        help="Reuse previous build tree and do not clean up at the end.",
+        help="Keep this build's exclusive working directory after completion; never reuse another build tree.",
     )
     parser.set_defaults(clean=True)
 
@@ -365,7 +365,7 @@ def main():
         "--offline-repo-packages",
         type=str,
         default=None,
-        help="Comma-separated list of packages to include in the offline repository.",
+        help="Override configs/offline-packages.txt with a comma-separated list of offline packages.",
     )
     parser.add_argument(
         "--list-options",
@@ -688,11 +688,11 @@ def main():
             
         subprocess.run(pkg_cmd, cwd=str(workdir), check=True)
         
-        from void_builder.core.local_packages import calamares_repositories
-        built_repos = calamares_repositories(target_arch, workdir / "hostdir" / "binpkgs")
-        if not built_repos:
-            raise RuntimeError(f"Calamares compilation finished but no indexed package for {target_arch} was found")
-        binpkgs_dir = Path(built_repos[0])
+        from void_builder.core.local_packages import persist_calamares_repository
+        binpkgs_dir = persist_calamares_repository(
+            target_arch, workdir / "hostdir" / "binpkgs",
+            bin_dir / "xbps-rindex.static",
+        )
 
         print(f"\n[Calamares] ✅ Compilation completed successfully!")
         print(f"[Calamares] Binary repository generated at: {binpkgs_dir}\n")
@@ -954,4 +954,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

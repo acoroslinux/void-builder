@@ -374,11 +374,12 @@ class VoidEngine(BaseEngine):
         # Check for pre-built stage tarball option (--use-tarball / --tarball)
         use_tarball_arg = self._cfg_get("use_tarball")
         if use_tarball_arg:
-            from void_builder.core.stage_manager import StageManager
+            from void_builder.core.stage_manager import StageManager, stage_config_key
             stage_manager = StageManager(
                 workdir=self.chroot_path.parent,
                 mode=getattr(self.toolchain, "mode", "mock"),
                 arch=self.arch,
+                namespace=stage_config_key(self.config),
             )
             tarball_path = stage_manager.resolve_tarball(use_tarball_arg)
             stage_manager.extract_tarball(tarball_path, self.chroot_path)
@@ -900,13 +901,14 @@ class ISOBuilder:
         self.timings["post_install"] = time.perf_counter() - t_step
 
         if self.config.get("with_offline_repo", False):
-            from void_builder.core.offline_repository import build_offline_repository
+            from void_builder.core.offline_repository import build_offline_repository, offline_package_selection
             manager = self.toolchain.chroot_manager
-            packages = self.config.get("offline_repo_packages") or self.engine._package_plan()["official"]
+            packages = offline_package_selection(self.config)
             build_offline_repository(
                 self.toolchain, self.arch, packages,
                 getattr(manager, "package_repositories", []),
                 self.engine.chroot_path, workdir_path,
+                self.engine.iso_staging if output_format == "iso" else None,
             )
 
 
@@ -958,14 +960,24 @@ class ISOBuilder:
         elif output_format == "tarball" or self.config.get("create_tarball"):
             final_tarball = self.engine.export_tarball(output_path)
             if self.config.get("create_tarball"):
-                cache_dest = resolve_from_project(f"cache/tarballs/void-base-{self.arch}.tar.xz")
-                stage_seed_dest = resolve_from_project(f"output/stage_seeds/void-base-{self.arch}.tar.xz")
+                from void_builder.core.stage_manager import stage_config_key
+                stage_key = stage_config_key(self.config)
+                cache_dest = resolve_from_project(f"cache/tarballs/{stage_key}/void-base-{self.arch}.tar.xz")
+                stage_seed_dest = resolve_from_project(f"output/stage_seeds/{stage_key}/void-base-{self.arch}.tar.xz")
                 for dest in (cache_dest, stage_seed_dest):
                     dest.parent.mkdir(parents=True, exist_ok=True)
                     if Path(final_tarball).exists() and Path(final_tarball) != dest:
                         import shutil
                         try:
-                            shutil.copy2(final_tarball, dest)
+                            # Readers must never extract a partially copied seed.
+                            import os
+                            with tempfile.NamedTemporaryFile(dir=dest.parent, delete=False) as seed:
+                                seed_tmp = Path(seed.name)
+                            try:
+                                shutil.copy2(final_tarball, seed_tmp)
+                                os.replace(seed_tmp, dest)
+                            finally:
+                                seed_tmp.unlink(missing_ok=True)
                             logger.info(f"[tarball] Saved stage seed tarball to: {dest}")
                             # Also copy checksum files if they exist
                             src_p = Path(final_tarball)

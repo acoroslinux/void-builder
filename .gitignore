@@ -82,5 +82,7 @@ output/
 workdir/
 build_host/
 cache/
+custom_packages/*.xbps
+custom_packages/*-repodata
 custom_files/*
 !custom_files/.gitkeep

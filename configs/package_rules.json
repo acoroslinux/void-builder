@@ -28,11 +28,8 @@
       "open-vm-tools",
       "wireless-regdb",
       "brightnessctl",
-      "nvme-cli",
-      "smartmontools",
       "pciutils",
-      "usbutils",
-      "dmidecode"
+      "usbutils"
     ],
     "x86_64-musl": [
       "grub-x86_64-efi",
@@ -60,11 +57,8 @@
       "xf86-input-wacom",
       "wireless-regdb",
       "brightnessctl",
-      "nvme-cli",
-      "smartmontools",
       "pciutils",
-      "usbutils",
-      "dmidecode"
+      "usbutils"
     ],
     "i686": [
       "grub-i386-efi",
@@ -88,27 +82,22 @@
       "xf86-input-wacom",
       "wireless-regdb",
       "brightnessctl",
-      "nvme-cli",
-      "smartmontools",
       "pciutils",
-      "usbutils",
-      "dmidecode"
+      "usbutils"
     ],
     "aarch64": [
       "grub-arm64-efi",
       "alsa-ucm-conf",
       "wireless-regdb",
       "pciutils",
-      "usbutils",
-      "dmidecode"
+      "usbutils"
     ],
     "aarch64-musl": [
       "grub-arm64-efi",
       "alsa-ucm-conf",
       "wireless-regdb",
       "pciutils",
-      "usbutils",
-      "dmidecode"
+      "usbutils"
     ],
     "armv7l": [
       "grub-arm64-efi",

@@ -23,17 +23,19 @@
     "upower",
     "acpid",
     "lm_sensors",
-    "nvme-cli",
-    "smartmontools",
-    "hdparm",
     "pciutils",
     "usbutils",
-    "dmidecode",
-    "lshw",
     "efibootmgr"
   ],
   "optional_packages": [
     "tlp",
     "auto-cpufreq"
-  ]
+  ],
+  "customizations": {
+    "services": [
+      "bluetoothd",
+      "alsa",
+      "acpid"
+    ]
+  }
 }

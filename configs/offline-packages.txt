@@ -1,0 +1,8 @@
+# Optional offline tools, independent from the packages installed in the live OS.
+# One XBPS package per line. Dependencies are downloaded automatically.
+# Override this list with --offline-repo-packages package1,package2.
+testdisk
+ddrescue
+usbutils
+pciutils
+ethtool

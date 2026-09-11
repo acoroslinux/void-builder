@@ -21,7 +21,6 @@
     "ethtool",
     "pciutils",
     "usbutils",
-    "smartmontools",
     "tmux",
     "curl",
     "wget",
@@ -37,8 +36,7 @@
     "tar",
     "psmisc",
     "lm_sensors",
-    "fastfetch",
-    "inxi"
+    "fastfetch"
   ],
   "optional_packages": [
     "neofetch",

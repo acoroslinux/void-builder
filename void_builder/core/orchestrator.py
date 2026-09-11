@@ -2,6 +2,8 @@ from void_builder.core.path_utils import unmount_all_under, resolve_from_project
 import os
 import shutil
 import tempfile
+import hashlib
+import fcntl
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
@@ -162,7 +164,9 @@ class BuildOrchestrator:
                     print(
                         f"[ORCHESTRATOR] Workdir fallback active: {candidate}"
                     )
-                return candidate
+                # Even identical configurations must not share mutable rootfs,
+                # staging, mounts or toolchain directories across executions.
+                return Path(tempfile.mkdtemp(prefix="build-", dir=candidate))
             except Exception:
                 continue
 
@@ -287,7 +291,7 @@ class BuildOrchestrator:
 
         if self.clean and self.mode != "mock":
             if os.geteuid() == 0:
-                unmount_all_under(resolve_from_project("workdir"))
+                unmount_all_under(workdir)
             if workdir.exists():
                 import shutil
                 shutil.rmtree(workdir, ignore_errors=True)
@@ -387,6 +391,23 @@ class BuildOrchestrator:
         self.hook_manager.run_stage(phase)
 
     def run_build(self, output_iso: str, output_format: str = "iso") -> Union[str, Path]:
+        output = Path(output_iso)
+        if not output.is_absolute() and not str(output).startswith("output/"):
+            output = resolve_from_project("output") / output
+        else:
+            output = resolve_from_project(str(output))
+        lock_dir = resolve_from_project("output/.build-locks")
+        lock_dir.mkdir(parents=True, exist_ok=True)
+        # Keep the lock inode: deleting it after unlock races with waiting runs.
+        key = hashlib.sha256(str(output.resolve()).encode()).hexdigest()
+        with (lock_dir / key).open('a') as lock:
+            try:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError as exc:
+                raise BuildOrchestratorError(f"Another build is already writing {output}") from exc
+            return self._run_build(output_iso, output_format)
+
+    def _run_build(self, output_iso: str, output_format: str = "iso") -> Union[str, Path]:
         try:
             self._setup()
 

@@ -4,11 +4,8 @@
   "_comment": "Note: Core networking tools are active defaults in 'packages'. Advanced diagnostic tools (Netcat, Socat, Ettercap) are listed in 'optional_packages' for easy enablement.",
   "packages": [
     "network-manager-applet",
-    "tcpdump",
     "wireguard-tools",
     "openvpn",
-    "traceroute",
-    "iperf3",
     "nfs-utils",
     "samba",
     "cifs-utils",
@@ -17,13 +14,20 @@
     "openssh",
     "avahi",
     "nss-mdns",
-    "ufw",
-    "bind-utils",
-    "net-tools"
+    "ufw"
   ],
   "optional_packages": [
     "netcat",
     "socat",
     "ettercap"
-  ]
+  ],
+  "customizations": {
+    "services": [
+      "dbus",
+      "NetworkManager",
+      "avahi-daemon",
+      "sshd",
+      "wpa_supplicant"
+    ]
+  }
 }

@@ -2,12 +2,21 @@ import os
 import shutil
 import subprocess
 import urllib.request
+import hashlib
+import json
 from pathlib import Path
 
 from void_builder.core.path_utils import resolve_from_project
 from void_builder.utils.logger import setup_logger
 
 logger = setup_logger("StageManager")
+
+
+def stage_config_key(config):
+    data = dict(config.to_dict() if hasattr(config, 'to_dict') else config)
+    for option in ('use_tarball', 'create_tarball', 'generate_manifest'):
+        data.pop(option, None)
+    return hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()[:20]
 
 
 class StageManagerError(Exception):
@@ -21,10 +30,11 @@ class StageManager:
     Allows bootstrapping from pre-built tarballs to skip downloading/installing base packages.
     """
 
-    def __init__(self, workdir: Path, mode: str = "mock", arch: str = "x86_64"):
+    def __init__(self, workdir: Path, mode: str = "mock", arch: str = "x86_64", namespace=None):
         self.workdir = Path(workdir).resolve()
         self.mode = mode.lower()
         self.arch = arch
+        self.namespace = namespace
         try:
             self.cache_dir = resolve_from_project("cache/tarballs")
             self.cache_dir.mkdir(parents=True, exist_ok=True)
@@ -35,6 +45,9 @@ class StageManager:
         except Exception:
             import tempfile
             self.cache_dir = Path(tempfile.gettempdir()) / "void-builder-cache" / "tarballs"
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
+        if namespace:
+            self.cache_dir = self.cache_dir / namespace
             self.cache_dir.mkdir(parents=True, exist_ok=True)
 
     def resolve_tarball(self, tarball_arg: str) -> Path:
@@ -60,6 +73,7 @@ class StageManager:
             from urllib.parse import urlparse
             url_path = urlparse(tarball_str).path
             filename = Path(url_path).name or f"void-base-{self.arch}.tar.xz"
+            filename = hashlib.sha256(tarball_str.encode()).hexdigest()[:20] + '-' + filename
             target_file = self.cache_dir / filename
             if not target_file.exists():
                 logger.info(f"Downloading base tarball from {tarball_str}...")
@@ -67,7 +81,10 @@ class StageManager:
                     logger.info(f"[MOCK STAGE] Downloading tarball from {tarball_str}")
                     target_file.touch()
                 else:
-                    tmp_file = target_file.with_suffix(".tmp")
+                    import tempfile
+                    fd, name = tempfile.mkstemp(prefix=target_file.name + '.', suffix='.tmp', dir=self.cache_dir)
+                    os.close(fd)
+                    tmp_file = Path(name)
                     try:
                         req = urllib.request.Request(tarball_str, headers={"User-Agent": "Void-Builder/1.0"})
                         with urllib.request.urlopen(req, timeout=60) as resp, open(tmp_file, "wb") as out:
@@ -88,6 +105,8 @@ class StageManager:
                 resolve_from_project(f"output/void-base-{self.arch}.tar.xz"),
                 resolve_from_project(f"cache/tarballs/void-base-{self.arch}.tar.xz"),
             ]
+            if self.namespace:
+                candidates = candidates[:2]
             for cand in candidates:
                 if cand.exists():
                     logger.info(f"Found cached base tarball: {cand}")
