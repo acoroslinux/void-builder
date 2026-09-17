@@ -334,6 +334,10 @@ class ToolchainManager:
         bin_dir = self.host_dir / "usr" / "bin"
         sbin_dir = self.host_dir / "usr" / "sbin"
         cmd_env["PATH"] = f"{bin_dir}:{sbin_dir}"
+        library_dirs = [self.host_dir / "usr" / "lib", self.host_dir / "lib"]
+        cmd_env["LD_LIBRARY_PATH"] = ":".join(
+            str(directory) for directory in library_dirs if directory.is_dir()
+        )
         executable = Path(command[0]).name
         if Path(command[0]).is_absolute():
             executable_path = Path(command[0]).resolve()
