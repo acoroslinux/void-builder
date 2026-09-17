@@ -50,10 +50,15 @@ class ToolchainManager:
             cached_xbps = Path(ensure_static_xbps(str(persistent_tools), force_update=self.update_toolchain))
             cached_proot = ensure_proot(str(persistent_tools), force_update=self.update_toolchain)
             self.tools_dir.mkdir(parents=True, exist_ok=True)
-            local_xbps = self.tools_dir / "usr" / "bin" / "xbps-install.static"
-            local_xbps.parent.mkdir(parents=True, exist_ok=True)
-            if not local_xbps.exists() or self.update_toolchain:
-                shutil.copy2(cached_xbps, local_xbps)
+            local_bin = self.tools_dir / "usr" / "bin"
+            local_bin.mkdir(parents=True, exist_ok=True)
+            # The static archive contains xbps-install, xbps-rindex and
+            # related helpers; copy the complete set into this build tree.
+            persistent_bin = Path(persistent_tools) / "usr" / "bin"
+            for cached_tool in persistent_bin.glob("*.static"):
+                local_tool = local_bin / cached_tool.name
+                if not local_tool.exists() or self.update_toolchain:
+                    shutil.copy2(cached_tool, local_tool)
             if cached_proot and Path(cached_proot).is_file():
                 local_proot = self.tools_dir / "proot"
                 if not local_proot.exists() or self.update_toolchain:

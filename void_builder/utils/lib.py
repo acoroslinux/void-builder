@@ -298,7 +298,8 @@ def ensure_static_xbps(tools_dir: str | None = None, force_update: bool = False)
     ensure_dir(tools_dir)
     helper_path = os.path.join(tools_dir, "usr", "bin", "xbps-install.static")
     
-    if not force_update and os.path.exists(helper_path):
+    rindex_path = os.path.join(tools_dir, "usr", "bin", "xbps-rindex.static")
+    if not force_update and os.path.exists(helper_path) and os.path.exists(rindex_path):
         return helper_path
 
     arch = get_host_arch()
