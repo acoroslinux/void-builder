@@ -596,6 +596,7 @@ def main():
             resolve_from_project("cache/tarballs"),
             resolve_from_project("cache"),
             resolve_from_project("workdir/cache"),
+            resolve_from_project("output/stage_seeds"),
         ]
         print("🧹 Cleaning local package and stage seed caches...")
         for cd in cache_dirs:

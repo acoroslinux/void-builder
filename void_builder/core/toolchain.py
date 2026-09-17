@@ -74,14 +74,14 @@ class ToolchainManager:
     def _run_xbps_install(self, rootdir: Path, arch: str, packages: List[str], repos: List[str], unpack_only: bool = False):
         from void_builder.core.path_utils import resolve_from_project
         import tempfile
-        cache_dir = self.toolchain_dir / "cache" / "xbps" / arch
+        cache_dir = resolve_from_project("cache/xbps") / arch
         try:
             cache_dir.mkdir(parents=True, exist_ok=True)
             probe = cache_dir / ".write_test"
             probe.write_text("ok")
             probe.unlink(missing_ok=True)
         except Exception:
-            cache_dir = self.toolchain_dir / "cache" / "xbps" / arch
+            cache_dir = resolve_from_project("cache/xbps") / arch
             cache_dir.mkdir(parents=True, exist_ok=True)
 
         from void_builder.utils.lib import map_xbps_arch

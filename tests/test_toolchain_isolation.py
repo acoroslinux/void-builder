@@ -7,12 +7,13 @@ from void_builder.core.toolchain import ToolchainManager
 from void_builder.core.stage_manager import StageManager
 
 
-def test_toolchain_tools_and_cache_live_under_build(tmp_path):
+def test_toolchain_tools_are_per_build_and_cache_is_persistent(tmp_path):
     tc = ToolchainManager(tmp_path / "build", mode="mock")
     assert tc.tools_dir == (tmp_path / "build" / "build_host" / "tools").resolve()
     assert not str(tc.tools_dir).startswith(str(Path.cwd() / "void_builder" / "tools"))
     stage = StageManager(tmp_path / "build", mode="mock")
-    assert stage.cache_dir.is_relative_to(tmp_path / "build")
+    assert stage.cache_dir.name == "tarballs"
+    assert not stage.cache_dir.is_relative_to(tmp_path / "build")
 
 
 def test_real_build_host_refuses_ambient_host_tools(tmp_path):

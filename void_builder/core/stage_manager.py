@@ -37,9 +37,9 @@ class StageManager:
         self.namespace = namespace
         self.toolchain = toolchain
         try:
-            # Stage inputs are cached per build so a build cannot consume
-            # mutable project or host state.
-            self.cache_dir = self.workdir / "cache" / "tarballs"
+            # Stage tarballs are persistent project caches, independent of
+            # disposable build workdirs.
+            self.cache_dir = resolve_from_project("cache/tarballs")
             self.cache_dir.mkdir(parents=True, exist_ok=True)
             # Verify writable
             test_file = self.cache_dir / ".write_test"
@@ -47,7 +47,7 @@ class StageManager:
             test_file.unlink(missing_ok=True)
         except Exception:
             import tempfile
-            self.cache_dir = self.workdir / "cache" / "tarballs"
+            self.cache_dir = resolve_from_project("cache/tarballs")
             self.cache_dir.mkdir(parents=True, exist_ok=True)
         if namespace:
             self.cache_dir = self.cache_dir / namespace
@@ -104,10 +104,11 @@ class StageManager:
             candidates = [
                 self.cache_dir / f"void-base-{self.arch}.tar.xz",
                 self.cache_dir / f"void-base-{self.arch}.tar.gz",
+                resolve_from_project(
+                    f"output/stage_seeds/{self.namespace or 'default'}/void-base-{self.arch}.tar.xz"
+                ),
                 self.workdir / "stage_seeds" / f"void-base-{self.arch}.tar.xz",
             ]
-            if self.namespace:
-                candidates = candidates[:2]
             for cand in candidates:
                 if cand.exists():
                     logger.info(f"Found cached base tarball: {cand}")

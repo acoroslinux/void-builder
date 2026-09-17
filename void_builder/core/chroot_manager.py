@@ -95,8 +95,8 @@ class ChrootManager:
             return
 
         # Determine package cache path
-        toolchain_dir = getattr(self.toolchain, "toolchain_dir", self.chroot_path.parent / "build_host")
-        cache_path_str = str(Path(toolchain_dir) / "cache" / "xbps")
+        from void_builder.core.path_utils import resolve_from_project
+        cache_path_str = str(resolve_from_project("cache/xbps"))
             
         import tempfile
         cache_dir = Path(cache_path_str) / self.arch

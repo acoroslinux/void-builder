@@ -1021,7 +1021,9 @@ class ISOBuilder:
             if self.config.get("create_tarball"):
                 from void_builder.core.stage_manager import stage_config_key
                 stage_key = stage_config_key(self.config)
-                cache_dest = self.workdir / "cache" / "tarballs" / stage_key / f"void-base-{self.arch}.tar.xz"
+                cache_dest = resolve_from_project(
+                    f"cache/tarballs/{stage_key}/void-base-{self.arch}.tar.xz"
+                )
                 stage_seed_dest = resolve_from_project(f"output/stage_seeds/{stage_key}/void-base-{self.arch}.tar.xz")
                 for dest in (cache_dest, stage_seed_dest):
                     dest.parent.mkdir(parents=True, exist_ok=True)
