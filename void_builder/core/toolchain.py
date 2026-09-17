@@ -195,7 +195,12 @@ class ToolchainManager:
         ]
 
         host_repos = filter_repositories(repos, host_arch)
-        host_pkgs = ["base-files", "libgcc", "dash", "coreutils", "sed", "tar", "gawk", "rsync", "squashfs-tools", "xorriso", "dosfstools", "mtools", "grub", "e2fsprogs", "parted", "qemu"]
+        host_pkgs = [
+            "base-files", "libgcc", "dash", "coreutils", "sed", "tar",
+            "xz", "zstd", "gzip", "gawk", "rsync", "squashfs-tools",
+            "xorriso", "dosfstools", "mtools", "grub", "e2fsprogs",
+            "parted", "qemu",
+        ]
         self._run_xbps_install(self.host_dir, host_arch, host_pkgs, host_repos)
         self._write_dir_arch(self.host_dir, host_arch)
 
