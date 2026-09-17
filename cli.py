@@ -735,9 +735,12 @@ def main():
         # signatures are synchronized. Retry xbps-src with official mirrors
         # so a transient 404 does not abort an otherwise valid build.
         mirrors = [
-            "https://repo-default.voidlinux.org",
-            "https://repo-fi.voidlinux.org",
-            "https://repo-de.voidlinux.org",
+            # xbps-src appends repository components (bootstrap, nonfree,
+            # multilib) to XBPS_MIRROR; the mirror must therefore include
+            # Void's current release prefix.
+            "https://repo-default.voidlinux.org/current",
+            "https://repo-fi.voidlinux.org/current",
+            "https://repo-de.voidlinux.org/current",
         ]
 
         def run_xbps_src(arguments):
