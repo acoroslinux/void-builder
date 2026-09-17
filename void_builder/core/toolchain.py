@@ -54,7 +54,7 @@ class ToolchainManager:
             local_xbps.parent.mkdir(parents=True, exist_ok=True)
             if not local_xbps.exists() or self.update_toolchain:
                 shutil.copy2(cached_xbps, local_xbps)
-            if cached_proot:
+            if cached_proot and Path(cached_proot).is_file():
                 local_proot = self.tools_dir / "proot"
                 if not local_proot.exists() or self.update_toolchain:
                     shutil.copy2(cached_proot, local_proot)
