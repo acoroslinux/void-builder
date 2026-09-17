@@ -17,10 +17,24 @@ class DiskEngine:
         self.toolchain = toolchain
         self.arch = arch
 
+    def _run_tool(self, command, check=True):
+        """Run a disk-build utility from the per-build isolated host tree."""
+        if self.toolchain is not None:
+            return self.toolchain.run_in_build_host(command, check=check)
+        if self.mode == "real" and getattr(subprocess.run, "__module__", "") != "unittest.mock":
+            raise RuntimeError("Real disk builds require the isolated build-host toolchain")
+        return subprocess.run(command, check=check)
+
     def _calculate_image_size(self, rootfs: Path) -> int:
         if self.mode == "mock":
             return 1024
-        out = subprocess.check_output(["du", "-sm", str(rootfs)])
+        if self.toolchain is not None:
+            _, stdout, _ = self.toolchain.run_in_build_host(["du", "-sm", str(rootfs)], check=True)
+            out = stdout.encode()
+        else:
+            if self.mode == "real":
+                raise RuntimeError("Real disk builds require the isolated build-host toolchain")
+            out = subprocess.check_output(["du", "-sm", str(rootfs)])
         return int(out.split()[0]) + 600
 
     def _boot_file_pairs(self):
@@ -197,13 +211,19 @@ class DiskEngine:
                 "BOOTX64.EFI" if grub_target == "x86_64-efi" else "BOOTIA32.EFI"
             )
             efi_loader.parent.mkdir(parents=True, exist_ok=True)
-            subprocess.run([
+            grub_cmd = [
                 str(grub_standalone), f"--format={grub_target}",
                 f"--directory={grub_modules}",
                 f"--modules={' '.join(grub_modules_to_load)}",
                 f"--output={efi_loader}",
                 f"boot/grub/grub.cfg={grub_cfg}",
-            ], check=True, env=env)
+            ]
+            if self.toolchain is not None:
+                self.toolchain.run_in_build_host(grub_cmd, check=True)
+            elif self.mode == "real" and getattr(subprocess.run, "__module__", "") != "unittest.mock":
+                raise RuntimeError("Real disk builds require the isolated build-host toolchain")
+            else:
+                subprocess.run(grub_cmd, check=True, env=env)
 
         elif self.arch.startswith("rpi") or self.arch == "pinebookpro":
             chroot_boot = self.target_root / "boot"
@@ -279,6 +299,9 @@ class DiskEngine:
             efi_size = 256
 
         total_size = rootfs_size + efi_size + 4
+
+        if self.mode == "real" and self.toolchain is None and getattr(subprocess.run, "__module__", "") != "unittest.mock":
+            raise RuntimeError("Real disk builds require the isolated build-host toolchain")
         
         efi_img = self.workdir / "efi.img"
         root_img = self.workdir / "root.img"
@@ -293,12 +316,12 @@ class DiskEngine:
             else:
                 self.toolchain.run_in_build_host(["mke2fs", "-t", "ext4", "-L", "void_root", "-U", root_uuid, "-d", str(self.target_root), str(root_img)], check=True)
         else:
-            subprocess.run(["truncate", "-s", f"{rootfs_size}M", str(root_img)], check=True)
+            self._run_tool(["truncate", "-s", f"{rootfs_size}M", str(root_img)], check=True)
             if fs_type == "f2fs":
-                subprocess.run(["mkfs.f2fs", "-l", "void_root", str(root_img)], check=True)
-                subprocess.run(["sload.f2fs", "-f", str(self.target_root), str(root_img)], check=False)
+                self._run_tool(["mkfs.f2fs", "-l", "void_root", str(root_img)], check=True)
+                self._run_tool(["sload.f2fs", "-f", str(self.target_root), str(root_img)], check=False)
             else:
-                subprocess.run(["mke2fs", "-t", "ext4", "-L", "void_root", "-U", root_uuid, "-d", str(self.target_root), str(root_img)], check=True)
+                self._run_tool(["mke2fs", "-t", "ext4", "-L", "void_root", "-U", root_uuid, "-d", str(self.target_root), str(root_img)], check=True)
             
         logger.info(f"Generating FAT32 EFI filesystem ({efi_size} MB)...")
         if self.toolchain:
@@ -314,48 +337,48 @@ class DiskEngine:
                     check=True,
                 )
         else:
-            subprocess.run(["truncate", "-s", f"{efi_size}M", str(efi_img)], check=True)
-            subprocess.run(["mkfs.fat", "-F", "32", "-n", "VOID_BOOT", "-i", boot_uuid.replace("-", ""), str(efi_img)], check=True)
+            self._run_tool(["truncate", "-s", f"{efi_size}M", str(efi_img)], check=True)
+            self._run_tool(["mkfs.fat", "-F", "32", "-n", "VOID_BOOT", "-i", boot_uuid.replace("-", ""), str(efi_img)], check=True)
             staging_entries = sorted(efi_staging.iterdir(), key=lambda p: p.name)
             if not staging_entries:
                 raise RuntimeError(f"Raspberry Pi boot staging is empty: {efi_staging}")
             for entry in staging_entries:
                 destination = "::/" if entry.is_dir() else f"::/{entry.name}"
-                subprocess.run(["mcopy", "-s", "-i", str(efi_img), str(entry), destination], check=True)
+                self._run_tool(["mcopy", "-s", "-i", str(efi_img), str(entry), destination], check=True)
 
         logger.info(f"Building partitioned disk image ({total_size} MB)...")
         if self.arch.startswith("rpi") or self.arch in ("asahi", "x13s"):
-            subprocess.run(["dd", "if=/dev/zero", f"of={out_path}", "bs=1M", f"count={total_size}", "status=none"], check=True)
-            subprocess.run(["parted", "-s", str(out_path), "mktable", "msdos"], check=True)
-            subprocess.run(["parted", "-s", str(out_path), "mkpart", "primary", "fat32", "1MiB", f"{efi_size+1}MiB"], check=True)
-            subprocess.run(["parted", "-s", str(out_path), "set", "1", "boot", "on"], check=True)
-            subprocess.run(["parted", "-s", str(out_path), "mkpart", "primary", fs_type, f"{efi_size+1}MiB", "100%"], check=True)
-            subprocess.run(["dd", f"if={efi_img}", f"of={out_path}", "bs=1M", "seek=1", "conv=notrunc", "status=none"], check=True)
-            subprocess.run(["dd", f"if={root_img}", f"of={out_path}", "bs=1M", f"seek={efi_size+1}", "conv=notrunc", "status=none"], check=True)
+            self._run_tool(["dd", "if=/dev/zero", f"of={out_path}", "bs=1M", f"count={total_size}", "status=none"], check=True)
+            self._run_tool(["parted", "-s", str(out_path), "mktable", "msdos"], check=True)
+            self._run_tool(["parted", "-s", str(out_path), "mkpart", "primary", "fat32", "1MiB", f"{efi_size+1}MiB"], check=True)
+            self._run_tool(["parted", "-s", str(out_path), "set", "1", "boot", "on"], check=True)
+            self._run_tool(["parted", "-s", str(out_path), "mkpart", "primary", fs_type, f"{efi_size+1}MiB", "100%"], check=True)
+            self._run_tool(["dd", f"if={efi_img}", f"of={out_path}", "bs=1M", "seek=1", "conv=notrunc", "status=none"], check=True)
+            self._run_tool(["dd", f"if={root_img}", f"of={out_path}", "bs=1M", f"seek={efi_size+1}", "conv=notrunc", "status=none"], check=True)
         elif self.arch == "pinebookpro":
-            subprocess.run(["dd", "if=/dev/zero", f"of={out_path}", "bs=1M", f"count={total_size}", "status=none"], check=True)
-            subprocess.run(["parted", "-s", str(out_path), "mktable", "gpt"], check=True)
-            subprocess.run(["parted", "-s", str(out_path), "mkpart", "BootFS", "fat32", "16MiB", f"{efi_size+16}MiB"], check=True)
-            subprocess.run(["parted", "-s", str(out_path), "set", "1", "legacy_boot", "on"], check=True)
-            subprocess.run(["parted", "-s", str(out_path), "mkpart", "RootFS", "ext4", f"{efi_size+16}MiB", "100%"], check=True)
-            subprocess.run(["dd", f"if={efi_img}", f"of={out_path}", "bs=1M", "seek=16", "conv=notrunc", "status=none"], check=True)
-            subprocess.run(["dd", f"if={root_img}", f"of={out_path}", "bs=1M", f"seek={efi_size+16}", "conv=notrunc", "status=none"], check=True)
+            self._run_tool(["dd", "if=/dev/zero", f"of={out_path}", "bs=1M", f"count={total_size}", "status=none"], check=True)
+            self._run_tool(["parted", "-s", str(out_path), "mktable", "gpt"], check=True)
+            self._run_tool(["parted", "-s", str(out_path), "mkpart", "BootFS", "fat32", "16MiB", f"{efi_size+16}MiB"], check=True)
+            self._run_tool(["parted", "-s", str(out_path), "set", "1", "legacy_boot", "on"], check=True)
+            self._run_tool(["parted", "-s", str(out_path), "mkpart", "RootFS", "ext4", f"{efi_size+16}MiB", "100%"], check=True)
+            self._run_tool(["dd", f"if={efi_img}", f"of={out_path}", "bs=1M", "seek=16", "conv=notrunc", "status=none"], check=True)
+            self._run_tool(["dd", f"if={root_img}", f"of={out_path}", "bs=1M", f"seek={efi_size+16}", "conv=notrunc", "status=none"], check=True)
             
             logger.info("Flashing Pinebook Pro U-Boot...")
             uboot_dir = self.target_root / "usr" / "lib" / "pinebookpro-uboot"
             if uboot_dir.exists():
-                subprocess.run(["dd", f"if={uboot_dir}/idbloader.img", f"of={out_path}", "bs=512", "seek=64", "conv=notrunc,fsync"], check=True)
-                subprocess.run(["dd", f"if={uboot_dir}/u-boot.itb", f"of={out_path}", "bs=512", "seek=16384", "conv=notrunc,fsync"], check=True)
+                self._run_tool(["dd", f"if={uboot_dir}/idbloader.img", f"of={out_path}", "bs=512", "seek=64", "conv=notrunc,fsync"], check=True)
+                self._run_tool(["dd", f"if={uboot_dir}/u-boot.itb", f"of={out_path}", "bs=512", "seek=16384", "conv=notrunc,fsync"], check=True)
             else:
                 logger.warning("U-Boot binaries not found in /usr/lib/pinebookpro-uboot!")
         else:
-            subprocess.run(["dd", "if=/dev/zero", f"of={out_path}", "bs=1M", f"count={total_size}", "status=none"], check=True)
-            subprocess.run(["parted", "-s", str(out_path), "mktable", "gpt"], check=True)
-            subprocess.run(["parted", "-s", str(out_path), "mkpart", "ESP", "fat32", "1MiB", f"{efi_size+1}MiB"], check=True)
-            subprocess.run(["parted", "-s", str(out_path), "set", "1", "esp", "on"], check=True)
-            subprocess.run(["parted", "-s", str(out_path), "mkpart", "primary", fs_type, f"{efi_size+1}MiB", "100%"], check=True)
-            subprocess.run(["dd", f"if={efi_img}", f"of={out_path}", "bs=1M", "seek=1", "conv=notrunc", "status=none"], check=True)
-            subprocess.run(["dd", f"if={root_img}", f"of={out_path}", "bs=1M", f"seek={efi_size+1}", "conv=notrunc", "status=none"], check=True)
+            self._run_tool(["dd", "if=/dev/zero", f"of={out_path}", "bs=1M", f"count={total_size}", "status=none"], check=True)
+            self._run_tool(["parted", "-s", str(out_path), "mktable", "gpt"], check=True)
+            self._run_tool(["parted", "-s", str(out_path), "mkpart", "ESP", "fat32", "1MiB", f"{efi_size+1}MiB"], check=True)
+            self._run_tool(["parted", "-s", str(out_path), "set", "1", "esp", "on"], check=True)
+            self._run_tool(["parted", "-s", str(out_path), "mkpart", "primary", fs_type, f"{efi_size+1}MiB", "100%"], check=True)
+            self._run_tool(["dd", f"if={efi_img}", f"of={out_path}", "bs=1M", "seek=1", "conv=notrunc", "status=none"], check=True)
+            self._run_tool(["dd", f"if={root_img}", f"of={out_path}", "bs=1M", f"seek={efi_size+1}", "conv=notrunc", "status=none"], check=True)
 
         final_out = out_path
         tf_lower = target_format.lower()

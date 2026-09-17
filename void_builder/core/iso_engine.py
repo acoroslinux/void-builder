@@ -75,6 +75,15 @@ class BaseEngine(ISOEngine):
         except Exception:
             return default
 
+    def _run_build_host(self, command, check=True):
+        """Run a utility from this build's isolated host tree."""
+        runner = getattr(self.toolchain, "run_in_build_host", None)
+        if runner is not None:
+            return runner(command, check=check)
+        if getattr(self.toolchain, "mode", "mock") == "real" and hasattr(self.toolchain, "toolchain_dir"):
+            raise ISOBuilderError("Real builds require the isolated build-host toolchain")
+        result = __import__("subprocess").run(command, check=check, capture_output=True, text=True)
+        return result.returncode, result.stdout, result.stderr
     def _workdir_base(self) -> str:
         configured = (
             self.config.get("system.workdir_base")
@@ -211,15 +220,15 @@ class BaseEngine(ISOEngine):
                             pass
                     return compressed_out
 
-                import subprocess
                 self.logger.info(f"[compress] Compressing disk image with {compression_algo.upper()} for distribution ({compressed_out})...")
                 if compression_algo == "zstd":
                     cmd = ["zstd", "-T0", "-19", "-f", "-o", str(compressed_out), str(raw_img_path)]
-                    subprocess.run(cmd, check=True)
+                    self._run_build_host(cmd, check=True)
                 else:
-                    cmd = ["xz", "-z", "-T0", "-6", "-c", str(raw_img_path)]
-                    with open(compressed_out, "wb") as f_out:
-                        subprocess.run(cmd, stdout=f_out, check=True)
+                    self._run_build_host(["xz", "-z", "-T0", "-6", "-f", str(raw_img_path)], check=True)
+                    generated = Path(f"{raw_img_path}.xz")
+                    if generated != compressed_out:
+                        generated.replace(compressed_out)
 
                 if raw_img_path.exists() and raw_img_path != compressed_out:
                     try:
@@ -244,9 +253,7 @@ class BaseEngine(ISOEngine):
                     pass
             return output_path
 
-        import subprocess
-        qemu_img_bin = "qemu-img"
-        cmd = [qemu_img_bin, "convert", "-p", "-f", "raw", "-O"]
+        cmd = ["qemu-img", "convert", "-p", "-f", "raw", "-O"]
         
         if target_format == "qcow2":
             cmd.extend(["qcow2", "-c"])  # Enable compression
@@ -265,10 +272,11 @@ class BaseEngine(ISOEngine):
 
         cmd.extend([str(raw_img_path), str(output_path)])
         self.logger.info(f"[convert] Converting raw disk image to {target_format.upper()}: {' '.join(cmd)}")
-        res = subprocess.run(cmd, capture_output=True, text=True)
-        if res.returncode != 0:
-            self.logger.error(f"[convert] qemu-img conversion failed: {res.stderr}")
-            raise ISOBuilderError(f"qemu-img conversion to {target_format} failed: {res.stderr}")
+        try:
+            self._run_build_host(cmd, check=True)
+        except Exception as exc:
+            self.logger.error(f"[convert] qemu-img conversion failed: {exc}")
+            raise ISOBuilderError(f"qemu-img conversion to {target_format} failed: {exc}") from exc
 
         self.logger.info(f"[convert] Successfully generated {target_format.upper()} virtual disk: {output_path}")
 
@@ -344,7 +352,6 @@ class BaseEngine(ISOEngine):
         self.logger.info(f"[manifest] Generated Manifest: {manifest_file.name}")
 
     def export_tarball(self, output_path: str) -> str:
-        import subprocess
         output_abs = str(resolve_from_project(output_path))
         if output_abs.endswith(".iso") or output_abs.endswith(".img"):
             output_abs = output_abs.rsplit(".", 1)[0] + ".tar.xz"
@@ -360,7 +367,7 @@ class BaseEngine(ISOEngine):
             return output_abs
 
         cmd = ["tar", "-cJf", output_abs, "-C", str(self.chroot_path), "."]
-        subprocess.run(cmd, check=True)
+        self._run_build_host(cmd, check=True)
         self.logger.info(f"[tarball] Rootfs tarball created: {output_abs}")
         self._generate_manifest_and_checksums(output_abs)
         return output_abs
@@ -405,6 +412,7 @@ class VoidEngine(BaseEngine):
                 mode=getattr(self.toolchain, "mode", "mock"),
                 arch=self.arch,
                 namespace=stage_config_key(self.config),
+                toolchain=self.toolchain,
             )
             tarball_path = stage_manager.resolve_tarball(use_tarball_arg)
             stage_manager.extract_tarball(tarball_path, self.chroot_path)
@@ -433,13 +441,12 @@ class VoidEngine(BaseEngine):
             xbps_files = [str(p) for p in local_pkgs_dir.glob("*.xbps")]
             if len(xbps_files) > 0:
                 self.logger.info(f"[Packages] Found {len(xbps_files)} custom local packages in {local_pkgs_dir}. Indexing...")
-                import subprocess
                 try:
                     xbps_rindex_bin = str(self.toolchain.xbps_install_static).replace("xbps-install.static", "xbps-rindex.static")
                     if Path(xbps_rindex_bin).exists():
-                        subprocess.run([xbps_rindex_bin, "-a"] + xbps_files, check=True)
+                        self._run_build_host([xbps_rindex_bin, "-a"] + xbps_files, check=True)
                     else:
-                        subprocess.run(["xbps-rindex", "-a"] + xbps_files, check=True)
+                        self._run_build_host(["xbps-rindex", "-a"] + xbps_files, check=True)
                     repos.insert(0, str(local_pkgs_dir))  # Insert at priority 0
                     self.logger.info(f"[Packages] Added local repository to the front: {local_pkgs_dir}")
                 except Exception as e:
@@ -625,15 +632,10 @@ class VoidEngine(BaseEngine):
         elif (self.chroot_path / "usr" / "share" / "grub" / "unicode.pf2").exists():
             shutil.copy2(self.chroot_path / "usr" / "share" / "grub" / "unicode.pf2", iso_fonts_dir / "unicode.pf2")
             copied_font = True
-        # 3. Try copying from host /usr/share/grub/unicode.pf2
-        elif Path("/usr/share/grub/unicode.pf2").exists():
-            shutil.copy2("/usr/share/grub/unicode.pf2", iso_fonts_dir / "unicode.pf2")
-            copied_font = True
-
         if copied_font:
             self.logger.info("[bootloaders] Copied GRUB unicode font to ISO boot tree")
         else:
-            self.logger.warning("[bootloaders] GRUB unicode font could not be located on chroot or host")
+            self.logger.warning("[bootloaders] GRUB unicode font could not be located in the build root")
 
         # Set up ISOLINUX (BIOS) - only for x86 architectures
         if self.arch.startswith(("x86_64", "i686")):
@@ -652,12 +654,16 @@ class VoidEngine(BaseEngine):
         import subprocess
         prefix = [] if os.geteuid() == 0 else ["sudo"]
 
-        def run(command):
-            result = subprocess.run(command, capture_output=True, text=True)
-            if result.returncode:
+        def run(command, isolated=True):
+            if isolated and hasattr(self.toolchain, "run_in_build_host"):
+                rc, stdout, stderr = self._run_build_host(command, check=False)
+            else:
+                result = subprocess.run(command, capture_output=True, text=True)
+                rc, stdout, stderr = result.returncode, result.stdout, result.stderr
+            if rc:
                 raise ISOBuilderError(
-                    f"Rootfs image command failed (exit {result.returncode}): {' '.join(command)}\n"
-                    f"{result.stdout or ''}\n{result.stderr or ''}"
+                    f"Rootfs image command failed (exit {rc}): {' '.join(command)}\n"
+                    f"{stdout or ''}\n{stderr or ''}"
                 )
 
         # As in void-mklive, a built-in loop driver is valid even if modprobe fails.
@@ -671,14 +677,14 @@ class VoidEngine(BaseEngine):
         mounted = False
         try:
             self.logger.info(f"[squashfs] Mounting {image.name} via loop at {mountpoint}")
-            run([*prefix, "mount", "-o", "loop", str(image), str(mountpoint)])
+            run([*prefix, "mount", "-o", "loop", str(image), str(mountpoint)], isolated=False)
             mounted = True
             self.logger.info("[squashfs] Copying rootfs into the mounted ext3 image")
             try:
                 run([*prefix, "cp", "-a", f"{self.chroot_path}/.", f"{mountpoint}/"])
             finally:
                 self.logger.info(f"[squashfs] Unmounting {mountpoint}")
-                run([*prefix, "umount", "-f", str(mountpoint)])
+                run([*prefix, "umount", "-f", str(mountpoint)], isolated=False)
                 mounted = False
         finally:
             if not mounted:
@@ -729,8 +735,8 @@ class VoidEngine(BaseEngine):
 
         # 1. Determine rootfs size
         try:
-            res = subprocess.run(["du", "--apparent-size", "-sm", str(self.chroot_path)], capture_output=True, text=True, check=True)
-            size_mb = int(res.stdout.split()[0])
+            res = self._run_build_host(["du", "--apparent-size", "-sm", str(self.chroot_path)], check=True)
+            size_mb = int(res[1].split()[0])
         except Exception as e:
             self.logger.warning(f"Failed to determine rootfs size, using 4000MB fallback: {e}")
             size_mb = 4000
@@ -747,17 +753,13 @@ class VoidEngine(BaseEngine):
             ext3_img = tmp_liveos / "rootfs.img"
             
             # 2. Truncate image file
-            subprocess.run(["truncate", "-s", f"{img_size_mb}M", str(ext3_img)], check=True)
+            self._run_build_host(["truncate", "-s", f"{img_size_mb}M", str(ext3_img)], check=True)
             
             # Populate the mounted ext3 filesystem using void-mklive's method.
             self._populate_ext3_image(ext3_img)
 
             # 5. Generate squashfs from tmp_dir
             mksquashfs_bin = "mksquashfs"
-            if getattr(self.toolchain, "mode", "mock") == "real" and hasattr(self.toolchain, "host_dir"):
-                candidate = self.toolchain.host_dir / "usr" / "bin" / "mksquashfs"
-                if candidate.exists():
-                    mksquashfs_bin = str(candidate)
 
             comp_type = self.config.get("squashfs_compression", "xz")
             cpu_count = max(os.cpu_count() or 1, 1)
@@ -774,8 +776,8 @@ class VoidEngine(BaseEngine):
                 cmd.extend(["-b", "1048576"])
 
             self.logger.info(f"[squashfs] Command: {' '.join(cmd)}")
-            subprocess.run(cmd, check=True, capture_output=False)
-            subprocess.run(["chmod", "444", str(squashfs_img)], check=True)
+            self._run_build_host(cmd, check=True)
+            self._run_build_host(["chmod", "444", str(squashfs_img)], check=True)
 
         self.logger.info(f"[squashfs] SquashFS created: {squashfs_img}")
 
@@ -798,10 +800,6 @@ class VoidEngine(BaseEngine):
         iso_label = self._cfg_get("system.iso_label", "VOID_MODERN")
 
         xorriso_bin = "xorriso"
-        if not is_mock and hasattr(self.toolchain, "host_dir"):
-            candidate = self.toolchain.host_dir / "usr" / "bin" / "xorriso"
-            if candidate.exists():
-                xorriso_bin = str(candidate)
 
         command = [
             xorriso_bin,
@@ -855,9 +853,11 @@ class VoidEngine(BaseEngine):
         self.logger.info(f"[finalize] Command: {' '.join(command)}")
 
         import subprocess
-        res = subprocess.run(command, capture_output=True, text=True)
-        if res.returncode != 0:
-            err_msg = res.stderr or res.stdout
+        try:
+            self._run_build_host(command, check=True)
+            err_msg = ""
+        except Exception as exc:
+            err_msg = str(exc)
             if "exceeds free space" in err_msg or "Image write cancelled" in err_msg:
                 if Path(output_abs).exists():
                     Path(output_abs).unlink(missing_ok=True)
@@ -1021,7 +1021,7 @@ class ISOBuilder:
             if self.config.get("create_tarball"):
                 from void_builder.core.stage_manager import stage_config_key
                 stage_key = stage_config_key(self.config)
-                cache_dest = resolve_from_project(f"cache/tarballs/{stage_key}/void-base-{self.arch}.tar.xz")
+                cache_dest = self.workdir / "cache" / "tarballs" / stage_key / f"void-base-{self.arch}.tar.xz"
                 stage_seed_dest = resolve_from_project(f"output/stage_seeds/{stage_key}/void-base-{self.arch}.tar.xz")
                 for dest in (cache_dest, stage_seed_dest):
                     dest.parent.mkdir(parents=True, exist_ok=True)

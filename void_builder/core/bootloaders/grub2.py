@@ -336,7 +336,7 @@ class Grub2Bootloader:
         fonts_dir.mkdir(parents=True, exist_ok=True)
         
         chroot_font = chroot / "usr" / "share" / "grub" / "unicode.pf2" if chroot else None
-        host_font = Path("/usr/share/grub/unicode.pf2")
+        host_font = None
         
         toolchain_font = Path(toolchain.host_dir) / "usr/share/grub/unicode.pf2" if getattr(toolchain, "host_dir", None) else None
         if toolchain_font and toolchain_font.is_file():
@@ -344,11 +344,8 @@ class Grub2Bootloader:
         elif chroot_font and chroot_font.exists():
             shutil.copy2(chroot_font, fonts_dir / "unicode.pf2")
             logger.info("[GRUB2] Copied unicode.pf2 from chroot to enable graphical boot")
-        elif host_font.exists():
-            shutil.copy2(host_font, fonts_dir / "unicode.pf2")
-            logger.info("[GRUB2] Copied unicode.pf2 from host to enable graphical boot")
         else:
-            logger.warning("[GRUB2] WARNING: unicode.pf2 not found! GRUB splash screen will NOT load.")
+            logger.warning("[GRUB2] WARNING: isolated unicode.pf2 not found; splash screen will NOT load.")
 
         arch = self._cfg_get("platform_specific.architecture", "x86_64")
         arch_lower = arch.lower()

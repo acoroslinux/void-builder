@@ -326,14 +326,17 @@ def ensure_static_xbps(tools_dir: str | None = None, force_update: bool = False)
                 return helper_path
             raise
     
-    # Extract into tools_dir preserving directory layout
-    rc, _, stderr = CommandRunner.run(["tar", "-xJf", tmp_tar, "-C", tools_dir], check=False, stream=True)
-    if rc != 0:
-        error_msg(f"Failed to extract xbps tarball: {stderr}")
+    # Extract with Python so bootstrapping does not invoke a host tar binary.
+    import tarfile
+    try:
+        with tarfile.open(tmp_tar, mode="r:xz") as archive:
+            archive.extractall(tools_dir, filter="data")
+    except Exception as exc:
+        error_msg(f"Failed to extract xbps tarball: {exc}")
         if os.path.exists(helper_path):
             warn_msg("Using existing xbps-install.static as fallback.")
             return helper_path
-        raise RuntimeError(stderr)
+        raise RuntimeError(str(exc)) from exc
     
     try:
         os.remove(tmp_tar)
@@ -379,16 +382,16 @@ def get_mklive_dir():
 
 
 def get_tools_dir():
-    """Return the path to the tools directory for static binaries."""
-    return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'tools')
+    """Return the default disposable workdir tools directory."""
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    return os.path.join(project_root, 'workdir', 'build_host', 'tools')
 
 
 def get_xbps_tools_bin_dir() -> str:
     """Return the absolute path to the xbps-static binaries directory.
 
-    This is ``<project>/void_builder/tools/usr/bin``.  The directory is created
-    by :func:`ensure_static_xbps` the first time a build runs, but the path is
-    stable and can be used before that point (e.g. to export PATH in scripts).
+    The directory is created by :func:`ensure_static_xbps` when needed. Build
+    orchestration should pass its per-build ``build_host/tools`` explicitly.
     """
     return os.path.join(get_tools_dir(), "usr", "bin")
 
@@ -408,12 +411,9 @@ def add_xbps_tools_to_path() -> str:
         from void_builder.utils.lib import add_xbps_tools_to_path
         add_xbps_tools_to_path()
     """
-    bin_dir = get_xbps_tools_bin_dir()
-    current_path = os.environ.get("PATH", "")
-    path_entries = current_path.split(os.pathsep)
-    if bin_dir not in path_entries:
-        os.environ["PATH"] = bin_dir + os.pathsep + current_path
-    return bin_dir
+    # Per-build toolchains set PATH explicitly; a process-wide project path
+    # would violate build isolation. Kept as a compatibility no-op.
+    return get_xbps_tools_bin_dir()
 
 
 def ensure_dir(path):

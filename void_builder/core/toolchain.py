@@ -28,8 +28,10 @@ class ToolchainManager:
         self.retries = retries
         self._is_ready = False
         
-        # Tools directory path
-        self.tools_dir = resolve_from_project("void_builder/tools")
+        # Every mutable tool and cache is owned by this build.  Keeping these
+        # under the build directory prevents one build from silently using
+        # binaries or package state from the project tree or host.
+        self.tools_dir = self.toolchain_dir / "tools"
         self.xbps_install_static = self.tools_dir / "usr" / "bin" / "xbps-install.static"
         self.proot = self.tools_dir / "proot"
 
@@ -72,14 +74,14 @@ class ToolchainManager:
     def _run_xbps_install(self, rootdir: Path, arch: str, packages: List[str], repos: List[str], unpack_only: bool = False):
         from void_builder.core.path_utils import resolve_from_project
         import tempfile
-        cache_dir = resolve_from_project("cache/xbps") / arch
+        cache_dir = self.toolchain_dir / "cache" / "xbps" / arch
         try:
             cache_dir.mkdir(parents=True, exist_ok=True)
             probe = cache_dir / ".write_test"
             probe.write_text("ok")
             probe.unlink(missing_ok=True)
         except Exception:
-            cache_dir = Path(tempfile.gettempdir()) / "void-builder-cache" / "xbps" / arch
+            cache_dir = self.toolchain_dir / "cache" / "xbps" / arch
             cache_dir.mkdir(parents=True, exist_ok=True)
 
         from void_builder.utils.lib import map_xbps_arch
@@ -193,7 +195,7 @@ class ToolchainManager:
         ]
 
         host_repos = filter_repositories(repos, host_arch)
-        host_pkgs = ["base-files", "libgcc", "dash", "coreutils", "sed", "tar", "gawk", "rsync", "squashfs-tools", "xorriso", "dosfstools", "mtools", "grub"]
+        host_pkgs = ["base-files", "libgcc", "dash", "coreutils", "sed", "tar", "gawk", "rsync", "squashfs-tools", "xorriso", "dosfstools", "mtools", "grub", "e2fsprogs", "parted", "qemu"]
         self._run_xbps_install(self.host_dir, host_arch, host_pkgs, host_repos)
         self._write_dir_arch(self.host_dir, host_arch)
 
@@ -289,13 +291,9 @@ class ToolchainManager:
                 res = subprocess.run(runner_cmd, env=cmd_env, text=True, capture_output=True)
                 return res.returncode, res.stdout, res.stderr
         else:
-            # Run directly on host
-            logger.info(f"[TOOLCHAIN] [HOST] Running: {' '.join(command)}")
-            cmd_env = os.environ.copy()
-            if env:
-                cmd_env.update(env)
-            res = subprocess.run(command, env=cmd_env, text=True, capture_output=True)
-            return res.returncode, res.stdout, res.stderr
+            raise RuntimeError(
+                "Build commands must run inside the build chroot; pass chroot_path explicitly."
+            )
 
     def run_in_build_host(
         self,
@@ -308,12 +306,27 @@ class ToolchainManager:
             logger.info(f"[TOOLCHAIN] [MOCK-HOST] Executing: {' '.join(command)}")
             return 0, "mock output", ""
 
-        # Prefer running with isolated host_dir PATH if available
+        # Resolve every build tool from this build's isolated host tree.  Do
+        # not retain the ambient host PATH as a fallback.
         cmd_env = os.environ.copy()
-        if hasattr(self, "host_dir") and self.host_dir and self.host_dir.exists():
-            bin_dir = str(self.host_dir / "usr" / "bin")
-            sbin_dir = str(self.host_dir / "usr" / "sbin")
-            cmd_env["PATH"] = f"{bin_dir}:{sbin_dir}:{cmd_env.get('PATH', '')}"
+        if not getattr(self, "host_dir", None) or not self.host_dir.exists():
+            raise RuntimeError("Isolated build-host directory is not initialized")
+        bin_dir = self.host_dir / "usr" / "bin"
+        sbin_dir = self.host_dir / "usr" / "sbin"
+        cmd_env["PATH"] = f"{bin_dir}:{sbin_dir}"
+        executable = Path(command[0]).name
+        if Path(command[0]).is_absolute():
+            executable_path = Path(command[0]).resolve()
+            allowed_roots = [self.host_dir.resolve(), self.tools_dir.resolve()]
+            if not any(executable_path == root or root in executable_path.parents
+                       for root in allowed_roots):
+                raise RuntimeError(f"Build tool '{executable_path}' is outside the isolated build directories")
+        else:
+            resolved = next((directory / executable for directory in (bin_dir, sbin_dir)
+                             if (directory / executable).is_file()), None)
+            if resolved is None:
+                raise RuntimeError(f"Build tool '{executable}' is missing from isolated host {self.host_dir}")
+            command = [str(resolved), *command[1:]]
 
         if env:
             cmd_env.update(env)

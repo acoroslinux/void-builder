@@ -30,13 +30,16 @@ class StageManager:
     Allows bootstrapping from pre-built tarballs to skip downloading/installing base packages.
     """
 
-    def __init__(self, workdir: Path, mode: str = "mock", arch: str = "x86_64", namespace=None):
+    def __init__(self, workdir: Path, mode: str = "mock", arch: str = "x86_64", namespace=None, toolchain=None):
         self.workdir = Path(workdir).resolve()
         self.mode = mode.lower()
         self.arch = arch
         self.namespace = namespace
+        self.toolchain = toolchain
         try:
-            self.cache_dir = resolve_from_project("cache/tarballs")
+            # Stage inputs are cached per build so a build cannot consume
+            # mutable project or host state.
+            self.cache_dir = self.workdir / "cache" / "tarballs"
             self.cache_dir.mkdir(parents=True, exist_ok=True)
             # Verify writable
             test_file = self.cache_dir / ".write_test"
@@ -44,7 +47,7 @@ class StageManager:
             test_file.unlink(missing_ok=True)
         except Exception:
             import tempfile
-            self.cache_dir = Path(tempfile.gettempdir()) / "void-builder-cache" / "tarballs"
+            self.cache_dir = self.workdir / "cache" / "tarballs"
             self.cache_dir.mkdir(parents=True, exist_ok=True)
         if namespace:
             self.cache_dir = self.cache_dir / namespace
@@ -101,9 +104,7 @@ class StageManager:
             candidates = [
                 self.cache_dir / f"void-base-{self.arch}.tar.xz",
                 self.cache_dir / f"void-base-{self.arch}.tar.gz",
-                resolve_from_project(f"output/stage_seeds/void-base-{self.arch}.tar.xz"),
-                resolve_from_project(f"output/void-base-{self.arch}.tar.xz"),
-                resolve_from_project(f"cache/tarballs/void-base-{self.arch}.tar.xz"),
+                self.workdir / "stage_seeds" / f"void-base-{self.arch}.tar.xz",
             ]
             if self.namespace:
                 candidates = candidates[:2]
@@ -131,6 +132,14 @@ class StageManager:
 
         raise StageManagerError(f"Cannot resolve base tarball: '{tarball_arg}' does not exist.")
 
+    def _has_tool(self, name: str) -> bool:
+        if self.toolchain is not None and getattr(self.toolchain, "host_dir", None):
+            return any((Path(self.toolchain.host_dir) / "usr" / d / name).is_file()
+                       for d in ("bin", "sbin"))
+        if self.mode == "real":
+            return False
+        return shutil.which(name) is not None
+
     def extract_tarball(self, tarball_path: Path, target_root: Path) -> None:
         """Extract a base stage tarball into the target root directory with attribute preservation."""
         tarball_path = Path(tarball_path).resolve()
@@ -150,22 +159,25 @@ class StageManager:
                 "Extracting base tarballs in real mode requires root privileges (sudo).\n"
                 "Please run with sudo: sudo python3 cli.py ..."
             )
+        if self.toolchain is None:
+            raise StageManagerError("Real stage operations require the isolated build-host toolchain")
 
         # Detect fastest available parallel decompressor
         decompressor_opt = []
         tb_name = tarball_path.name.lower()
         if tb_name.endswith((".tar.xz", ".txz")):
-            if shutil.which("pixz"):
+            if self._has_tool("pixz"):
                 decompressor_opt = ["--use-compress-program=pixz"]
         elif tb_name.endswith((".tar.zst", ".tzst")):
-            if shutil.which("zstd"):
+            if self._has_tool("zstd"):
                 decompressor_opt = ["--use-compress-program=zstd -T0 -d"]
         elif tb_name.endswith((".tar.gz", ".tgz")):
-            if shutil.which("pigz"):
+            if self._has_tool("pigz"):
                 decompressor_opt = ["--use-compress-program=pigz -d"]
 
         cmd = ["tar"] + decompressor_opt + ["-xpf", str(tarball_path), "-C", str(target_root), "--numeric-owner", "--xattrs-include=*.*"]
-        res = subprocess.run(cmd, capture_output=True, text=True)
+        rc, _, stderr = self.toolchain.run_in_build_host(cmd, check=False)
+        res = type("Result", (), {"returncode": rc, "stderr": stderr})()
         if res.returncode != 0:
             logger.error(f"Tarball extraction failed: {res.stderr}")
             raise StageManagerError(f"Failed to extract tarball: {res.stderr}")
@@ -190,27 +202,31 @@ class StageManager:
             output_tarball.touch()
             return output_tarball
 
+        if self.toolchain is None:
+            raise StageManagerError("Real stage operations require the isolated build-host toolchain")
+
         # Select fastest compressor
         compressor_opt = []
         if compression == "zstd" or output_tarball.name.endswith((".tar.zst", ".zst")):
-            if shutil.which("zstd"):
+            if self._has_tool("zstd"):
                 compressor_opt = ["--use-compress-program=zstd -T0 -3"]
             else:
                 compressor_opt = ["--zstd"]
         elif compression == "gzip" or output_tarball.name.endswith((".tar.gz", ".gz")):
-            if shutil.which("pigz"):
+            if self._has_tool("pigz"):
                 compressor_opt = ["--use-compress-program=pigz"]
             else:
                 compressor_opt = ["-z"]
         else:
             # xz default
-            if shutil.which("pixz"):
+            if self._has_tool("pixz"):
                 compressor_opt = ["--use-compress-program=pixz"]
             else:
                 compressor_opt = ["-J"]
 
         cmd = ["tar"] + compressor_opt + ["-cpf", str(output_tarball), "-C", str(source_root), "."]
-        res = subprocess.run(cmd, capture_output=True, text=True)
+        rc, _, stderr = self.toolchain.run_in_build_host(cmd, check=False)
+        res = type("Result", (), {"returncode": rc, "stderr": stderr})()
         if res.returncode != 0:
             logger.error(f"Stage tarball creation failed: {res.stderr}")
             raise StageManagerError(f"Failed to create stage tarball: {res.stderr}")

@@ -7,12 +7,6 @@ from typing import Any, Optional
 
 from void_builder.core.orchestrator import BuildOrchestrator, BuildOrchestratorError
 from void_builder.core.path_utils import resolve_from_project
-from void_builder.utils.lib import add_xbps_tools_to_path
-
-# Make the bundled xbps-static binaries discoverable for any subprocess that
-# inherits os.environ (e.g. scripts called via shell=True), even on hosts that
-# do not have xbps installed system-wide.
-add_xbps_tools_to_path()
 
 
 def _available_profiles(config_root: Path, category: str):
@@ -670,7 +664,7 @@ def main():
         import os
         import subprocess
         import shutil
-        from void_builder.utils.lib import ensure_static_xbps, get_tools_dir
+        from void_builder.utils.lib import ensure_static_xbps
         
         real_user = os.environ.get("SUDO_USER") or os.environ.get("USER")
         if not real_user or real_user == "root":
@@ -686,7 +680,9 @@ def main():
             sys.exit(1)
             
         print("[Calamares] Preparing static xbps tools...")
-        tools_dir = get_tools_dir()
+        # Keep compilation helpers alongside this build's disposable workdir;
+        # never bootstrap static tools into the project tree or host PATH.
+        tools_dir = workdir.parent / "build_host" / "tools"
         ensure_static_xbps(tools_dir=tools_dir)
         
         # Symlink .static tools so void-packages can find them

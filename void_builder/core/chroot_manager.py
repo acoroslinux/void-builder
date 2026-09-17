@@ -95,24 +95,18 @@ class ChrootManager:
             return
 
         # Determine package cache path
-        from void_builder.core.path_utils import resolve_from_project
-        cache_path_str = None
-        if hasattr(self, "config") and self.config:
-            system_cfg = self.config.get("system", {})
-            cache_path_str = system_cfg.get("xbps_cache")
-        
-        if not cache_path_str:
-            cache_path_str = "cache/xbps"
+        toolchain_dir = getattr(self.toolchain, "toolchain_dir", self.chroot_path.parent / "build_host")
+        cache_path_str = str(Path(toolchain_dir) / "cache" / "xbps")
             
         import tempfile
-        cache_dir = resolve_from_project(cache_path_str) / self.arch
+        cache_dir = Path(cache_path_str) / self.arch
         try:
             cache_dir.mkdir(parents=True, exist_ok=True)
             probe = cache_dir / ".write_test"
             probe.write_text("ok")
             probe.unlink(missing_ok=True)
         except Exception:
-            cache_dir = Path(tempfile.gettempdir()) / "void-builder-cache" / "xbps" / self.arch
+            cache_dir = Path(cache_path_str) / self.arch
             cache_dir.mkdir(parents=True, exist_ok=True)
 
         # Determine package repositories
