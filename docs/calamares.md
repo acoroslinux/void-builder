@@ -63,14 +63,15 @@ matching indexed package already exists in the default build directory.
 
 ## Offline repository
 
-Add `--with-offline-repo` to include an indexed XBPS repository at `/repo` inside
-the live system (and in disk images or exported rootfs tarballs). By default it
-contains the build package selection and its dependencies. Use
+Add `--with-offline-repo` to include an indexed XBPS repository in the ISO at
+`/repo` (outside the SquashFS). By default it contains the build package
+selection and its dependencies. Use
 `--offline-repo-packages git,vim` to request a smaller set with its dependencies.
 The build downloads against an empty package database, includes locally compiled
 packages, indexes the archives, and checks dependency resolution using only that
 index before packaging the image. Download or indexing failures stop the build.
-`/etc/xbps.d/00-offline-repository.conf` enables `/repo` in the generated system.
+`/etc/xbps.d/00-offline-repository.conf` enables the repository from the live
+ISO. The option is ignored for disk images and exported rootfs tarballs.
 
 Example reusing the compiled installer:
 

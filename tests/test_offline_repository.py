@@ -86,7 +86,7 @@ def test_pipeline_embeds_offline_repository_before_finalization(tmp_path, output
                            workdir=str(tmp_path / 'work'), output_format=output_format)
     assert Path(result).exists()
     parent = builder.engine.iso_staging if output_format == 'iso' else builder.engine.chroot_path
-    assert (parent / 'repo/MOCK.txt').exists() == enabled
+    assert (parent / 'repo/MOCK.txt').exists() == (enabled and output_format == 'iso')
     if output_format == 'iso':
         assert not (builder.engine.chroot_path / 'repo').exists()
 

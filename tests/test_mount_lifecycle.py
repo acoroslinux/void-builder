@@ -21,7 +21,7 @@ def test_unmount_after_chroot_work_before_export(tmp_path, monkeypatch, output_f
     engine.setup_chroot = Mock()
     engine.chroot_path = tmp_path / 'rootfs'
     engine.install_packages = lambda: events.append('install')
-    engine.post_install_configure = lambda: events.append('configure')
+    engine.post_install_configure = lambda **kw: events.append('configure')
     engine.build_bootloaders = lambda _: events.append('bootloaders')
     engine._package_plan = lambda: {'official': ['bash']}
     monkeypatch.setattr('void_builder.core.offline_repository.build_offline_repository', lambda *a: events.append('offline'))
@@ -32,7 +32,11 @@ def test_unmount_after_chroot_work_before_export(tmp_path, monkeypatch, output_f
     engine.finalize_isofile = export
     builder.build(str(tmp_path / 'artifact'), output_format=output_format,
                   chroot_hook=lambda: events.append('hooks'))
-    assert events == ['install', 'configure', 'hooks', 'offline', 'bootloaders', 'unmount', 'export']
+    expected = ['install', 'configure', 'hooks']
+    if output_format == 'iso':
+        expected.append('offline')
+    expected.extend(['bootloaders', 'unmount', 'export'])
+    assert events == expected
 
 
 def test_configuration_does_not_unmount_early(tmp_path, monkeypatch):

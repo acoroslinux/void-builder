@@ -1,1 +1,1 @@
-%wheel ALL=(ALL:ALL) NOPASSWD: ALL
+# Passwordless live access is generated at boot, never granted to wheel.

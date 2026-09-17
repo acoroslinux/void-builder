@@ -531,7 +531,7 @@ class ConfigAssembler:
                 logger.error(f"Failed to load or apply package rules: {e}")
 
         # 4e. Architecture Compatibility Sanitizer: filter out foreign arch packages
-        is_arm = target_arch.startswith(("aarch64", "arm", "rpi", "pinebook", "asahi"))
+        is_arm = target_arch.startswith(("aarch64", "arm", "rpi", "pinebook", "asahi", "x13s"))
         is_x86 = target_arch.startswith(("x86_64", "i686"))
         is_musl = "musl" in target_arch
         is_32bit = target_arch.startswith(("i686", "armv7l", "armv6l", "rpi-armv7l", "rpi-armv6l"))
@@ -543,6 +543,18 @@ class ConfigAssembler:
         GLIBC_EXCLUSIVE_PACKAGES = {
             "nss-mdns", "glibc-locales", "xf86-video-vmware", "open-vm-tools", "spice-vdagent"
         }
+        # These multimedia plugin packages are not published for Void musl.
+        MUSL_UNAVAILABLE_PACKAGES = {
+            "gst-plugins-base1", "gst-plugins-good1", "gst-plugins-bad1", "gst-plugins-ugly1", "gst-libav",
+            "ffmpeg", "xfce4-plugins", "parole", "orca", "libwebkit2gtk41"
+        }
+        MUSL_XFCE_COMPONENTS = [
+            "xfce4-appfinder", "xfce4-panel", "xfce4-session", "xfce4-settings", "xfconf",
+            "xfdesktop", "xfwm4", "xfwm4-themes", "xfce4-power-manager", "xfce4-terminal",
+            "xfce4-taskmanager", "Thunar", "thunar-volman", "exo", "ristretto", "mousepad",
+            "xfce4-notifyd", "xfce4-screensaver", "tumbler", "xdg-user-dirs-gtk", "upower",
+            "elogind", "xfce-polkit",
+        ]
 
         X86_EXCLUSIVE_PACKAGES = {
             "intel-ucode", "amd-ucode", "linux-firmware-amd", "sof-firmware", "alsa-firmware",
@@ -556,6 +568,7 @@ class ConfigAssembler:
             "rpi-base", "rpi-kernel", "rpi-firmware", "rpi-userland",
             "pinebookpro-base", "x13s-base", "asahi-base", "grub-arm64-efi"
         }
+        ARM32_BOOTLOADER_PACKAGES = {"grub", "grub-arm64-efi", "grub-i386-efi", "grub-x86_64-efi", "syslinux", "memtest86+"}
 
         def _filter_pkg_list(pkg_list: list) -> list:
             if not isinstance(pkg_list, list):
@@ -563,11 +576,18 @@ class ConfigAssembler:
             res = []
             for p in pkg_list:
                 p_str = p.get("name") if isinstance(p, dict) else str(p)
+                if is_musl and p_str == "xfce4":
+                    res.extend(MUSL_XFCE_COMPONENTS)
+                    continue
                 if is_32bit and p_str in ARCH_64BIT_EXCLUSIVE_PACKAGES:
                     continue
                 if is_musl and p_str in GLIBC_EXCLUSIVE_PACKAGES:
                     continue
+                if is_musl and p_str in MUSL_UNAVAILABLE_PACKAGES:
+                    continue
                 if is_arm and p_str in X86_EXCLUSIVE_PACKAGES:
+                    continue
+                if is_32bit and is_arm and p_str in ARM32_BOOTLOADER_PACKAGES:
                     continue
                 if is_x86 and p_str in ARM_EXCLUSIVE_PACKAGES:
                     continue

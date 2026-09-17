@@ -234,14 +234,31 @@ class ImageVerifier:
 
     @classmethod
     def verify_disk_image(cls, img_path: Path, expected_arch: Optional[str] = None) -> VerificationReport:
-        """Inspects partitioned disk images (.img / .img.xz), partition headers, and platform metadata."""
+        """Inspects partitioned disk images (.img / .img.xz / .raw) and VM images (.qcow2, .vdi, .vmdk, .vhdx, .vhd)."""
         report = VerificationReport(img_path)
-        is_compressed = img_path.name.endswith(".xz") or img_path.name.endswith(".gz")
-        report.metadata["detected_format"] = f"Partitioned SBC Disk Image ({'Compressed ' if is_compressed else ''}{img_path.suffix})"
+        is_compressed = img_path.name.endswith((".xz", ".gz", ".zst"))
+        name_lower = img_path.name.lower()
+
+        if name_lower.endswith((".qcow2", ".qcow2.xz", ".qcow2.zst")):
+            format_label = "QEMU / KVM Virtual Disk (QCOW2)"
+        elif name_lower.endswith((".vdi", ".vdi.xz", ".vdi.zst")):
+            format_label = "VirtualBox Virtual Disk (VDI)"
+        elif name_lower.endswith((".vmdk", ".vmdk.xz", ".vmdk.zst")):
+            format_label = "VMware Virtual Disk (VMDK)"
+        elif name_lower.endswith((".vhdx", ".vhdx.xz", ".vhdx.zst")):
+            format_label = "Hyper-V Virtual Hard Disk (VHDX)"
+        elif name_lower.endswith((".vhd", ".vhd.xz", ".vhd.zst")):
+            format_label = "Virtual PC / Legacy Hyper-V Disk (VHD)"
+        elif name_lower.endswith((".raw", ".raw.xz", ".raw.zst")):
+            format_label = "Raw Disk Image (RAW)"
+        else:
+            format_label = "Partitioned SBC / Disk Image"
+
+        report.metadata["detected_format"] = f"{format_label} ({'Compressed ' if is_compressed else ''}{img_path.suffix})"
         cls.verify_file_checksums(img_path, report)
 
-        # Check for XZ or GZ magic bytes if compressed
         try:
+            file_size = img_path.stat().st_size if img_path.exists() else 0
             with open(img_path, "rb") as f:
                 header = f.read(512)
                 if is_compressed:
@@ -251,10 +268,51 @@ class ImageVerifier:
                     elif img_path.name.endswith(".gz"):
                         has_magic = header.startswith(b"\x1f\x8b")
                         report.add_check("GZIP Compression Magic Bytes", has_magic, "Valid GZIP archive header." if has_magic else "Invalid GZIP magic bytes.")
+                    elif img_path.name.endswith(".zst"):
+                        has_magic = header.startswith(b"\x28\xb5\x2f\xfd")
+                        report.add_check("Zstandard Compression Magic Bytes", has_magic, "Valid Zstandard archive header." if has_magic else "Invalid Zstandard magic bytes.")
+                elif name_lower.endswith(".qcow2"):
+                    has_qcow2 = len(header) >= 4 and header[:4] == b"QFI\xfb"
+                    report.add_check("QCOW2 Header Signature", has_qcow2, "Valid QCOW2 magic bytes (QFI\\xfb) detected." if has_qcow2 else "QCOW2 header signature missing.")
+                elif name_lower.endswith(".vdi"):
+                    has_vdi = (b"<<< Oracle VM VirtualBox Disk Image >>>" in header) or (len(header) >= 68 and header[0x40:0x44] == b"\x7f\x10\xda\xbe")
+                    report.add_check("VDI Header Signature", has_vdi, "Valid VirtualBox VDI image header detected." if has_vdi else "VDI header signature missing.")
+                elif name_lower.endswith(".vmdk"):
+                    has_vmdk = (len(header) >= 4 and header[:4] == b"KDMV") or header.startswith(b"# Disk DescriptorFile")
+                    report.add_check("VMDK Header Signature", has_vmdk, "Valid VMware VMDK header detected." if has_vmdk else "VMDK header signature missing.")
+                elif name_lower.endswith(".vhdx"):
+                    has_vhdx = len(header) >= 8 and header[:8] == b"vhdxfile"
+                    report.add_check("VHDX Header Signature", has_vhdx, "Valid Hyper-V VHDX header detected." if has_vhdx else "VHDX header signature missing.")
+                elif name_lower.endswith(".vhd"):
+                    has_vhd = header.startswith(b"conectix")
+                    if not has_vhd and file_size >= 512:
+                        f.seek(-512, 2)
+                        footer = f.read(512)
+                        has_vhd = footer.startswith(b"conectix")
+                    report.add_check("VHD Header/Footer Signature", has_vhd, "Valid VHD conectix signature detected." if has_vhd else "VHD conectix signature missing.")
                 else:
                     # Check MBR boot signature 0x55AA at offset 510
                     has_mbr = len(header) >= 512 and header[510:512] == b"\x55\xaa"
                     report.add_check("MBR/GPT Partition Table Signature", has_mbr, "Found boot record signature (0x55AA)." if has_mbr else "MBR signature missing.")
+
+            # Deep inspection with qemu-img if available
+            if not is_compressed and shutil.which("qemu-img") and file_size > 0:
+                try:
+                    res = subprocess.run(
+                        ["qemu-img", "info", "--output=json", str(img_path)],
+                        capture_output=True, text=True, check=True
+                    )
+                    info = json.loads(res.stdout)
+                    img_fmt = info.get("format", "unknown")
+                    virt_size_gb = info.get("virtual-size", 0) / (1024**3)
+                    report.metadata["qemu_info"] = info
+                    report.add_check(
+                        "qemu-img Virtual Disk Inspection",
+                        True,
+                        f"Format: {img_fmt}, Virtual Size: {virt_size_gb:.2f} GB"
+                    )
+                except Exception:
+                    pass
         except Exception as e:
             report.add_check("Disk Image Header Read", False, f"Could not read image header: {e}")
 

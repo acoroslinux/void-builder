@@ -87,7 +87,7 @@ class ChrootManager:
             raise ChrootError(f"Chroot command failed (exit {ret}): {stderr or stdout}")
         return stdout
 
-    def install_packages(self, plan: Dict[str, List[str]], repos: List[str] = None) -> None:
+    def install_packages(self, plan: Dict[str, List[str]], repos: List[str] = None, reinstall: bool = True) -> None:
         """Install packages into the chroot using xbps-install.static."""
         packages = plan.get("official", [])
         if not packages:
@@ -208,14 +208,40 @@ class ChrootManager:
         last_rc = 1
 
         for attempt in range(1, max_attempts + 1):
+            install_packages = list(packages)
+            if not reinstall:
+                # A stage tarball already contains most of the requested plan.
+                # Filter those entries before invoking XBPS so it does not emit
+                # a long, misleading "already installed" error for each one.
+                query_bin = Path(xbps_install).with_name("xbps-query.static")
+                if query_bin.exists():
+                    query = subprocess.run(
+                        [str(query_bin), "-r", str(self.chroot_path), "-l"],
+                        env=cmd_env, capture_output=True, text=True,
+                    )
+                    if query.returncode == 0:
+                        installed = set()
+                        for line in query.stdout.splitlines():
+                            fields = line.split(None, 1)
+                            if len(fields) == 2 and fields[0] in ("ii", "hold"):
+                                installed.add(fields[1].split()[0])
+                        install_packages = [
+                            pkg for pkg in packages
+                            if not any(name == pkg or name.startswith(pkg + "-") for name in installed)
+                        ]
+                if not install_packages:
+                    logger.info("[Chroot] All requested packages are already installed in the stage; skipping XBPS install.")
+                    return
             cmd = [
                 xbps_install, "-S", "-i", "-r", str(self.chroot_path),
                 "-c", str(cache_dir),
             ]
             for repo in current_repos:
                 cmd.extend(["-R", repo])
-            cmd.extend(["-y", "-U"])
-            cmd.extend(packages)
+            cmd.append("-y")
+            if reinstall:
+                cmd.append("-U")
+            cmd.extend(install_packages)
 
             logger.info(f"[Chroot] Running host-side xbps-install.static (attempt {attempt}/{max_attempts}) for {xbps_arch}...")
             res = subprocess.run(cmd, env=cmd_env)

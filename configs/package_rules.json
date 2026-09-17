@@ -100,14 +100,12 @@
       "usbutils"
     ],
     "armv7l": [
-      "grub-arm64-efi",
       "alsa-ucm-conf",
       "wireless-regdb",
       "pciutils",
       "usbutils"
     ],
     "armv7l-musl": [
-      "grub-arm64-efi",
       "alsa-ucm-conf",
       "wireless-regdb",
       "pciutils",

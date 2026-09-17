@@ -73,6 +73,7 @@ class BuildOrchestrator:
         benchmark: bool = False,
         jobs: Optional[int] = None,
         compress_image: bool = False,
+        zram: bool = True,
     ):
         VALID_ARCHS = (
             "x86_64", "x86_64-musl",
@@ -85,6 +86,7 @@ class BuildOrchestrator:
             "pinebookpro", "asahi", "x13s", "rockpro64", "pine64", "odroid-c4", "odroid-n2", "visionfive2",
         )
         self.with_offline_repo = with_offline_repo
+        self.zram = zram
         self.offline_repo_packages = offline_repo_packages or []
         self.arch = (arch or "x86_64").lower()
         if self.arch not in VALID_ARCHS:
@@ -239,6 +241,7 @@ class BuildOrchestrator:
 
         if not self.config:
             raise BuildOrchestratorError("The generated configuration is null or invalid.")
+        self.config.to_dict()["zram"] = self.zram
 
         # Save config snapshot if requested
         if self.save_config_path:
@@ -426,6 +429,7 @@ class BuildOrchestrator:
             )
 
             self.run_hooks("post-chroot")
+            self._restore_artifact_ownership(result_iso)
 
             print("\n✅ BUILD SUCCEEDED!")
             print(f"Artifact generated at: {result_iso}")
@@ -507,7 +511,38 @@ class BuildOrchestrator:
                     print(f"\n[ORCHESTRATOR] Performing post-build cleanup: Removing {self.workdir}...")
                     import shutil
                     try:
-                        shutil.rmtree(self.workdir, ignore_errors=True)
+                        # Do not hide permission or filesystem errors: a
+                        # successful build must not leave its build-id tree
+                        # behind and report a pristine workspace falsely.
+                        shutil.rmtree(self.workdir, ignore_errors=False)
+                        if self.workdir.exists():
+                            raise OSError(f"path still exists after removal: {self.workdir}")
                         print("[ORCHESTRATOR] Cleanup complete. Workspace is pristine.")
                     except Exception as e:
-                        print(f"[ORCHESTRATOR] Warning: Could not fully remove workdir: {e}")
+                        print(f"[ORCHESTRATOR] ERROR: Could not remove build workdir {self.workdir}: {e}")
+
+    @staticmethod
+    def _restore_artifact_ownership(result: Union[str, Path]) -> None:
+        """Make root-created artifacts usable by the invoking desktop user."""
+        if os.geteuid() != 0:
+            return
+        try:
+            uid = int(os.environ.get("SUDO_UID", "0"))
+            gid = int(os.environ.get("SUDO_GID", "0"))
+        except ValueError:
+            uid = gid = 0
+        if not uid:
+            return
+
+        artifact = Path(result)
+        candidates = [artifact]
+        for suffix in (".sha256", ".sha512", ".md5", ".manifest.json"):
+            sidecar = Path(f"{artifact}{suffix}")
+            if sidecar.exists():
+                candidates.append(sidecar)
+        for path in candidates:
+            try:
+                os.chown(path, uid, gid)
+                path.chmod(0o644)
+            except OSError as exc:
+                print(f"[ORCHESTRATOR] Warning: Could not restore ownership of {path}: {exc}")

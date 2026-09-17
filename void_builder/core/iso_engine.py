@@ -113,8 +113,9 @@ class BaseEngine(ISOEngine):
 
         # Architecture exclusions safety check
         target_arch = str(self.arch or "").lower()
-        is_arm = target_arch.startswith(("aarch64", "arm", "rpi", "pinebook", "asahi"))
+        is_arm = target_arch.startswith(("aarch64", "arm", "rpi", "pinebook", "asahi", "x13s"))
         is_x86 = target_arch.startswith(("x86_64", "i686"))
+        is_arm32 = target_arch.startswith(("armv7l", "armv6l", "rpi-armv7l", "rpi-armv6l"))
         
         X86_EXCLUSIONS = {
             "intel-ucode", "amd-ucode", "sof-firmware", "alsa-firmware",
@@ -125,14 +126,35 @@ class BaseEngine(ISOEngine):
         }
         ARM_EXCLUSIONS = {
             "rpi-base", "rpi-kernel", "rpi-firmware", "rpi-userland",
-            "pinebookpro-base", "x13s-base", "asahi-base", "grub-arm64-efi"
+            "pinebookpro-base", "x13s-base", "asahi-base"
+        }
+        ARM32_EXCLUSIONS = {"grub", "grub-arm64-efi", "grub-i386-efi", "grub-x86_64-efi", "syslinux", "memtest86+"}
+        MUSL_EXCLUSIONS = {
+            "gst-plugins-base1", "gst-plugins-good1", "gst-plugins-bad1", "gst-plugins-ugly1", "gst-libav",
+            "ffmpeg", "xfce4-plugins", "parole", "orca", "libwebkit2gtk41",
+            "nss-mdns", "glibc-locales", "xf86-video-vmware", "open-vm-tools", "spice-vdagent",
+        }
+        MUSL_XFCE_COMPONENTS = {
+            "xfce4-appfinder", "xfce4-panel", "xfce4-session", "xfce4-settings", "xfconf",
+            "xfdesktop", "xfwm4", "xfwm4-themes", "xfce4-power-manager", "xfce4-terminal",
+            "xfce4-taskmanager", "Thunar", "thunar-volman", "exo", "ristretto", "mousepad",
+            "xfce4-notifyd", "xfce4-screensaver", "tumbler", "xdg-user-dirs-gtk", "upower",
+            "elogind", "xfce-polkit",
         }
         if is_arm:
             official_all = [p for p in official_all if p not in X86_EXCLUSIONS]
+            if is_arm32:
+                official_all = [p for p in official_all if p not in ARM32_EXCLUSIONS]
             if "rpi-kernel" in official_all and "linux" in official_all:
                 official_all.remove("linux")
         elif is_x86:
             official_all = [p for p in official_all if p not in ARM_EXCLUSIONS]
+
+        if "musl" in target_arch:
+            if "xfce4" in official_all:
+                official_all = [p for p in official_all if p != "xfce4"]
+                official_all.extend(sorted(MUSL_XFCE_COMPONENTS))
+            official_all = [p for p in official_all if p not in MUSL_EXCLUSIONS]
 
         return {
             "official": official_all,
@@ -161,7 +183,7 @@ class BaseEngine(ISOEngine):
         """Generate bootloader artifacts for the target architecture."""
 
     @abstractmethod
-    def post_install_configure(self) -> None:
+    def post_install_configure(self, output_format: str = "iso") -> None:
         """Run post-install configuration steps."""
 
     @abstractmethod
@@ -233,8 +255,11 @@ class BaseEngine(ISOEngine):
         elif target_format == "vmdk":
             # Use lsilogic adapter for VMware compatibility (avoids "internal errors" on SCSI/NVMe controllers)
             cmd.extend(["vmdk", "-o", "adapter_type=lsilogic"])
-        elif target_format in ("vhdx", "vhd"):
+        elif target_format == "vhdx":
             cmd.extend(["vhdx"])
+        elif target_format == "vhd":
+            # qemu-img calls the legacy VHD format ``vpc``.
+            cmd.extend(["vpc"])
         else:
             cmd.extend([target_format])
 
@@ -400,7 +425,11 @@ class VoidEngine(BaseEngine):
         from void_builder.core.path_utils import resolve_from_project
         local_pkgs_dir = resolve_from_project("custom_packages")
         
-        if local_pkgs_dir.exists() and local_pkgs_dir.is_dir():
+        # Calamares is only published locally for x86_64, i686 and aarch64.
+        # Do not expose that repository to ARM32/Raspberry Pi builds.
+        local_repo_arch = self.arch.removeprefix("rpi-")
+        local_repo_allowed = local_repo_arch in {"x86_64", "i686", "aarch64"}
+        if local_repo_allowed and local_pkgs_dir.exists() and local_pkgs_dir.is_dir():
             xbps_files = [str(p) for p in local_pkgs_dir.glob("*.xbps")]
             if len(xbps_files) > 0:
                 self.logger.info(f"[Packages] Found {len(xbps_files)} custom local packages in {local_pkgs_dir}. Indexing...")
@@ -418,9 +447,9 @@ class VoidEngine(BaseEngine):
             else:
                 self.logger.warning(f"[Packages] Directory {local_pkgs_dir} exists but no .xbps files found.")
 
-        chroot_manager.install_packages(plan, repos=repos)
+        chroot_manager.install_packages(plan, repos=repos, reinstall=not bool(use_tarball_arg))
 
-    def post_install_configure(self) -> None:
+    def post_install_configure(self, output_format: str = "iso") -> None:
         chroot_manager = getattr(self.toolchain, "chroot_manager", None)
         if not chroot_manager:
             raise ISOBuilderError("ChrootManager missing.")
@@ -435,7 +464,7 @@ class VoidEngine(BaseEngine):
         # 3. Run system configuration / customizations & dracut initramfs generation
         self.logger.info("[post_install] Running customizations and generating initramfs...")
         configurator = SystemConfigurator(chroot_manager)
-        configurator.load_from_config(self.config)
+        configurator.load_from_config(self.config, output_format=output_format)
         configurator.apply()
 
         # 4. Cleanup rootfs before unmounting (cache, tmp)
@@ -895,21 +924,51 @@ class ISOBuilder:
 
         # 3. Run post-install configuration & customizations
         t_step = time.perf_counter()
-        self.engine.post_install_configure()
+        # Disk images boot with a real FAT /boot partition.  Install its
+        # final fstab before dracut runs so the generated initramfs does not
+        # retain an invalid vfat option such as commit=60.
+        if output_format not in ("iso", "tarball"):
+            fstab_path = self.engine.chroot_path / "etc" / "fstab"
+            if fstab_path.parent.exists():
+                root_uuid = "4f68bce3-e8ce-4773-8ce8-7bb7f902ac29"
+                boot_uuid = "4F68-BCE3"
+                if self.arch.startswith("rpi") or self.arch == "pinebookpro":
+                    fstab_path.write_text(
+                        f"UUID={root_uuid} / ext4 defaults,noatime,commit=60 0 1\n"
+                        f"UUID={boot_uuid} /boot vfat defaults,noatime 0 2\n",
+                        encoding="utf-8",
+                    )
+                else:
+                    fstab_path.write_text(
+                        f"UUID={root_uuid} / ext4 defaults,noatime,commit=60 0 1\n"
+                        f"UUID={boot_uuid} /boot/efi vfat defaults,noatime 0 2\n",
+                        encoding="utf-8",
+                    )
+        self.engine.post_install_configure(output_format=output_format)
         if chroot_hook is not None:
             chroot_hook()
+        if getattr(self.toolchain, 'mode', 'mock') == 'real':
+            from void_builder.core.customizer import SecurityPermissionsAction
+            SecurityPermissionsAction().execute(self.toolchain.chroot_manager, workdir_path)
         self.timings["post_install"] = time.perf_counter() - t_step
 
         if self.config.get("with_offline_repo", False):
-            from void_builder.core.offline_repository import build_offline_repository, offline_package_selection
-            manager = self.toolchain.chroot_manager
-            packages = offline_package_selection(self.config)
-            build_offline_repository(
-                self.toolchain, self.arch, packages,
-                getattr(manager, "package_repositories", []),
-                self.engine.chroot_path, workdir_path,
-                self.engine.iso_staging if output_format == "iso" else None,
-            )
+            if output_format != "iso":
+                logger.warning(
+                    "[Offline] Offline repository embedding is supported only for ISO output; "
+                    "skipping it for %s",
+                    output_format,
+                )
+            else:
+                from void_builder.core.offline_repository import build_offline_repository, offline_package_selection
+                manager = self.toolchain.chroot_manager
+                packages = offline_package_selection(self.config)
+                build_offline_repository(
+                    self.toolchain, self.arch, packages,
+                    getattr(manager, "package_repositories", []),
+                    self.engine.chroot_path, workdir_path,
+                    self.engine.iso_staging,
+                )
 
 
         # 4. Build bootloaders (skip for non-ISO if handled by Orchestrator/DiskEngine)
@@ -967,7 +1026,6 @@ class ISOBuilder:
                 for dest in (cache_dest, stage_seed_dest):
                     dest.parent.mkdir(parents=True, exist_ok=True)
                     if Path(final_tarball).exists() and Path(final_tarball) != dest:
-                        import shutil
                         try:
                             # Readers must never extract a partially copied seed.
                             import os

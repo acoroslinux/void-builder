@@ -1,6 +1,8 @@
-/* Allow Calamares to run without password prompt in live session */
+/* Only the local active live account on live media may elevate without a password. */
 polkit.addRule(function(action, subject) {
-    if (action.id == "com.github.calamares.calamares.pkexec.run") {
+    if (subject.user !== "live" || !subject.local || !subject.active) return;
+    try {
+        polkit.spawn(["/usr/bin/grep", "-Eq", "(^| )(rd.live.image(=1)?|root=live:[^ ]+)( |$)", "/proc/cmdline"]);
         return polkit.Result.YES;
-    }
+    } catch (e) { return; }
 });

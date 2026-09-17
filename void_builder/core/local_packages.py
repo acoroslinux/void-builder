@@ -11,6 +11,8 @@ from void_builder.utils.lib import map_xbps_arch
 
 def calamares_repositories(arch: str, binpkgs: Optional[Path] = None) -> List[str]:
     """Return repositories containing Calamares for the requested architecture."""
+    if map_xbps_arch(arch) not in {"x86_64", "i686", "aarch64"}:
+        return []
     roots = [binpkgs] if binpkgs is not None else [
         resolve_from_project("custom_packages"),
         resolve_from_project("workdir/void-packages/hostdir/binpkgs"),

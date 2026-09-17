@@ -201,7 +201,7 @@ class ToolchainManager:
         target_pkgs = []
         if self.arch.startswith(("x86_64", "i686")):
             target_pkgs.extend(["syslinux", "grub-i386-efi", "grub-x86_64-efi", "memtest86+"])
-        elif self.arch.startswith("aarch64") or "aarch64" in self.arch or "arm" in self.arch:
+        elif self.arch.startswith("aarch64"):
             target_pkgs.extend(["grub-arm64-efi"])
 
         if target_pkgs:

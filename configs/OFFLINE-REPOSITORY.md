@@ -19,5 +19,6 @@ Para instalar usando exclusivamente o repositório offline:
 sudo xbps-install -i -R /run/initramfs/live/repo nome-do-pacote
 ```
 
-É necessário manter o suporte da ISO acessível. Noutros formatos, como
-tarball ou imagem de disco, o repositório continua em `/repo` no sistema.
+O repositório offline é incorporado apenas em imagens ISO. Em formatos como
+tarball ou imagem de disco, `--with-offline-repo` é ignorado com um aviso para
+evitar aumentar o artefacto ou deixar uma configuração `/repo` incompleta.

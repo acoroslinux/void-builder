@@ -426,7 +426,7 @@ def map_xbps_arch(arch: str) -> str:
     """Map platform architectures to their canonical Void XBPS architecture."""
     if arch.startswith("rpi-"):
         return arch.replace("rpi-", "")
-    elif arch in ("pinebookpro", "asahi"):
+    elif arch in ("pinebookpro", "asahi", "x13s"):
         return "aarch64"
     return arch
 
@@ -437,35 +437,50 @@ def filter_repositories(repos: list, arch: str) -> list:
     base_arch = canonical_arch.replace("-musl", "")
     
     filtered = []
+    official_found = False
     for r in repos:
         r_lower = r.lower()
         # If target is musl, repository must contain musl, unless it's a custom/local repo
         if "repo-default.voidlinux.org" in r_lower:
             if base_arch in ("aarch64", "armv7l", "armv6l"):
                 if is_musl:
-                    if f"{base_arch}/musl" in r_lower or f"musl/{base_arch}" in r_lower:
+                    # Void publishes aarch64 glibc and musl packages in the
+                    # same current/aarch64 repository.  Only x86_64 musl
+                    # (and 32-bit ARM musl) use the separate current/musl
+                    # tree.
+                    if (base_arch == "aarch64" and r_lower.rstrip("/").endswith("/current/aarch64")) or (base_arch != "aarch64" and r_lower.rstrip("/").endswith("/current/musl")):
                         filtered.append(r)
+                        official_found = True
                 else:
-                    if base_arch in r_lower and "musl" not in r_lower:
+                    if (base_arch == "aarch64" and base_arch in r_lower and "musl" not in r_lower) or (base_arch != "aarch64" and r_lower.rstrip("/").endswith("/current")):
                         filtered.append(r)
+                        official_found = True
             else:
                 if is_musl:
                     if "musl" in r_lower and not any(a in r_lower for a in ("aarch64", "armv7l", "armv6l")):
                         filtered.append(r)
+                        official_found = True
                 else:
                     if "musl" not in r_lower and not any(a in r_lower for a in ("aarch64", "armv7l", "armv6l")):
                         filtered.append(r)
+                        official_found = True
         else:
             # Keep custom/local repositories as-is
             filtered.append(r)
             
     # Fallback to official mirror defaults if filtered list is empty
-    if not filtered:
+    # Keep custom repositories, but never let them suppress the official
+    # architecture repository.  This matters for aliases such as
+    # rpi-armv7l, where the local Calamares repository may be the only entry
+    # surviving the initial filter.
+    if not official_found:
         if base_arch in ("aarch64", "armv7l", "armv6l"):
             if is_musl:
-                filtered.append(f"https://repo-default.voidlinux.org/current/{base_arch}/musl")
+                repo_path = "aarch64" if base_arch == "aarch64" else "musl"
+                filtered.append(f"https://repo-default.voidlinux.org/current/{repo_path}")
             else:
-                filtered.append(f"https://repo-default.voidlinux.org/current/{base_arch}")
+                repo_path = "aarch64" if base_arch == "aarch64" else ""
+                filtered.append(f"https://repo-default.voidlinux.org/current/{repo_path}".rstrip("/"))
         else:
             if is_musl:
                 filtered.append("https://repo-default.voidlinux.org/current/musl")

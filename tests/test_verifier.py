@@ -63,6 +63,34 @@ class TestVerifier(unittest.TestCase):
         report = ImageVerifier.verify_platform("pinebookpro", test_file)
         self.assertTrue(any("Pinebook Pro" in c.name for c in report.checks))
 
+    def test_verify_vm_disk_images(self):
+        # 1. QCOW2 verification
+        qcow2_file = self.dir_path / "test.qcow2"
+        qcow2_file.write_bytes(b"QFI\xfb" + b"\x00" * 508)
+        report_qcow2 = ImageVerifier.verify_disk_image(qcow2_file)
+        self.assertTrue(any("QCOW2 Header Signature" in c.name and c.passed for c in report_qcow2.checks))
+        self.assertIn("QCOW2", report_qcow2.metadata.get("detected_format", ""))
+
+        # 2. VDI verification
+        vdi_file = self.dir_path / "test.vdi"
+        vdi_file.write_bytes(b"<<< Oracle VM VirtualBox Disk Image >>>\n" + b"\x00" * 470)
+        report_vdi = ImageVerifier.verify_disk_image(vdi_file)
+        self.assertTrue(any("VDI Header Signature" in c.name and c.passed for c in report_vdi.checks))
+        self.assertIn("VDI", report_vdi.metadata.get("detected_format", ""))
+
+        # 3. VMDK verification
+        vmdk_file = self.dir_path / "test.vmdk"
+        vmdk_file.write_bytes(b"KDMV" + b"\x00" * 508)
+        report_vmdk = ImageVerifier.verify_disk_image(vmdk_file)
+        self.assertTrue(any("VMDK Header Signature" in c.name and c.passed for c in report_vmdk.checks))
+        self.assertIn("VMDK", report_vmdk.metadata.get("detected_format", ""))
+
+        # 4. Partitioned Raw / IMG verification
+        img_file = self.dir_path / "test.img"
+        img_file.write_bytes(b"\x00" * 510 + b"\x55\xaa")
+        report_img = ImageVerifier.verify_disk_image(img_file)
+        self.assertTrue(any("MBR/GPT Partition Table Signature" in c.name and c.passed for c in report_img.checks))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,11 @@
+{
+  "platform_specific": {
+    "architecture": "aarch64",
+    "packages": [
+      "x13s-base",
+      "grub-arm64-efi"
+    ],
+    "cmdline": "rd.driver.blacklist=qcom_q6v5_pas arm64.nopauth clk_ignore_unused pd_ignore_unused",
+    "dtb": "qcom/sc8280xp-lenovo-thinkpad-x13s.dtb"
+  }
+}

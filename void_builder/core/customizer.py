@@ -51,6 +51,7 @@ class OverlayAction(SystemAction):
                 subprocess.run(cmd, check=True)
             except Exception as e:
                 logger.error(f"[Overlay] Failed to copy overlay: {e}")
+                raise
         else:
             logger.info(f"    [Mock] Simulated overlay: cp -aT {overlay_path} /")
 
@@ -160,10 +161,7 @@ class UserAction(SystemAction):
             if password:
                 chroot.run_command(f"chpasswd -c SHA512 << 'EOF'\n{name}:{password}\nEOF")
 
-            if "wheel" in groups:
-                chroot.run_command(
-                    "mkdir -p /etc/sudoers.d && echo '%wheel ALL=(ALL:ALL) NOPASSWD: ALL' > /etc/sudoers.d/10-wheel && chmod 750 /etc/sudoers.d && chmod 440 /etc/sudoers.d/10-wheel"
-                )
+
         else:
             logger.info(f"    [Mock] Create user: {name} (groups: {groups})")
 
@@ -244,13 +242,20 @@ class CommandAction(SystemAction):
 
 
 class DracutAction(SystemAction):
-    """Generate initramfs using dracut with standard live-ISO modules."""
+    """Generate initramfs using dracut.
 
-    # Standard dracut modules required for live squashfs boot
+    For live-ISO builds: adds the ``dmsquash-live`` module so the kernel can
+    mount the squashfs overlay.
+    For installed disk-image builds (img/vmdk/vdi/qcow2/vhd/raw): generates a
+    plain initramfs for a real root-on-disk — omits all live modules that would
+    cause "init files not found" at boot.
+    """
+
+    # Dracut modules required for live squashfs boot
     LIVE_MODULES = ["dmsquash-live"]
     # Modules to omit (Void uses runit, not systemd)
     OMIT_MODULES = ["systemd"]
-    # Extra kernel drivers to always include (storage, IDE/SATA controllers, CD-ROM, loop, filesystems)
+    # Kernel drivers included in every live-ISO initramfs
     ADD_DRIVERS = [
         "ahci",
         "ata_piix",
@@ -270,6 +275,28 @@ class DracutAction(SystemAction):
         "virtio_blk",
         "virtio_scsi",
     ]
+    # Kernel drivers always included in disk-image initramfs
+    DISK_ADD_DRIVERS = [
+        "ahci",
+        "ata_piix",
+        "ata_generic",
+        "pata_acpi",
+        "sd_mod",
+        "ext4",
+        "xfs",
+        "btrfs",
+        "f2fs",
+        "vfat",
+        "nvme",
+        "virtio_pci",
+        "virtio_blk",
+        "virtio_scsi",
+        "vmw_pvscsi",
+        "mptspi",
+        "e1000",
+        "e1000e",
+        "vmxnet3",
+    ]
 
     COMPRESSION_FLAGS = {
         "xz": "--xz",
@@ -279,9 +306,12 @@ class DracutAction(SystemAction):
         "zstd": "--zstd",
     }
 
-    def __init__(self, initramfs_config: Dict[str, Any]):
+    def __init__(self, initramfs_config: Dict[str, Any], output_format: str = "iso"):
         self.compression = initramfs_config.get("compression", "xz")
         self.extra_modules = initramfs_config.get("dracut_modules", [])
+        # Anything that is not iso/tarball is treated as a real disk image
+        _fmt = (output_format or "iso").lower()
+        self.is_disk_image = _fmt not in ("iso", "tarball")
 
     def _detect_kernel_version(self, chroot: ChrootManager) -> Optional[str]:
         """Detect the newest kernel version installed in the chroot."""
@@ -307,23 +337,46 @@ class DracutAction(SystemAction):
             return
         logger.info(f"  [Dracut] Detected kernel: {kernel_version}")
 
-        # Build the list of modules to force-add
-        force_modules = list(self.LIVE_MODULES)
-        if self.extra_modules:
-            force_modules.extend(self.extra_modules)
-
         comp_flag = self.COMPRESSION_FLAGS.get(self.compression, "--xz")
         initrd_path = f"/boot/initramfs-{kernel_version}.img"
         live_initrd_path = "/boot/initrd"
 
-        cmd_parts = [
-            "dracut", "-N", comp_flag,
-            "--add-drivers", f'"{" ".join(self.ADD_DRIVERS)}"',
-            "--force-add", f'"{" ".join(force_modules)}"',
-        ]
-        for omit in self.OMIT_MODULES:
-            cmd_parts.extend(["--omit", omit])
-        cmd_parts.extend(["--force", initrd_path, kernel_version])
+        if self.is_disk_image:
+            # ------------------------------------------------------------------
+            # Disk-image mode: plain installed-system initramfs.
+            # Do NOT add dmsquash-live/livenet — there is no squashfs to mount.
+            # ------------------------------------------------------------------
+            logger.info("  [Dracut] Mode: installed disk image (no live/squashfs modules)")
+            force_modules = ["base", "kernel-modules", "fs-lib", "shutdown"]
+            if self.extra_modules:
+                force_modules.extend(self.extra_modules)
+
+            cmd_parts = [
+                "dracut", "-N", comp_flag,
+                "--add-drivers", f'"{" ".join(self.DISK_ADD_DRIVERS)}"',
+                "--force-add", f'"{" ".join(force_modules)}"',
+                "--omit", "dmsquash-live",
+                "--omit", "livenet",
+                "--omit", "systemd",
+                "--force", initrd_path, kernel_version,
+            ]
+        else:
+            # ------------------------------------------------------------------
+            # Live-ISO mode: squashfs overlay boot (original behaviour).
+            # ------------------------------------------------------------------
+            logger.info("  [Dracut] Mode: live ISO (dmsquash-live)")
+            force_modules = list(self.LIVE_MODULES)
+            if self.extra_modules:
+                force_modules.extend(self.extra_modules)
+
+            cmd_parts = [
+                "dracut", "-N", comp_flag,
+                "--add-drivers", f'"{" ".join(self.ADD_DRIVERS)}"',
+                "--force-add", f'"{" ".join(force_modules)}"',
+            ]
+            for omit in self.OMIT_MODULES:
+                cmd_parts.extend(["--omit", omit])
+            cmd_parts.extend(["--force", initrd_path, kernel_version])
 
         cmd_str = " ".join(cmd_parts)
         logger.info(f"  [Dracut] Command: {cmd_str}")
@@ -348,6 +401,9 @@ class LocaleAction(SystemAction):
         )
         if chroot.mode == "real":
             chroot.run_command(f"echo {self.hostname} > /etc/hostname")
+            import shlex
+            locale_line = shlex.quote(f'LANG={self.locale}\n')
+            chroot.run_command(f"printf %s {locale_line} > /etc/locale.conf")
             chroot.run_command(
                 f"ln -sf /usr/share/zoneinfo/{self.timezone} /etc/localtime"
             )
@@ -410,11 +466,11 @@ class RootPasswordAction(SystemAction):
             else:
                 logger.info("    [Mock] Set root account password")
         else:
-            logger.info("  [Security] Setting default root password ('voidlinux')...")
+            logger.info("  [Security] Setting default root password ('root')...")
             if chroot.mode == "real":
-                chroot.run_command("chpasswd -c SHA512 << 'EOF'\nroot:voidlinux\nEOF")
+                chroot.run_command("chpasswd -c SHA512 << 'EOF'\nroot:root\nEOF")
             else:
-                logger.info("    [Mock] Set default root password ('voidlinux')")
+                logger.info("    [Mock] Set default root password ('root')")
 
 
 class SecurityPermissionsAction(SystemAction):
@@ -423,35 +479,16 @@ class SecurityPermissionsAction(SystemAction):
     def execute(self, chroot: ChrootManager, source_base: Path):
         logger.info("  [Security] Enforcing PAM, Shadow, and Sudoers permissions...")
         if chroot.mode == "real":
-            # 1. Base user / shadow files
-            chroot.run_command("chmod 600 /etc/shadow && chown root:root /etc/shadow", check=False)
-            chroot.run_command("chmod 644 /etc/passwd && chown root:root /etc/passwd", check=False)
-            chroot.run_command("chmod 644 /etc/group && chown root:root /etc/group", check=False)
-            chroot.run_command("[ -f /etc/gshadow ] && chmod 600 /etc/gshadow && chown root:root /etc/gshadow", check=False)
-
-            # 2. PAM configurations
-            chroot.run_command("chmod 755 /etc/pam.d && chmod 644 /etc/pam.d/*", check=False)
-            chroot.run_command("[ -d /etc/security ] && chmod 755 /etc/security && chmod 644 /etc/security/*", check=False)
-
-            # 3. Sudoers permissions (must be strictly 0440 and owned by root:root)
-            chroot.run_command("[ -f /etc/sudoers ] && chmod 440 /etc/sudoers && chown root:root /etc/sudoers", check=False)
-            chroot.run_command("mkdir -p /etc/sudoers.d && chmod 750 /etc/sudoers.d && chown -R root:root /etc/sudoers.d && (chmod 440 /etc/sudoers.d/* 2>/dev/null || true)", check=False)
-
-            # 4. SUID binaries for authentication
-            suid_bins = [
-                "/usr/bin/passwd",
-                "/usr/bin/su",
-                "/usr/bin/sudo",
-                "/usr/bin/chfn",
-                "/usr/bin/chsh",
-                "/usr/bin/newgrp",
-                "/usr/bin/gpasswd",
-                "/usr/bin/unix_chkpwd",
-                "/sbin/unix_chkpwd",
-                "/usr/libexec/polkit-1/polkit-agent-helper-1",
-            ]
-            for sbin in suid_bins:
-                chroot.run_command(f"[ -f {sbin} ] && chmod 4755 {sbin} && chown root:root {sbin}", check=False)
+            script = resolve_from_project('configs/custom_files/scripts/void-fix-auth-permissions.sh')
+            import shlex
+            content = script.read_text()
+            chroot.run_command(
+                "set -eu\nmkdir -p /usr/local/bin\n"
+                f"printf %s {shlex.quote(content)} > /usr/local/bin/void-fix-auth-permissions.sh\n"
+                "chown 0:0 /usr/local/bin/void-fix-auth-permissions.sh\n"
+                "chmod 755 /usr/local/bin/void-fix-auth-permissions.sh"
+            )
+            chroot.run_command(content)
         else:
             logger.info("    [Mock] Verified shadow, PAM, sudoers, and SUID permissions")
 
@@ -652,7 +689,7 @@ class LoginManagerAction(SystemAction):
                     f"autologin-session={session}\n"
                     f"user-session={session}\n"
                     "greeter-session=lightdm-gtk-greeter\n"
-                    "pam-service=lightdm-autologin\n"
+                    "pam-service=lightdm\n"
                     "pam-autologin-service=lightdm-autologin\n"
                 )
                 write_chroot_file("etc/lightdm/lightdm.conf.d/live.conf", lightdm_conf)
@@ -850,17 +887,29 @@ class StructuredCopyAction(SystemAction):
                         subprocess.run(cmd_copy, check=True)
                 except Exception as e:
                     logger.error(f"  [StructuredCopy] Failed to copy {src_path} to {dest_path}: {e}")
-                    continue
+                    raise
 
-                # Apply custom mode if specified
-                if custom_mode:
-                    chroot.run_command(f"chmod -R {custom_mode} {dest_rel}", check=False)
-                elif dest_rel.startswith(("/usr/bin", "/usr/local/bin", "/etc/cron.", "/usr/libexec")) or dest_rel.endswith(".sh"):
-                    # Automatically enforce execution permissions for scripts and binaries
-                    chroot.run_command(f"chmod -R 755 {dest_rel}", check=False)
-                elif dest_rel.startswith("/etc/sudoers.d"):
-                    # Automatically enforce strict 0440 for sudoers.d
-                    chroot.run_command(f"chmod 440 {dest_rel}/* 2>/dev/null || chmod 440 {dest_rel}", check=False)
+                # Only touch files inside the copied tree; directories need
+                # traversal permission and rsync already preserves symlinks.
+                import shlex
+                import re
+                quoted_dest = shlex.quote(str(dest_rel))
+                file_mode = custom_mode
+                directory_mode = '755'
+                if dest_rel.startswith('/etc/sudoers.d'):
+                    file_mode = custom_mode or '440'
+                    directory_mode = '750'
+                elif not file_mode and (dest_rel.startswith(('/usr/bin/', '/usr/local/bin', '/etc/cron.', '/usr/libexec')) or dest_rel.endswith('.sh')):
+                    file_mode = '755'
+                if file_mode:
+                    mode = str(file_mode)
+                    if not re.fullmatch(r'[0-7]{3,4}', mode):
+                        raise ValueError(f'Invalid copied-file mode: {mode}')
+                    if src_path.is_dir():
+                        chroot.run_command(f'find {quoted_dest} -type d -exec chmod {directory_mode} {{}} +')
+                        chroot.run_command(f'find {quoted_dest} -type f -exec chmod {mode} {{}} +')
+                    else:
+                        chroot.run_command(f'chmod {mode} {quoted_dest}')
 
                 # Mirror /etc/skel files to existing users' home directories
                 if dest_rel.startswith("/etc/skel"):
@@ -885,7 +934,7 @@ class SystemConfigurator:
         self.chroot = chroot
         self.actions: List[SystemAction] = []
 
-    def load_from_config(self, config: Any):
+    def load_from_config(self, config: Any, output_format: str = "iso"):
         def _safe_get(cfg: Any, key: str, default: Any = None) -> Any:
             if not hasattr(cfg, "get"):
                 return default
@@ -953,6 +1002,20 @@ class SystemConfigurator:
         services = cust_config.get("services", [])
         if not services:
             services = _safe_get(config, "platform_specific.services", [])
+        # zram is a generic runtime optimisation and is enabled on every
+        # image. Its runit service sizes compressed swap from host RAM.
+        zram_enabled = _safe_get(config, "zram", True)
+        if zram_enabled:
+            # ServiceAction runs before the general overlay stage. Install
+            # the runit files first so the service can be linked immediately.
+            self.actions.append(StructuredCopyAction(
+                "configs/custom_files",
+                [{"source": "zram", "destination": "/etc/sv/zram", "mode": "755"}],
+                _safe_get(config, "platform_specific.architecture", "x86_64"),
+            ))
+        if zram_enabled and "zram" not in services:
+            services = list(services) if isinstance(services, list) else []
+            services.append("zram")
         if services:
             srv_list = [str(s) for s in services]
             # Conflict resolution: if NetworkManager is enabled, omit standalone conflicting dhcpcd
@@ -976,14 +1039,14 @@ class SystemConfigurator:
             if hasattr(initramfs, "_data"):
                 initramfs = initramfs._data
             if isinstance(initramfs, dict):
-                self.actions.append(DracutAction(initramfs))
+                self.actions.append(DracutAction(initramfs, output_format=output_format))
             else:
                 logger.warning("  [Dracut] initramfs config is not a dict — using safe default (xz compression)")
-                self.actions.append(DracutAction({"compression": "xz"}))
+                self.actions.append(DracutAction({"compression": "xz"}, output_format=output_format))
         else:
             # Always build the initramfs — fallback to xz if config is missing
             logger.info("  [Dracut] No initramfs config found — using safe default (xz compression)")
-            self.actions.append(DracutAction({"compression": "xz"}))
+            self.actions.append(DracutAction({"compression": "xz"}, output_format=output_format))
         arch = _safe_get(config, "platform_specific.architecture", "x86_64")
 
         # 9. Pipewire configuration
@@ -1059,7 +1122,9 @@ class SystemConfigurator:
                 with open(base_custom_path, "r", encoding="utf-8") as f:
                     base_data = json.load(f)
                 base_list = base_data.get("base_copy_files", [])
-                final_copy_list.extend(base_list)
+                if base_list:
+                    arch = _safe_get(config, "platform_specific.architecture", "x86_64")
+                    self.actions.append(StructuredCopyAction("configs/custom_files", base_list, arch))
                 logger.info(f"Loaded {len(base_list)} common copy entries from base_customizations.json")
             except Exception as e:
                 logger.error(f"Failed to load/parse configs/base_customizations.json: {e}")
@@ -1193,5 +1258,7 @@ class SystemConfigurator:
                 action.execute(self.chroot, source_base_dir)
             except Exception as e:
                 logger.error(f"Failed to execute configuration action: {e}")
+                if isinstance(action, (SecurityPermissionsAction, StructuredCopyAction, OverlayAction, UserAction, RootPasswordAction)):
+                    raise
 
         self.apply_theme_assets(self.chroot)

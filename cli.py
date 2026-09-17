@@ -1,4 +1,5 @@
 import argparse
+import json
 import re
 import sys
 from pathlib import Path
@@ -19,6 +20,48 @@ def _available_profiles(config_root: Path, category: str):
     if not category_dir.exists() or not category_dir.is_dir():
         return []
     return sorted([p.stem for p in category_dir.glob("*.json")])
+
+
+def _profile_details(config_root: Path, category: str):
+    """Return compact, human-readable metadata for the option listing."""
+    details = []
+    category_dir = config_root / category
+    for path in sorted(category_dir.glob("*.json")) if category_dir.is_dir() else []:
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            data = {}
+        description = data.get("description") or data.get("_comment") or ""
+        if description.lower().startswith("void-builder "):
+            description = description[len("Void-Builder "):]
+        metadata = []
+        if category == "presets":
+            for key in ("desktop", "kernel", "bootloader"):
+                if data.get(key):
+                    metadata.append(f"{key}={data[key]}")
+            profiles = data.get("package_profiles", [])
+            if profiles:
+                metadata.append(f"packages: {', '.join(profiles)}")
+        elif category == "software":
+            packages = data.get("packages", [])
+            optional = data.get("optional_packages", [])
+            metadata.append(f"{len(packages)} packages")
+            if optional:
+                metadata.append(f"{len(optional)} optional")
+        elif category == "architectures":
+            packages = data.get("platform_specific", {}).get("packages", [])
+            if packages:
+                metadata.append(f"packages: {', '.join(packages)}")
+        elif category == "desktops":
+            packages = data.get("package_sources", {}).get("official", [])
+            if packages:
+                metadata.append(f"{len(packages)} packages")
+        label = path.stem
+        suffix = f" — {description}" if description else ""
+        if metadata:
+            suffix += f" ({'; '.join(metadata)})"
+        details.append(f"  {label}{suffix}")
+    return details
 
 
 def _slugify_name(value: str, fallback: str) -> str:
@@ -450,6 +493,16 @@ def main():
         action="store_true",
         help="Build entirely inside RAM (tmpfs) to maximize I/O throughput and avoid SSD wear.",
     )
+    zram_group = parser.add_mutually_exclusive_group()
+    zram_group.add_argument(
+        "--zram", dest="zram", action="store_true",
+        help="Enable compressed zram swap (default).",
+    )
+    zram_group.add_argument(
+        "--no-zram", dest="zram", action="store_false",
+        help="Disable compressed zram swap for this build.",
+    )
+    parser.set_defaults(zram=True)
 
     parser.add_argument(
         "--benchmark",
@@ -678,15 +731,38 @@ def main():
         cmd_prefix = []
         if os.geteuid() == 0:
             cmd_prefix = ["sudo", "-u", real_user, "env", f"PATH={env['PATH']}"]
+        else:
+            cmd_prefix = ["env", f"PATH={env['PATH']}"]
+
+        # Repository mirrors can briefly publish repodata before all package
+        # signatures are synchronized. Retry xbps-src with official mirrors
+        # so a transient 404 does not abort an otherwise valid build.
+        mirrors = [
+            "https://repo-default.voidlinux.org",
+            "https://repo-fi.voidlinux.org",
+            "https://repo-de.voidlinux.org",
+        ]
+
+        def run_xbps_src(arguments):
+            last_error = None
+            for mirror in mirrors:
+                command = cmd_prefix + [f"XBPS_MIRROR={mirror}"] + arguments
+                try:
+                    subprocess.run(command, cwd=str(workdir), check=True)
+                    return
+                except subprocess.CalledProcessError as exc:
+                    last_error = exc
+                    print(f"[Calamares] xbps-src failed with mirror {mirror}; trying next mirror...")
+            raise last_error
             
         masterdir = f"masterdir-{target_arch}"
         print(f"[Calamares] Configuring xbps-src native environment ({masterdir})...")
-        subprocess.run(cmd_prefix + ["./xbps-src", "-m", masterdir, "-A", target_arch, "binary-bootstrap"], cwd=str(workdir), check=True)
+        run_xbps_src(["./xbps-src", "-m", masterdir, "-A", target_arch, "binary-bootstrap"])
         
         print(f"[Calamares] Compiling the package natively for {target_arch} (This may take some time and CPU)...")
         pkg_cmd = cmd_prefix + ["./xbps-src", "-m", masterdir, "-A", target_arch, "pkg", "calamares"]
             
-        subprocess.run(pkg_cmd, cwd=str(workdir), check=True)
+        run_xbps_src(["./xbps-src", "-m", masterdir, "-A", target_arch, "pkg", "calamares"])
         
         from void_builder.core.local_packages import persist_calamares_repository
         binpkgs_dir = persist_calamares_repository(
@@ -705,7 +781,14 @@ def main():
             report = ImageVerifier.verify_platform(args.verify_platform, target_path)
         elif target_path.name.endswith(".iso"):
             report = ImageVerifier.verify_iso(target_path, args.architecture)
-        elif target_path.name.endswith((".img", ".img.xz", ".img.gz", ".raw")):
+        elif target_path.name.endswith((
+            ".img", ".img.xz", ".img.gz", ".img.zst", ".raw", ".raw.xz", ".raw.zst",
+            ".qcow2", ".qcow2.xz", ".qcow2.zst",
+            ".vdi", ".vdi.xz", ".vdi.zst",
+            ".vmdk", ".vmdk.xz", ".vmdk.zst",
+            ".vhd", ".vhd.xz", ".vhd.zst",
+            ".vhdx", ".vhdx.xz", ".vhdx.zst",
+        )):
             report = ImageVerifier.verify_disk_image(target_path, args.architecture)
         elif target_path.name.endswith((".tar.xz", ".tar.gz", ".tar")):
             report = ImageVerifier.verify_tarball(target_path, args.architecture)
@@ -733,15 +816,25 @@ def main():
 
     config_root = resolve_from_project("configs")
     if args.list_options:
-        print("Available build selections:")
-        print(f"- presets:       {', '.join(_available_profiles(config_root, 'presets')) or '(none)'}")
-        print(f"- architectures: {', '.join(_available_profiles(config_root, 'architectures')) or '(none)'}")
-        print(f"- desktops:      {', '.join(_available_profiles(config_root, 'desktops')) or '(none)'}")
-        print(f"- kernels:       {', '.join(_available_profiles(config_root, 'system')) or '(none)'}")
-        print(f"- bootloaders:   {', '.join(_available_profiles(config_root, 'boot')) or '(none)'}")
-        print(f"- packages:      {', '.join(_available_profiles(config_root, 'software')) or '(none)'}")
-        print(f"- services:      {', '.join(_available_profiles(config_root, 'services')) or '(none)'}")
-        print(f"- live-users:    {', '.join(_available_profiles(config_root, 'live-users')) or '(none)'}")
+        print("Available build selections (profiles are read from configs/):")
+        for title, category in (
+            ("Presets", "presets"),
+            ("Architectures", "architectures"),
+            ("Desktops", "desktops"),
+            ("Kernels", "system"),
+            ("Bootloaders", "boot"),
+            ("Package profiles", "software"),
+            ("Service profiles", "services"),
+            ("Live users", "live-users"),
+        ):
+            print(f"\n{title}:")
+            entries = _profile_details(config_root, category)
+            print("\n".join(entries) if entries else "  (none)")
+        print("\nExamples:")
+        print("  python3 cli.py x86_64 --preset desktop-xfce --mode real")
+        print("  python3 cli.py aarch64 --preset minimal --format img --mode real")
+        print("  python3 cli.py x86_64 --desktop kde --package-profile office --with-calamares")
+        print("\nUse --help for all overrides, output formats, repositories and build flags.")
         sys.exit(0)
 
     # Prepare paths
@@ -839,6 +932,7 @@ def main():
         use_tmpfs=args.tmpfs,
         benchmark=args.benchmark,
         jobs=args.jobs,
+        zram=args.zram,
     )
 
     # Handle Validation Mode (--check / --validate)
