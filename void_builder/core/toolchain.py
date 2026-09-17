@@ -197,7 +197,7 @@ class ToolchainManager:
         host_repos = filter_repositories(repos, host_arch)
         host_pkgs = [
             "base-files", "libgcc", "dash", "coreutils", "sed", "tar",
-            "xz", "zstd", "gzip", "gawk", "rsync", "squashfs-tools",
+            "xz", "zstd", "gzip", "lzo", "gawk", "rsync", "squashfs-tools",
             "xorriso", "dosfstools", "mtools", "grub", "e2fsprogs",
             "parted", "qemu",
         ]
