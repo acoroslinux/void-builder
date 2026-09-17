@@ -382,9 +382,9 @@ def get_mklive_dir():
 
 
 def get_tools_dir():
-    """Return the default disposable workdir tools directory."""
+    """Return the persistent project tools directory for helper binaries."""
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    return os.path.join(project_root, 'workdir', 'build_host', 'tools')
+    return os.path.join(project_root, 'tools')
 
 
 def get_xbps_tools_bin_dir() -> str:

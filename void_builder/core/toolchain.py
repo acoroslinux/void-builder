@@ -46,9 +46,9 @@ class ToolchainManager:
         if self.mode == "real":
             # Call the utility functions to download and extract them if missing
             from void_builder.utils.lib import ensure_static_xbps, ensure_proot
-            cache_tools = resolve_from_project("cache/tools")
-            cached_xbps = Path(ensure_static_xbps(str(cache_tools), force_update=self.update_toolchain))
-            cached_proot = ensure_proot(str(cache_tools), force_update=self.update_toolchain)
+            persistent_tools = resolve_from_project("tools")
+            cached_xbps = Path(ensure_static_xbps(str(persistent_tools), force_update=self.update_toolchain))
+            cached_proot = ensure_proot(str(persistent_tools), force_update=self.update_toolchain)
             self.tools_dir.mkdir(parents=True, exist_ok=True)
             local_xbps = self.tools_dir / "usr" / "bin" / "xbps-install.static"
             local_xbps.parent.mkdir(parents=True, exist_ok=True)

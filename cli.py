@@ -681,13 +681,13 @@ def main():
             sys.exit(1)
             
         print("[Calamares] Preparing static xbps tools...")
-        # Keep execution helpers alongside this build's disposable workdir,
-        # while reusing downloads from the persistent project cache.
+        # Keep persistent helper binaries in the project tools/ directory,
+        # while copying them into this build's isolated execution tree.
         tools_dir = workdir.parent / "build_host" / "tools"
-        cache_tools_dir = resolve_from_project("cache/tools")
-        ensure_static_xbps(tools_dir=cache_tools_dir)
+        persistent_tools_dir = resolve_from_project("tools")
+        ensure_static_xbps(tools_dir=persistent_tools_dir)
         tools_dir.mkdir(parents=True, exist_ok=True)
-        cache_bin_dir = Path(cache_tools_dir) / "usr" / "bin"
+        cache_bin_dir = Path(persistent_tools_dir) / "usr" / "bin"
         bin_dir = tools_dir / "usr" / "bin"
         bin_dir.mkdir(parents=True, exist_ok=True)
         for cached in cache_bin_dir.glob("*.static"):
