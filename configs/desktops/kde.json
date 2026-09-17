@@ -2,7 +2,7 @@
   "package_sources": {
     "official": [
       "kde-plasma",
-      "kde-apps",
+      "kde-baseapps",
       "sddm",
       "plasma-nm"
     ]
