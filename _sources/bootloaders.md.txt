@@ -63,6 +63,31 @@ LABEL void_live
 
 ---
 
+### C. PC virtual disk images (VDI, QCOW2, VMDK, IMG/RAW)
+
+These images use UEFI GRUB on a FAT ESP and keep the kernel/initramfs on
+the root partition labelled `void_root`. The standalone EFI loader must
+load `part_gpt` (and `part_msdos` for MBR targets) before searching for that
+partition. Merely including the module files in the standalone memdisk
+does not ensure partition drivers are loaded. Without them, GRUB can list
+`(hd0)` but no partitions, then report `no such device: void_root` followed
+by `file /boot/vmlinuz not found` even when the kernel is present.
+
+The disk builder explicitly loads the partition/filesystem modules, selects
+a matching nonempty kernel/initramfs pair, and uses their filenames in both
+the embedded configuration and `/boot/grub/grub.cfg`. It also creates
+`/boot/efi` before exporting the root filesystem so the ESP mount in
+`/etc/fstab` succeeds. Missing boot files abort the build before packaging.
+
+The disk menu defaults to the newest complete kernel/initramfs pair and
+remains visible for five seconds. It offers normal boot, safe graphics
+(`nomodeset`), and an **Advanced options for Void Linux** submenu containing
+normal and recovery entries for each complete installed kernel. Recovery
+uses Void/runit's `single` mode. Incomplete kernel/initramfs pairs are omitted.
+UEFI firmware settings appear only when supported by the firmware; restart
+and shutdown entries are also available. These entries apply to disk images;
+the live ISO menu is generated separately.
+
 ## 3. Raspberry Pi Single-Board Computers (`rpi-*`)
 
 Raspberry Pi computers do not use traditional BIOS or UEFI. Instead, the VideoCore GPU boots first, reads files from the primary VFAT partition, and loads the ARM Linux kernel.

@@ -63,6 +63,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#b-uefi-boot-grub2-efi">B. UEFI Boot (GRUB2 EFI)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#c-pc-virtual-disk-images-vdi-qcow2-vmdk-img-raw">C. PC virtual disk images (VDI, QCOW2, VMDK, IMG/RAW)</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#raspberry-pi-single-board-computers-rpi">3. Raspberry Pi Single-Board Computers (<code class="docutils literal notranslate"><span class="pre">rpi-*</span></code>)</a><ul>
@@ -249,8 +250,31 @@ LABEL void_live
 </li>
 </ul>
 </section>
-</section>
 <hr class="docutils" />
+<section id="c-pc-virtual-disk-images-vdi-qcow2-vmdk-img-raw">
+<h3>C. PC virtual disk images (VDI, QCOW2, VMDK, IMG/RAW)<a class="headerlink" href="#c-pc-virtual-disk-images-vdi-qcow2-vmdk-img-raw" title="Link to this heading"></a></h3>
+<p>These images use UEFI GRUB on a FAT ESP and keep the kernel/initramfs on
+the root partition labelled <code class="docutils literal notranslate"><span class="pre">void_root</span></code>. The standalone EFI loader must
+load <code class="docutils literal notranslate"><span class="pre">part_gpt</span></code> (and <code class="docutils literal notranslate"><span class="pre">part_msdos</span></code> for MBR targets) before searching for that
+partition. Merely including the module files in the standalone memdisk
+does not ensure partition drivers are loaded. Without them, GRUB can list
+<code class="docutils literal notranslate"><span class="pre">(hd0)</span></code> but no partitions, then report <code class="docutils literal notranslate"><span class="pre">no</span> <span class="pre">such</span> <span class="pre">device:</span> <span class="pre">void_root</span></code> followed
+by <code class="docutils literal notranslate"><span class="pre">file</span> <span class="pre">/boot/vmlinuz</span> <span class="pre">not</span> <span class="pre">found</span></code> even when the kernel is present.</p>
+<p>The disk builder explicitly loads the partition/filesystem modules, selects
+a matching nonempty kernel/initramfs pair, and uses their filenames in both
+the embedded configuration and <code class="docutils literal notranslate"><span class="pre">/boot/grub/grub.cfg</span></code>. It also creates
+<code class="docutils literal notranslate"><span class="pre">/boot/efi</span></code> before exporting the root filesystem so the ESP mount in
+<code class="docutils literal notranslate"><span class="pre">/etc/fstab</span></code> succeeds. Missing boot files abort the build before packaging.</p>
+<p>The disk menu defaults to the newest complete kernel/initramfs pair and
+remains visible for five seconds. It offers normal boot, safe graphics
+(<code class="docutils literal notranslate"><span class="pre">nomodeset</span></code>), and an <strong>Advanced options for Void Linux</strong> submenu containing
+normal and recovery entries for each complete installed kernel. Recovery
+uses Void/runit’s <code class="docutils literal notranslate"><span class="pre">single</span></code> mode. Incomplete kernel/initramfs pairs are omitted.
+UEFI firmware settings appear only when supported by the firmware; restart
+and shutdown entries are also available. These entries apply to disk images;
+the live ISO menu is generated separately.</p>
+</section>
+</section>
 <section id="raspberry-pi-single-board-computers-rpi">
 <h2>3. Raspberry Pi Single-Board Computers (<code class="docutils literal notranslate"><span class="pre">rpi-*</span></code>)<a class="headerlink" href="#raspberry-pi-single-board-computers-rpi" title="Link to this heading"></a></h2>
 <p>Raspberry Pi computers do not use traditional BIOS or UEFI. Instead, the VideoCore GPU boots first, reads files from the primary VFAT partition, and loads the ARM Linux kernel.</p>
