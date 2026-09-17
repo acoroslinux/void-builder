@@ -681,10 +681,17 @@ def main():
             sys.exit(1)
             
         print("[Calamares] Preparing static xbps tools...")
-        # Keep compilation helpers alongside this build's disposable workdir;
-        # never bootstrap static tools into the project tree or host PATH.
+        # Keep execution helpers alongside this build's disposable workdir,
+        # while reusing downloads from the persistent project cache.
         tools_dir = workdir.parent / "build_host" / "tools"
-        ensure_static_xbps(tools_dir=tools_dir)
+        cache_tools_dir = resolve_from_project("cache/tools")
+        ensure_static_xbps(tools_dir=cache_tools_dir)
+        tools_dir.mkdir(parents=True, exist_ok=True)
+        cache_bin_dir = Path(cache_tools_dir) / "usr" / "bin"
+        bin_dir = tools_dir / "usr" / "bin"
+        bin_dir.mkdir(parents=True, exist_ok=True)
+        for cached in cache_bin_dir.glob("*.static"):
+            shutil.copy2(cached, bin_dir / cached.name)
         
         # Symlink .static tools so void-packages can find them
         bin_dir = Path(tools_dir) / "usr" / "bin"
