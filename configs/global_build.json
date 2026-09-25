@@ -8,6 +8,7 @@
   "iso": {
     "compression_type": "xz"
   },
+  "generate_signature": true,
   "initramfs": {
     "compression": "xz"
   },
@@ -130,6 +131,7 @@
     "os-prober",
     "p7zip",
     "pipewire",
+    "wireplumber",
     "plymouth",
     "polkit",
     "psmisc",

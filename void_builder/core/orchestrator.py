@@ -51,6 +51,7 @@ class BuildOrchestrator:
         update_toolchain: bool = False,
         compression: str = "xz",
         generate_manifest: bool = True,
+        generate_signature: bool = True,
         use_tarball: Optional[str] = None,
         create_tarball: bool = False,
         preset: Optional[str] = None,
@@ -119,6 +120,7 @@ class BuildOrchestrator:
         self.compress_image = compress_image
         self.compression = "zstd" if fast_mode else compression
         self.generate_manifest = generate_manifest
+        self.generate_signature = generate_signature
         self.use_tarball = use_tarball
         self.create_tarball = create_tarball
         self.preset = preset
@@ -255,6 +257,7 @@ class BuildOrchestrator:
         # Apply compression, manifest, and tarball options to config
         self.config._data.setdefault("iso", {})["compression_type"] = self.compression
         self.config._data["generate_manifest"] = self.generate_manifest
+        self.config._data["generate_signature"] = self.generate_signature
         self.config._data["use_tarball"] = self.use_tarball
         self.config._data["create_tarball"] = self.create_tarball
         self.config._data["compress_image"] = self.compress_image

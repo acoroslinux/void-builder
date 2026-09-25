@@ -14,7 +14,7 @@ logger = setup_logger("StageManager")
 
 def stage_config_key(config):
     data = dict(config.to_dict() if hasattr(config, 'to_dict') else config)
-    for option in ('use_tarball', 'create_tarball', 'generate_manifest'):
+    for option in ('use_tarball', 'create_tarball', 'generate_manifest', 'generate_signature'):
         data.pop(option, None)
     return hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()[:20]
 

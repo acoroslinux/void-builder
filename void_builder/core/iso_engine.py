@@ -1,7 +1,10 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from pathlib import Path
+import atexit
+import os
 import shutil
+import subprocess
 import tempfile
 from typing import Any, Dict, List, Optional, Type, Union
 
@@ -45,6 +48,9 @@ class BaseEngine(ISOEngine):
         self.workdir: Optional[Path] = None
         self.chroot_path: Optional[Path] = None
         self.iso_staging: Optional[Path] = None
+        self._signing_home: Optional[Path] = None
+        self._signing_fingerprint: Optional[str] = None
+        self._signing_cleanup_registered = False
 
     def _cfg_get(self, key: str, default: Any = None) -> Any:
         try:
@@ -164,6 +170,24 @@ class BaseEngine(ISOEngine):
                 official_all = [p for p in official_all if p != "xfce4"]
                 official_all.extend(sorted(MUSL_XFCE_COMPONENTS))
             official_all = [p for p in official_all if p not in MUSL_EXCLUSIONS]
+
+        # Void's base-system meta-package pulls the generic linux metapackage.
+        # Replace it when another kernel was selected so the image contains
+        # only the requested kernel family.
+        selected_kernel = str(
+            self.config.get("kernel")
+            or self._cfg_get("platform_specific.base_kernel")
+            or "linux"
+        )
+        if selected_kernel != "linux" and "base-system" in official_all:
+            official_all = [
+                "base-container-full" if package == "base-system" else package
+                for package in official_all
+            ]
+            self.logger.info(
+                "[Packages] Replacing base-system with base-container-full "
+                f"for selected kernel {selected_kernel} to avoid installing linux"
+            )
 
         return {
             "official": official_all,
@@ -287,6 +311,101 @@ class BaseEngine(ISOEngine):
                 pass
         return output_path
 
+    def _cleanup_signing_context(self) -> None:
+        """Remove the per-build GPG home and terminate its agent."""
+        if self._signing_home is None:
+            return
+        home = self._signing_home
+        self._signing_home = None
+        self._signing_fingerprint = None
+        try:
+            subprocess.run(
+                ["gpgconf", "--homedir", str(home), "--kill", "gpg-agent"],
+                check=False,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        finally:
+            shutil.rmtree(home, ignore_errors=True)
+
+    def _ensure_signing_key(self) -> tuple[Path, str]:
+        """Create an ephemeral signing key for this build when first needed."""
+        if self._signing_home and self._signing_fingerprint:
+            return self._signing_home, self._signing_fingerprint
+
+        if shutil.which("gpg") is None:
+            raise ISOBuilderError("GPG is required to sign build artifacts but was not found")
+
+        home = Path(tempfile.mkdtemp(prefix="void-builder-gpg-"))
+        home.chmod(0o700)
+        identity = f"Void Builder Build {os.getpid()} <build@void.invalid>"
+        try:
+            subprocess.run(
+                [
+                    "gpg", "--batch", "--homedir", str(home),
+                    "--pinentry-mode", "loopback", "--passphrase", "",
+                    "--quick-generate-key", identity, "ed25519", "sign", "0",
+                ],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            listing = subprocess.run(
+                ["gpg", "--batch", "--homedir", str(home), "--with-colons", "--list-secret-keys"],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            ).stdout
+            fingerprint = next(
+                (line.split(":")[9] for line in listing.splitlines()
+                 if line.startswith("fpr:") and len(line.split(":")) > 9),
+                None,
+            )
+            if not fingerprint:
+                raise ISOBuilderError("GPG generated a key without a usable fingerprint")
+        except Exception:
+            shutil.rmtree(home, ignore_errors=True)
+            raise
+
+        self._signing_home = home
+        self._signing_fingerprint = fingerprint
+        if not self._signing_cleanup_registered:
+            atexit.register(self._cleanup_signing_context)
+            self._signing_cleanup_registered = True
+        self.logger.info(f"[signature] Created ephemeral GPG key {fingerprint}")
+        return home, fingerprint
+
+    def _sign_artifact(self, output_file: Path) -> Dict[str, str]:
+        """Write an armored detached signature and public key beside an artifact."""
+        home, fingerprint = self._ensure_signing_key()
+        signature_file = output_file.with_suffix(output_file.suffix + ".asc")
+        public_key_file = output_file.with_suffix(output_file.suffix + ".gpg-key.asc")
+        base = ["gpg", "--batch", "--yes", "--homedir", str(home)]
+        subprocess.run(
+            base + ["--local-user", fingerprint, "--armor", "--detach-sign",
+                    "--output", str(signature_file), str(output_file)],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        exported = subprocess.run(
+            base + ["--armor", "--export", fingerprint],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        ).stdout
+        public_key_file.write_bytes(exported)
+        self.logger.info(f"[signature] Generated detached signature: {signature_file.name}")
+        self.logger.info(f"[signature] Exported public key: {public_key_file.name}")
+        return {
+            "signature_file": signature_file.name,
+            "public_key_file": public_key_file.name,
+            "key_fingerprint": fingerprint,
+        }
+
     def _generate_manifest_and_checksums(self, output_file_path: str) -> None:
         import hashlib
         import json
@@ -297,10 +416,12 @@ class BaseEngine(ISOEngine):
             return
 
         generate_manifest = self.config.get("generate_manifest", True)
-        if not generate_manifest:
+        generate_signature = self.config.get("generate_signature", True)
+        if not generate_manifest and not generate_signature:
             return
 
-        self.logger.info(f"[manifest] Generating checksums and manifest for {output_file.name}...")
+        if generate_manifest:
+            self.logger.info(f"[manifest] Generating checksums and manifest for {output_file.name}...")
 
         sha256_hash = hashlib.sha256()
         sha512_hash = hashlib.sha512()
@@ -320,9 +441,10 @@ class BaseEngine(ISOEngine):
         sha512_file = output_file.with_suffix(output_file.suffix + ".sha512")
         md5_file = output_file.with_suffix(output_file.suffix + ".md5")
 
-        sha256_file.write_text(f"{sha256_val}  {output_file.name}\n")
-        sha512_file.write_text(f"{sha512_val}  {output_file.name}\n")
-        md5_file.write_text(f"{md5_val}  {output_file.name}\n")
+        if generate_manifest:
+            sha256_file.write_text(f"{sha256_val}  {output_file.name}\n")
+            sha512_file.write_text(f"{sha512_val}  {output_file.name}\n")
+            md5_file.write_text(f"{md5_val}  {output_file.name}\n")
 
         packages = self._package_plan().get("official", [])
         manifest_data = {
@@ -342,14 +464,28 @@ class BaseEngine(ISOEngine):
             "software": sorted(packages),
         }
 
-        manifest_file = output_file.with_suffix(output_file.suffix + ".manifest.json")
-        with open(manifest_file, "w") as mf:
-            json.dump(manifest_data, mf, indent=2)
+        signature_data = None
+        if generate_signature:
+            try:
+                signature_data = self._sign_artifact(output_file)
+            except (FileNotFoundError, subprocess.CalledProcessError) as exc:
+                self._cleanup_signing_context()
+                if getattr(self.toolchain, "mode", "mock") == "mock":
+                    self.logger.warning(f"[signature] GPG signing unavailable in mock mode: {exc}")
+                else:
+                    raise ISOBuilderError(f"Unable to sign build artifact with GPG: {exc}") from exc
+        if signature_data:
+            manifest_data["signature"] = signature_data
 
-        self.logger.info(f"[manifest] Generated SHA256: {sha256_file.name}")
-        self.logger.info(f"[manifest] Generated SHA512: {sha512_file.name}")
-        self.logger.info(f"[manifest] Generated MD5: {md5_file.name}")
-        self.logger.info(f"[manifest] Generated Manifest: {manifest_file.name}")
+        if generate_manifest:
+            manifest_file = output_file.with_suffix(output_file.suffix + ".manifest.json")
+            with open(manifest_file, "w") as mf:
+                json.dump(manifest_data, mf, indent=2)
+
+            self.logger.info(f"[manifest] Generated SHA256: {sha256_file.name}")
+            self.logger.info(f"[manifest] Generated SHA512: {sha512_file.name}")
+            self.logger.info(f"[manifest] Generated MD5: {md5_file.name}")
+            self.logger.info(f"[manifest] Generated Manifest: {manifest_file.name}")
 
     def export_tarball(self, output_path: str) -> str:
         output_abs = str(resolve_from_project(output_path))
@@ -1060,6 +1196,7 @@ class ISOBuilder:
         self.timings["total"] = time.perf_counter() - t_start
 
         logger.info(f"=== Build completed in {self.timings['total']:.2f}s ===")
+        self.engine._cleanup_signing_context()
         return final_file
 
 @ISOEngine.register("rpi-aarch64")

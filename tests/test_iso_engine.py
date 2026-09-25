@@ -48,6 +48,14 @@ class TestISOEngine(unittest.TestCase):
             self.assertTrue(Path(str(result) + ".md5").exists())
             self.assertTrue(Path(str(result) + ".manifest.json").exists())
 
+    def test_selected_kernel_replaces_base_system(self):
+        assembler = ConfigAssembler("configs")
+        cfg = assembler.assemble("x86_64", target_kernel="linux-lts")
+        builder = ISOBuilder("x86_64", cfg, DummyToolchain())
+        packages = builder.engine._package_plan()["official"]
+        self.assertIn("base-container-full", packages)
+        self.assertNotIn("base-system", packages)
+
     def test_iso_builder_mock_tarball(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir)

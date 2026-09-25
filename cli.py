@@ -526,6 +526,21 @@ def main():
         help="Disable automatic checksum and manifest generation.",
     )
 
+    signature_group = parser.add_mutually_exclusive_group()
+    signature_group.add_argument(
+        "--generate-signature",
+        dest="generate_signature",
+        action="store_true",
+        default=True,
+        help="Generate an ephemeral per-build GPG signature and public key (default: enabled).",
+    )
+    signature_group.add_argument(
+        "--no-signature",
+        dest="generate_signature",
+        action="store_false",
+        help="Disable automatic GPG signature generation.",
+    )
+
     # Base System Tarball & Stage Seed Pipeline
     parser.add_argument(
         "--use-tarball",
@@ -918,6 +933,7 @@ def main():
         update_toolchain=args.update_toolchain,
         compression=args.compression,
         generate_manifest=args.generate_manifest,
+        generate_signature=args.generate_signature,
         use_tarball=args.use_tarball,
         create_tarball=args.create_tarball,
         compress_image=args.compress_image,

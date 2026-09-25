@@ -1,4 +1,5 @@
 import unittest
+from pathlib import Path
 from void_builder.core.config_loader import Config, ConfigAssembler, ConfigLoader
 from void_builder.core.path_utils import resolve_from_project
 
@@ -36,6 +37,16 @@ class TestConfigLoader(unittest.TestCase):
         self.assertEqual(len(report["errors"]), 0)
         self.assertEqual(report["summary"]["target_arch"], "x86_64")
         self.assertEqual(report["summary"]["desktop"], "xfce")
+
+    def test_desktop_audio_stack_is_available_for_all_profiles(self):
+        assembler = ConfigAssembler("configs")
+        for desktop_path in sorted(Path("configs/desktops").glob("*.json")):
+            with self.subTest(desktop=desktop_path.stem):
+                cfg = assembler.assemble("x86_64", target_desktop=desktop_path.stem)
+                packages = cfg.get("package_sources.official", [])
+                services = cfg.get("customizations.services", [])
+                self.assertTrue({"pipewire", "wireplumber", "alsa-pipewire"}.issubset(packages))
+                self.assertTrue({"dbus", "elogind"}.issubset(services))
 
     def test_config_assembler_validate_invalid_desktop(self):
         assembler = ConfigAssembler("configs")
@@ -106,4 +117,3 @@ class TestConfigLoader(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

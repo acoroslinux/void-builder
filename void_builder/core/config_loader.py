@@ -314,7 +314,9 @@ class ConfigAssembler:
                     if "official" not in self.master_config["package_sources"]:
                         self.master_config["package_sources"]["official"] = []
                     
-                    pw_pkgs = ["pipewire", "alsa-pipewire"]
+                    # Keep the session manager explicit so custom and offline
+                    # repositories cannot leave PipeWire without WirePlumber.
+                    pw_pkgs = ["pipewire", "wireplumber", "alsa-pipewire"]
                     if target_arch.startswith("asahi"):
                         pw_pkgs.append("asahi-audio")
                         
@@ -592,10 +594,19 @@ class ConfigAssembler:
                 if is_x86 and p_str in ARM_EXCLUSIVE_PACKAGES:
                     continue
                 res.append(p)
-            # Deduplicate kernel for RPi
-            has_rpi_kernel = any((p.get("name") if isinstance(p, dict) else str(p)) == "rpi-kernel" for p in res)
-            if has_rpi_kernel:
-                res = [p for p in res if (p.get("name") if isinstance(p, dict) else str(p)) != "linux"]
+            # Platform kernels replace generic kernel packages. Without this
+            # cleanup, architecture profiles can install two kernels.
+            special_kernels = {"rpi-kernel", "pinebookpro-kernel", "linux-asahi"}
+            has_special_kernel = any(
+                (p.get("name") if isinstance(p, dict) else str(p)) in special_kernels
+                for p in res
+            )
+            if has_special_kernel:
+                generic_kernels = {"linux", "linux-lts", "linux-mainline"}
+                res = [
+                    p for p in res
+                    if (p.get("name") if isinstance(p, dict) else str(p)) not in generic_kernels
+                ]
             return res
 
         package_sources = self.master_config.get("package_sources", {})

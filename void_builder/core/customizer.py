@@ -1,5 +1,6 @@
 import shutil
 from pathlib import Path
+import re
 from typing import Any, Dict, List, Optional
 
 from void_builder.core.chroot_manager import ChrootManager
@@ -306,15 +307,16 @@ class DracutAction(SystemAction):
         "zstd": "--zstd",
     }
 
-    def __init__(self, initramfs_config: Dict[str, Any], output_format: str = "iso"):
+    def __init__(self, initramfs_config: Dict[str, Any], output_format: str = "iso", kernel_package: str = "linux"):
         self.compression = initramfs_config.get("compression", "xz")
         self.extra_modules = initramfs_config.get("dracut_modules", [])
         # Anything that is not iso/tarball is treated as a real disk image
         _fmt = (output_format or "iso").lower()
         self.is_disk_image = _fmt not in ("iso", "tarball")
+        self.kernel_package = kernel_package or "linux"
 
     def _detect_kernel_version(self, chroot: ChrootManager) -> Optional[str]:
-        """Detect the newest kernel version installed in the chroot."""
+        """Detect the module version belonging to the selected kernel package."""
         modules_dir = chroot.chroot_path / "usr" / "lib" / "modules"
         if not modules_dir.is_dir():
             logger.error("  [Dracut] /usr/lib/modules not found in chroot!")
@@ -323,6 +325,23 @@ class DracutAction(SystemAction):
         if not versions:
             logger.error("  [Dracut] No kernel versions found in /usr/lib/modules!")
             return None
+        try:
+            deps = chroot.run_command(
+                f"xbps-query -p run_depends {self.kernel_package}", check=False
+            )
+            package_names = re.findall(
+                r"linux(?:[0-9]+(?:\.[0-9]+)+|-(?:lts|mainline))(?:-headers)?",
+                deps or "",
+            )
+            for package_name in package_names:
+                pkgver = chroot.run_command(
+                    f"xbps-query -p pkgver {package_name}", check=False
+                )
+                for directory in versions:
+                    if directory.name in (pkgver or ""):
+                        return directory.name
+        except Exception as exc:
+            logger.debug(f"  [Dracut] Could not resolve kernel package dependency: {exc}")
         versions.sort(key=lambda d: d.stat().st_mtime, reverse=True)
         return versions[0].name
 
@@ -336,6 +355,11 @@ class DracutAction(SystemAction):
         if not kernel_version:
             return
         logger.info(f"  [Dracut] Detected kernel: {kernel_version}")
+
+        # Void's usr-merged kernel packages place modules below
+        # /usr/lib/modules. Rebuild the dependency index before dracut.
+        logger.info(f"  [Dracut] Regenerating module dependency index for {kernel_version}")
+        chroot.run_command(f"depmod -b /usr -a {kernel_version}")
 
         comp_flag = self.COMPRESSION_FLAGS.get(self.compression, "--xz")
         initrd_path = f"/boot/initramfs-{kernel_version}.img"
@@ -353,6 +377,7 @@ class DracutAction(SystemAction):
 
             cmd_parts = [
                 "dracut", "-N", comp_flag,
+                "--kmoddir", f"/usr/lib/modules/{kernel_version}",
                 "--add-drivers", f'"{" ".join(self.DISK_ADD_DRIVERS)}"',
                 "--force-add", f'"{" ".join(force_modules)}"',
                 "--omit", "dmsquash-live",
@@ -371,6 +396,7 @@ class DracutAction(SystemAction):
 
             cmd_parts = [
                 "dracut", "-N", comp_flag,
+                "--kmoddir", f"/usr/lib/modules/{kernel_version}",
                 "--add-drivers", f'"{" ".join(self.ADD_DRIVERS)}"',
                 "--force-add", f'"{" ".join(force_modules)}"',
             ]
@@ -1039,14 +1065,26 @@ class SystemConfigurator:
             if hasattr(initramfs, "_data"):
                 initramfs = initramfs._data
             if isinstance(initramfs, dict):
-                self.actions.append(DracutAction(initramfs, output_format=output_format))
+                self.actions.append(DracutAction(
+                    initramfs,
+                    output_format=output_format,
+                    kernel_package=str(_safe_get(config, "kernel", "linux") or "linux"),
+                ))
             else:
                 logger.warning("  [Dracut] initramfs config is not a dict — using safe default (xz compression)")
-                self.actions.append(DracutAction({"compression": "xz"}, output_format=output_format))
+                self.actions.append(DracutAction(
+                    {"compression": "xz"},
+                    output_format=output_format,
+                    kernel_package=str(_safe_get(config, "kernel", "linux") or "linux"),
+                ))
         else:
             # Always build the initramfs — fallback to xz if config is missing
             logger.info("  [Dracut] No initramfs config found — using safe default (xz compression)")
-            self.actions.append(DracutAction({"compression": "xz"}, output_format=output_format))
+            self.actions.append(DracutAction(
+                {"compression": "xz"},
+                output_format=output_format,
+                kernel_package=str(_safe_get(config, "kernel", "linux") or "linux"),
+            ))
         arch = _safe_get(config, "platform_specific.architecture", "x86_64")
 
         # 9. Pipewire configuration
